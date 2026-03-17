@@ -12,6 +12,15 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch.utils.data import DataLoader, TensorDataset
 
+try:  # pragma: no cover - available on modern torch, optional fallback.
+    from torch.func import jacrev, vmap
+
+    _HAS_TORCH_FUNC = True
+except Exception:  # pragma: no cover - old torch fallback.
+    jacrev = None
+    vmap = None
+    _HAS_TORCH_FUNC = False
+
 from .config import DEFAULT_CHECKPOINT_PATH, SOFTENING_EPSILON_KM
 from .constants import mu_array
 from .model import EmulatorModel, ModelConfig
@@ -47,10 +56,16 @@ class TrainConfig:
     nbody_warmup_epochs: int = 200
     nbody_softening_km: float = SOFTENING_EPSILON_KM
     nbody_relative_floor_km_s2: float = 1e-5
+    adaptive_nbody_balance: bool = False
+    nbody_target_fraction: float = 0.0
+    nbody_balance_beta: float = 0.9
+    nbody_balance_max_scale: float = 1e6
+    nbody_batch_size: int | None = None
     position_loss_weight: float = 1.0
     velocity_loss_weight: float = 1.0
     force_chronological_for_derivatives: bool = False
     sort_train_for_derivatives: bool = False
+    compute_val_velocity_rmse: bool = True
     selection_metric: str = "val_loss"
     show_progress: bool = True
 
@@ -238,16 +253,17 @@ def _position_only_to_full_state_norm(
     scaler_mean_t: Tensor,
     scaler_std_t: Tensor,
     time_std_seconds: float,
+    need_velocity: bool,
     need_acceleration: bool,
     create_graph: bool,
-) -> tuple[Tensor, Tensor, Tensor, Tensor | None]:
+) -> tuple[Tensor, Tensor, Tensor | None, Tensor | None]:
     """
     Evaluate a position-only model and derive velocity/acceleration by autograd.
 
     Returns:
     - pred_norm_full: [N,B,6] normalized state
     - pos_phys: [N,B,3] km
-    - vel_phys: [N,B,3] km/s
+    - vel_phys: [N,B,3] km/s or None
     - acc_phys: [N,B,3] km/s^2 or None
     """
     if model.state_mode != "position_only":
@@ -265,39 +281,52 @@ def _position_only_to_full_state_norm(
     std_vel = scaler_std_t[:, :, 3:]
 
     pos_phys = pos_norm * std_pos + mean_pos
-    n_bodies = int(pos_phys.shape[1])
-    device = pos_phys.device
-    dtype = pos_phys.dtype
     inv_time_std = 1.0 / float(time_std_seconds)
+    inv_time_std_sq = inv_time_std * inv_time_std
 
-    vel_phys = torch.zeros((pos_phys.shape[0], n_bodies, 3), device=device, dtype=dtype)
-    acc_phys = (
-        torch.zeros((pos_phys.shape[0], n_bodies, 3), device=device, dtype=dtype)
-        if need_acceleration
-        else None
-    )
+    vel_phys = None
+    acc_phys = None
 
-    for body_idx in range(n_bodies):
-        for comp_idx in range(3):
-            comp = pos_phys[:, body_idx, comp_idx]
-            dcomp_dt_norm = torch.autograd.grad(
-                comp.sum(),
-                t_norm,
-                create_graph=create_graph,
-                retain_graph=True,
-            )[0]
-            vel_comp = dcomp_dt_norm * inv_time_std
-            vel_phys[:, body_idx, comp_idx] = vel_comp
+    if need_velocity or need_acceleration:
+        if _HAS_TORCH_FUNC:
+            def _single_time_pos_norm(t_scalar: Tensor) -> Tensor:
+                return model(t_scalar.reshape(1))[0]
+
+            vel_norm_time = vmap(jacrev(_single_time_pos_norm))(t_norm)
+            vel_phys = vel_norm_time * std_pos * inv_time_std
             if need_acceleration:
-                dvel_dt_norm = torch.autograd.grad(
-                    vel_comp.sum(),
-                    t_norm,
-                    create_graph=create_graph,
-                    retain_graph=True,
-                )[0]
-                acc_phys[:, body_idx, comp_idx] = dvel_dt_norm * inv_time_std
+                acc_norm_time = vmap(jacrev(jacrev(_single_time_pos_norm)))(t_norm)
+                acc_phys = acc_norm_time * std_pos * inv_time_std_sq
+        else:  # pragma: no cover - legacy torch fallback.
+            n_bodies = int(pos_phys.shape[1])
+            device = pos_phys.device
+            dtype = pos_phys.dtype
+            vel_phys = torch.zeros((pos_phys.shape[0], n_bodies, 3), device=device, dtype=dtype)
+            if need_acceleration:
+                acc_phys = torch.zeros((pos_phys.shape[0], n_bodies, 3), device=device, dtype=dtype)
+            for body_idx in range(n_bodies):
+                for comp_idx in range(3):
+                    comp = pos_phys[:, body_idx, comp_idx]
+                    dcomp_dt_norm = torch.autograd.grad(
+                        comp.sum(),
+                        t_norm,
+                        create_graph=create_graph,
+                        retain_graph=True,
+                    )[0]
+                    vel_comp = dcomp_dt_norm * inv_time_std
+                    vel_phys[:, body_idx, comp_idx] = vel_comp
+                    if need_acceleration and acc_phys is not None:
+                        dvel_dt_norm = torch.autograd.grad(
+                            vel_comp.sum(),
+                            t_norm,
+                            create_graph=create_graph,
+                            retain_graph=True,
+                        )[0]
+                        acc_phys[:, body_idx, comp_idx] = dvel_dt_norm * inv_time_std
 
-    vel_norm = (vel_phys - mean_vel) / std_vel
+        vel_norm = (vel_phys - mean_vel) / std_vel
+    else:
+        vel_norm = torch.zeros_like(mean_vel).expand(pos_norm.shape[0], -1, -1)
     pred_norm_full = torch.cat((pos_norm, vel_norm), dim=-1)
     return pred_norm_full, pos_phys, vel_phys, acc_phys
 
@@ -368,39 +397,6 @@ def train_emulator(
     norm_states = scaler_obj.transform(raw_states).astype(np.float32)
     norm_times, time_mean, time_std = _normalize_time_axis(times_seconds)
 
-    split_mode_eff = cfg.split_mode
-    if use_derivative_losses and cfg.force_chronological_for_derivatives and cfg.split_mode == "random":
-        split_mode_eff = "chronological"
-        if cfg.show_progress:
-            print("Info: derivative losses enabled, forcing split_mode='chronological'.")
-
-    train_idx, val_idx = _split_indices(
-        len(norm_times),
-        cfg.val_fraction,
-        cfg.seed,
-        split_mode=split_mode_eff,
-    )
-    if use_derivative_losses and cfg.sort_train_for_derivatives:
-        train_idx = np.sort(train_idx)
-    x_tensor = torch.from_numpy(norm_times.astype(np.float32))
-    y_tensor = torch.from_numpy(norm_states)
-
-    effective_shuffle = cfg.shuffle
-    if use_derivative_losses and cfg.shuffle:
-        # Derivative-based losses assume locally ordered times in each batch.
-        effective_shuffle = False
-
-    train_loader = DataLoader(
-        TensorDataset(x_tensor[train_idx], y_tensor[train_idx]),
-        batch_size=min(cfg.batch_size, len(train_idx)),
-        shuffle=effective_shuffle,
-    )
-    val_loader = DataLoader(
-        TensorDataset(x_tensor[val_idx], y_tensor[val_idx]),
-        batch_size=min(cfg.batch_size, len(val_idx)),
-        shuffle=False,
-    )
-
     mcfg = model_config or ModelConfig(num_bodies=len(bodies))
     if mcfg.num_bodies != len(bodies):
         mcfg = ModelConfig(
@@ -416,6 +412,41 @@ def train_emulator(
             head_hidden_dim=mcfg.head_hidden_dim,
             dropout=mcfg.dropout,
         )
+    ordered_batches_required = use_derivative_losses and mcfg.state_mode != "position_only"
+
+    split_mode_eff = cfg.split_mode
+    if ordered_batches_required and cfg.force_chronological_for_derivatives and cfg.split_mode == "random":
+        split_mode_eff = "chronological"
+        if cfg.show_progress:
+            print("Info: derivative losses enabled, forcing split_mode='chronological'.")
+
+    train_idx, val_idx = _split_indices(
+        len(norm_times),
+        cfg.val_fraction,
+        cfg.seed,
+        split_mode=split_mode_eff,
+    )
+    if ordered_batches_required and cfg.sort_train_for_derivatives:
+        train_idx = np.sort(train_idx)
+    x_tensor = torch.from_numpy(norm_times.astype(np.float32))
+    y_tensor = torch.from_numpy(norm_states)
+
+    effective_shuffle = cfg.shuffle
+    if ordered_batches_required and cfg.shuffle:
+        # Derivative-based losses assume locally ordered times in each batch.
+        effective_shuffle = False
+
+    train_loader = DataLoader(
+        TensorDataset(x_tensor[train_idx], y_tensor[train_idx]),
+        batch_size=min(cfg.batch_size, len(train_idx)),
+        shuffle=effective_shuffle,
+    )
+    val_loader = DataLoader(
+        TensorDataset(x_tensor[val_idx], y_tensor[val_idx]),
+        batch_size=min(cfg.batch_size, len(val_idx)),
+        shuffle=False,
+    )
+
     if mcfg.state_mode == "position_only":
         if cfg.physics_loss_weight > 0.0:
             raise ValueError(
@@ -424,6 +455,14 @@ def train_emulator(
             )
         if cfg.smoothness_loss_weight > 0.0:
             raise ValueError("smoothness_loss_weight is not used with state_mode='position_only'.")
+    if cfg.nbody_target_fraction < 0.0:
+        raise ValueError("nbody_target_fraction must be >= 0")
+    if not 0.0 <= cfg.nbody_balance_beta < 1.0:
+        raise ValueError("nbody_balance_beta must be in [0, 1)")
+    if cfg.nbody_balance_max_scale < 1.0:
+        raise ValueError("nbody_balance_max_scale must be >= 1")
+    if cfg.nbody_batch_size is not None and cfg.nbody_batch_size < 1:
+        raise ValueError("nbody_batch_size must be >= 1 when provided")
 
     device = torch.device(cfg.device)
     model = EmulatorModel(**mcfg.to_kwargs()).to(device)
@@ -475,6 +514,8 @@ def train_emulator(
     best_val = float("inf")
     best_state: dict[str, Tensor] | None = None
     stale_epochs = 0
+    ema_train_loss: float | None = None
+    ema_nbody_loss: float | None = None
 
     progress_enabled = False
     if cfg.show_progress:
@@ -511,6 +552,17 @@ def train_emulator(
             start = max(0, int(cfg.nbody_start_epoch))
             progress = max(0.0, float(epoch_idx + 1 - start)) / float(warmup)
             nbody_weight_eff = cfg.nbody_loss_weight * min(1.0, progress)
+            if (
+                cfg.adaptive_nbody_balance
+                and cfg.nbody_target_fraction > 0.0
+                and ema_train_loss is not None
+                and ema_nbody_loss is not None
+                and ema_nbody_loss > 1e-20
+                and nbody_weight_eff > 0.0
+            ):
+                target_weight = cfg.nbody_target_fraction * max(ema_train_loss, 1e-20) / max(ema_nbody_loss, 1e-20)
+                max_weight = nbody_weight_eff * float(cfg.nbody_balance_max_scale)
+                nbody_weight_eff = min(max_weight, max(nbody_weight_eff, target_weight))
         else:
             nbody_weight_eff = 0.0
 
@@ -527,12 +579,19 @@ def train_emulator(
             optimizer.zero_grad(set_to_none=True)
             if model.state_mode == "position_only":
                 need_acc = nbody_weight_eff > 0.0
+                use_nbody_subset = (
+                    need_acc
+                    and cfg.nbody_batch_size is not None
+                    and int(cfg.nbody_batch_size) < int(batch_t.shape[0])
+                )
+                need_vel = cfg.velocity_loss_weight > 0.0 or (need_acc and not use_nbody_subset)
                 pred, pos_phys, vel_phys, acc_phys = _position_only_to_full_state_norm(
                     model=model,
                     t_norm=batch_t.detach().clone().requires_grad_(True),
                     scaler_mean_t=scaler_mean_t,
                     scaler_std_t=scaler_std_t,
                     time_std_seconds=float(time_std),
+                    need_velocity=need_vel,
                     need_acceleration=need_acc,
                     create_graph=True,
                 )
@@ -548,6 +607,27 @@ def train_emulator(
                     nbody_loss = _nbody_acceleration_residual_loss(
                         positions=pos_phys,
                         accelerations=acc_phys,
+                        mu_values=mu_t,
+                        softening_km=cfg.nbody_softening_km,
+                        relative_floor_km_s2=cfg.nbody_relative_floor_km_s2,
+                    )
+                elif need_acc and use_nbody_subset:
+                    subset_size = min(int(cfg.nbody_batch_size), int(batch_t.shape[0]))
+                    subset_idx = torch.randperm(int(batch_t.shape[0]), device=batch_t.device)[:subset_size]
+                    subset_t = batch_t.index_select(0, subset_idx).detach().clone().requires_grad_(True)
+                    _, pos_phys_subset, _, acc_phys_subset = _position_only_to_full_state_norm(
+                        model=model,
+                        t_norm=subset_t,
+                        scaler_mean_t=scaler_mean_t,
+                        scaler_std_t=scaler_std_t,
+                        time_std_seconds=float(time_std),
+                        need_velocity=True,
+                        need_acceleration=True,
+                        create_graph=True,
+                    )
+                    nbody_loss = _nbody_acceleration_residual_loss(
+                        positions=pos_phys_subset,
+                        accelerations=acc_phys_subset,
                         mu_values=mu_t,
                         softening_km=cfg.nbody_softening_km,
                         relative_floor_km_s2=cfg.nbody_relative_floor_km_s2,
@@ -599,6 +679,17 @@ def train_emulator(
         physics_loss = running_phys / max(1, n_batches)
         smoothness_loss = running_smooth / max(1, n_batches)
         nbody_loss = running_nbody / max(1, n_batches)
+        if cfg.adaptive_nbody_balance and cfg.nbody_target_fraction > 0.0:
+            beta = float(cfg.nbody_balance_beta)
+            if ema_train_loss is None:
+                ema_train_loss = train_loss
+            else:
+                ema_train_loss = beta * ema_train_loss + (1.0 - beta) * train_loss
+            if nbody_loss > 0.0:
+                if ema_nbody_loss is None:
+                    ema_nbody_loss = nbody_loss
+                else:
+                    ema_nbody_loss = beta * ema_nbody_loss + (1.0 - beta) * nbody_loss
 
         model.eval()
         running_val = 0.0
@@ -609,12 +700,14 @@ def train_emulator(
             for val_t, val_y in val_loader:
                 val_t = val_t.to(device)
                 val_y = val_y.to(device)
+                need_val_vel = cfg.velocity_loss_weight > 0.0 or cfg.compute_val_velocity_rmse
                 val_pred, val_pos_phys, val_vel_phys, _ = _position_only_to_full_state_norm(
                     model=model,
                     t_norm=val_t.detach().clone().requires_grad_(True),
                     scaler_mean_t=scaler_mean_t,
                     scaler_std_t=scaler_std_t,
                     time_std_seconds=float(time_std),
+                    need_velocity=need_val_vel,
                     need_acceleration=False,
                     create_graph=False,
                 )
@@ -628,11 +721,14 @@ def train_emulator(
                 )
                 val_true_phys = val_y * scaler_std_t + scaler_mean_t
                 pos_diff = val_pos_phys - val_true_phys[:, :, :3]
-                vel_diff = val_vel_phys - val_true_phys[:, :, 3:]
                 pos_rmse = torch.sqrt(torch.mean(torch.sum(pos_diff * pos_diff, dim=-1)))
-                vel_rmse = torch.sqrt(torch.mean(torch.sum(vel_diff * vel_diff, dim=-1)))
                 running_val_pos_rmse += float(pos_rmse.detach().cpu().item())
-                running_val_vel_rmse += float(vel_rmse.detach().cpu().item())
+                if val_vel_phys is not None:
+                    vel_diff = val_vel_phys - val_true_phys[:, :, 3:]
+                    vel_rmse = torch.sqrt(torch.mean(torch.sum(vel_diff * vel_diff, dim=-1)))
+                    running_val_vel_rmse += float(vel_rmse.detach().cpu().item())
+                else:
+                    running_val_vel_rmse += float("nan")
                 n_val_batches += 1
         else:
             with torch.no_grad():
@@ -659,7 +755,10 @@ def train_emulator(
                     n_val_batches += 1
         val_loss = running_val / max(1, n_val_batches)
         val_pos_rmse = running_val_pos_rmse / max(1, n_val_batches)
-        val_vel_rmse = running_val_vel_rmse / max(1, n_val_batches)
+        if model.state_mode == "position_only" and not cfg.compute_val_velocity_rmse and cfg.velocity_loss_weight <= 0.0:
+            val_vel_rmse = float("nan")
+        else:
+            val_vel_rmse = running_val_vel_rmse / max(1, n_val_batches)
 
         history["train_loss"].append(train_loss)
         history["val_loss"].append(val_loss)

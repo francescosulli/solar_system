@@ -10,6 +10,15 @@ import astropy.units as u
 import numpy as np
 import torch
 
+try:  # pragma: no cover - optional fallback for older torch.
+    from torch.func import jacrev, vmap
+
+    _HAS_TORCH_FUNC = True
+except Exception:  # pragma: no cover
+    jacrev = None
+    vmap = None
+    _HAS_TORCH_FUNC = False
+
 from .config import FRAME_INTERNAL, FRAME_ORIGIN, TIME_SCALE
 from .model import EmulatorModel
 from .preprocessing import StateScaler
@@ -87,21 +96,27 @@ class EphemerisEmulator:
         pos_norm = self.model(t_norm_req)  # [N, B, 3]
         pos_phys = pos_norm * self._scaler_std_t[:, :, :3] + self._scaler_mean_t[:, :, :3]
 
-        n_samples = int(pos_phys.shape[0])
-        n_bodies = int(pos_phys.shape[1])
-        vel_phys = torch.zeros((n_samples, n_bodies, 3), device=self.device, dtype=pos_phys.dtype)
         inv_time_std = 1.0 / float(self.time_std)
+        if _HAS_TORCH_FUNC:
+            def _single_time_pos_norm(t_scalar: torch.Tensor) -> torch.Tensor:
+                return self.model(t_scalar.reshape(1))[0]
 
-        for body_idx in range(n_bodies):
-            for comp_idx in range(3):
-                comp = pos_phys[:, body_idx, comp_idx]
-                dcomp_dt_norm = torch.autograd.grad(
-                    comp.sum(),
-                    t_norm_req,
-                    create_graph=False,
-                    retain_graph=True,
-                )[0]
-                vel_phys[:, body_idx, comp_idx] = dcomp_dt_norm * inv_time_std
+            vel_norm_time = vmap(jacrev(_single_time_pos_norm))(t_norm_req)
+            vel_phys = vel_norm_time * self._scaler_std_t[:, :, :3] * inv_time_std
+        else:  # pragma: no cover - legacy torch fallback.
+            n_samples = int(pos_phys.shape[0])
+            n_bodies = int(pos_phys.shape[1])
+            vel_phys = torch.zeros((n_samples, n_bodies, 3), device=self.device, dtype=pos_phys.dtype)
+            for body_idx in range(n_bodies):
+                for comp_idx in range(3):
+                    comp = pos_phys[:, body_idx, comp_idx]
+                    dcomp_dt_norm = torch.autograd.grad(
+                        comp.sum(),
+                        t_norm_req,
+                        create_graph=False,
+                        retain_graph=True,
+                    )[0]
+                    vel_phys[:, body_idx, comp_idx] = dcomp_dt_norm * inv_time_std
 
         states = torch.cat((pos_phys, vel_phys), dim=-1)
         return states.detach().cpu().numpy()
