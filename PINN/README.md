@@ -91,8 +91,8 @@ I notebook sono configurati in modalita robusta per massimizzare il fit alle orb
   in stage3 la supervisione velocita viene spenta (`velocity_loss_weight=0`) per lasciare che il fine-tuning fisico corregga soprattutto la traiettoria, mentre la 6D supervisionata rimane nello stage2
   in stage2 lo split resta `random` (evita validazione in extrapolazione pura)
   il checkpoint finale viene scelto tra `refine` e `physics` con metrica `val_pos_rmse_km`
-- confronto automatico MLP (progetto principale) vs PINN nel notebook `05_compare_baseline_vs_pinn.ipynb`
-  (la MLP viene solo caricata per valutazione, non usata in training)
+- confronto automatico `MLP/` vs `PINN/` nel notebook `05_compare_baseline_vs_pinn.ipynb`
+  (la baseline viene caricata da `../MLP/artifacts/`, non usata in training)
 - metriche: RMSE fisiche in km e km/s + confronto orbitale su un anno in `03_inference_and_viz.ipynb` (tutti i pianeti)
 - `03_inference_and_viz.ipynb` include benchmark multi-finestra (interpolazione fino al 2029 ed extrapolazione dal 2030)
 

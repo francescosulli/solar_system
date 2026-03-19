@@ -14,9 +14,12 @@ __pycache__/
 
 # Local outputs
 artifacts/
+**/artifacts/
 data/*.npz
+**/data/*.npz
 
 # IDE / OS
 .DS_Store
 .idea/
 data/de440.bsp
+**/data/de440.bsp
