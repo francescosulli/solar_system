@@ -39,6 +39,12 @@ class TrainConfig:
     val_fraction: float = 0.2
     seed: int = 42
     device: str = "cpu"
+    train_loader_workers: int = 0
+    pin_memory: bool | None = None
+    persistent_workers: bool = False
+    cuda_matmul_precision: str = "high"
+    allow_tf32: bool = True
+    cudnn_benchmark: bool = True
     early_stopping_patience: int | None = 30
     split_mode: str = "random"
     shuffle: bool = True
@@ -61,6 +67,7 @@ class TrainConfig:
     nbody_balance_beta: float = 0.9
     nbody_balance_max_scale: float = 1e6
     nbody_batch_size: int | None = None
+    nbody_collocation_points: int | None = None
     position_loss_weight: float = 1.0
     velocity_loss_weight: float = 1.0
     force_chronological_for_derivatives: bool = False
@@ -402,6 +409,7 @@ def train_emulator(
         mcfg = ModelConfig(
             num_bodies=len(bodies),
             state_mode=mcfg.state_mode,
+            backbone_type=mcfg.backbone_type,
             hidden_dim=mcfg.hidden_dim,
             num_layers=mcfg.num_layers,
             fourier_features=mcfg.fourier_features,
@@ -410,6 +418,8 @@ def train_emulator(
             frequency_spacing=mcfg.frequency_spacing,
             head_layers=mcfg.head_layers,
             head_hidden_dim=mcfg.head_hidden_dim,
+            body_embedding_dim=mcfg.body_embedding_dim,
+            use_layer_norm=mcfg.use_layer_norm,
             dropout=mcfg.dropout,
         )
     ordered_batches_required = use_derivative_losses and mcfg.state_mode != "position_only"
@@ -435,18 +445,6 @@ def train_emulator(
     if ordered_batches_required and cfg.shuffle:
         # Derivative-based losses assume locally ordered times in each batch.
         effective_shuffle = False
-
-    train_loader = DataLoader(
-        TensorDataset(x_tensor[train_idx], y_tensor[train_idx]),
-        batch_size=min(cfg.batch_size, len(train_idx)),
-        shuffle=effective_shuffle,
-    )
-    val_loader = DataLoader(
-        TensorDataset(x_tensor[val_idx], y_tensor[val_idx]),
-        batch_size=min(cfg.batch_size, len(val_idx)),
-        shuffle=False,
-    )
-
     if mcfg.state_mode == "position_only":
         if cfg.physics_loss_weight > 0.0:
             raise ValueError(
@@ -463,8 +461,40 @@ def train_emulator(
         raise ValueError("nbody_balance_max_scale must be >= 1")
     if cfg.nbody_batch_size is not None and cfg.nbody_batch_size < 1:
         raise ValueError("nbody_batch_size must be >= 1 when provided")
+    if cfg.nbody_collocation_points is not None and cfg.nbody_collocation_points < 1:
+        raise ValueError("nbody_collocation_points must be >= 1 when provided")
+    if cfg.train_loader_workers < 0:
+        raise ValueError("train_loader_workers must be >= 0")
 
     device = torch.device(cfg.device)
+    if device.type == "cuda":
+        torch.set_float32_matmul_precision(str(cfg.cuda_matmul_precision))
+        torch.backends.cuda.matmul.allow_tf32 = bool(cfg.allow_tf32)
+        torch.backends.cudnn.allow_tf32 = bool(cfg.allow_tf32)
+        torch.backends.cudnn.benchmark = bool(cfg.cudnn_benchmark)
+    pin_memory_eff = bool(cfg.pin_memory) if cfg.pin_memory is not None else device.type == "cuda"
+
+    train_loader_kwargs: dict[str, Any] = {
+        "batch_size": min(cfg.batch_size, len(train_idx)),
+        "shuffle": effective_shuffle,
+        "num_workers": int(cfg.train_loader_workers),
+        "pin_memory": pin_memory_eff,
+    }
+    if cfg.train_loader_workers > 0:
+        train_loader_kwargs["persistent_workers"] = bool(cfg.persistent_workers)
+    train_loader = DataLoader(TensorDataset(x_tensor[train_idx], y_tensor[train_idx]), **train_loader_kwargs)
+
+    val_loader_kwargs: dict[str, Any] = {
+        "batch_size": min(cfg.batch_size, len(val_idx)),
+        "shuffle": False,
+        "num_workers": int(cfg.train_loader_workers),
+        "pin_memory": pin_memory_eff,
+    }
+    if cfg.train_loader_workers > 0:
+        val_loader_kwargs["persistent_workers"] = bool(cfg.persistent_workers)
+    val_loader = DataLoader(TensorDataset(x_tensor[val_idx], y_tensor[val_idx]), **val_loader_kwargs)
+    train_time_min_norm = float(np.min(norm_times[train_idx]))
+    train_time_max_norm = float(np.max(norm_times[train_idx]))
     model = EmulatorModel(**mcfg.to_kwargs()).to(device)
     if initial_checkpoint_path is not None:
         init_payload = load_checkpoint(initial_checkpoint_path, map_location=str(device))
@@ -573,18 +603,21 @@ def train_emulator(
         running_nbody = 0.0
         n_batches = 0
         for batch_t, batch_y in train_loader:
-            batch_t = batch_t.to(device)
-            batch_y = batch_y.to(device)
+            batch_t = batch_t.to(device, non_blocking=pin_memory_eff)
+            batch_y = batch_y.to(device, non_blocking=pin_memory_eff)
 
             optimizer.zero_grad(set_to_none=True)
             if model.state_mode == "position_only":
                 need_acc = nbody_weight_eff > 0.0
+                use_collocation = need_acc and cfg.nbody_collocation_points is not None
                 use_nbody_subset = (
                     need_acc
+                    and not use_collocation
                     and cfg.nbody_batch_size is not None
                     and int(cfg.nbody_batch_size) < int(batch_t.shape[0])
                 )
-                need_vel = cfg.velocity_loss_weight > 0.0 or (need_acc and not use_nbody_subset)
+                need_vel = cfg.velocity_loss_weight > 0.0
+                need_batch_acc = need_acc and not use_collocation and not use_nbody_subset
                 pred, pos_phys, vel_phys, acc_phys = _position_only_to_full_state_norm(
                     model=model,
                     t_norm=batch_t.detach().clone().requires_grad_(True),
@@ -592,7 +625,7 @@ def train_emulator(
                     scaler_std_t=scaler_std_t,
                     time_std_seconds=float(time_std),
                     need_velocity=need_vel,
-                    need_acceleration=need_acc,
+                    need_acceleration=need_batch_acc,
                     create_graph=True,
                 )
                 data_loss = _state_data_loss(
@@ -603,7 +636,31 @@ def train_emulator(
                 )
                 phys_loss = torch.zeros((), device=device)
                 smooth_loss = torch.zeros((), device=device)
-                if need_acc and acc_phys is not None:
+                if need_acc and use_collocation:
+                    collocation_size = int(cfg.nbody_collocation_points)
+                    coll_t = torch.empty(collocation_size, device=device, dtype=batch_t.dtype).uniform_(
+                        train_time_min_norm,
+                        train_time_max_norm,
+                    )
+                    coll_t = coll_t.requires_grad_(True)
+                    _, pos_phys_coll, _, acc_phys_coll = _position_only_to_full_state_norm(
+                        model=model,
+                        t_norm=coll_t,
+                        scaler_mean_t=scaler_mean_t,
+                        scaler_std_t=scaler_std_t,
+                        time_std_seconds=float(time_std),
+                        need_velocity=True,
+                        need_acceleration=True,
+                        create_graph=True,
+                    )
+                    nbody_loss = _nbody_acceleration_residual_loss(
+                        positions=pos_phys_coll,
+                        accelerations=acc_phys_coll,
+                        mu_values=mu_t,
+                        softening_km=cfg.nbody_softening_km,
+                        relative_floor_km_s2=cfg.nbody_relative_floor_km_s2,
+                    )
+                elif need_acc and acc_phys is not None:
                     nbody_loss = _nbody_acceleration_residual_loss(
                         positions=pos_phys,
                         accelerations=acc_phys,
@@ -698,8 +755,8 @@ def train_emulator(
         n_val_batches = 0
         if model.state_mode == "position_only":
             for val_t, val_y in val_loader:
-                val_t = val_t.to(device)
-                val_y = val_y.to(device)
+                val_t = val_t.to(device, non_blocking=pin_memory_eff)
+                val_y = val_y.to(device, non_blocking=pin_memory_eff)
                 need_val_vel = cfg.velocity_loss_weight > 0.0 or cfg.compute_val_velocity_rmse
                 val_pred, val_pos_phys, val_vel_phys, _ = _position_only_to_full_state_norm(
                     model=model,
@@ -733,8 +790,8 @@ def train_emulator(
         else:
             with torch.no_grad():
                 for val_t, val_y in val_loader:
-                    val_t = val_t.to(device)
-                    val_y = val_y.to(device)
+                    val_t = val_t.to(device, non_blocking=pin_memory_eff)
+                    val_y = val_y.to(device, non_blocking=pin_memory_eff)
                     val_pred = model(val_t)
                     running_val += float(
                         _state_data_loss(

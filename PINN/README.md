@@ -78,22 +78,26 @@ I notebook sono configurati in modalita robusta per massimizzare il fit alle orb
 - dataset: `2010-01-01 -> 2030-01-01`, passo `3h` (strict DE440/DE441)
 - modello PINN: `state_mode='position_only'` (predice solo `r(t)`), con
   `v=dr/dt` e `a=d2r/dt2` via autograd (tempo normalizzato)
-  Fourier features multi-scala: `fourier_features=40`, `frequency_spacing='log'`, `min_frequency=0.25`, `max_frequency=48`
+  backbone residuo e body embeddings nel profilo GPU
+  Fourier features multi-scala log-spaced: `fourier_features=64`, `min_frequency=0.05`, `max_frequency=64`
 - training PINN (loss fisica attiva): in **3 fasi** e indipendente dalla MLP
-  stage1 coarse: 450 epoche, fit solo sulle posizioni (`velocity_loss_weight=0`) per ridurre molto il costo CPU
-  stage2 refine: 220 epoche, riattiva la loss sulle velocita via autograd con peso moderato (`velocity_loss_weight=0.4`) e shuffle attivo
-  stage3 physics: 60 epoche, fine-tuning n-body con LR molto bassa (`2e-6`), shuffle attivo e bilanciamento adattivo del residuo (`nbody_loss_weight=1e-6`, `adaptive_nbody_balance=True`, `nbody_target_fraction=2e-3`)
-  lo stage physics usa tutti i punti del batch per la loss dati ma solo un sottoinsieme di collocation points (`nbody_batch_size=48`) per il residuo n-body, cosi il costo CPU cala molto senza togliere il vincolo fisico
+  profilo CPU: conservativo, come fallback
+  profilo GPU: piu capiente e pensato per CUDA/TF32, con DataLoader multi-worker
+  stage1 coarse (GPU): 1000 epoche, fit solo sulle posizioni (`velocity_loss_weight=0`) con batch grande
+  stage2 refine (GPU): 320 epoche, riattiva la loss sulle velocita via autograd con peso moderato (`velocity_loss_weight=0.6`)
+  stage3 physics (GPU): 160 epoche, fine-tuning n-body con collocation physics (`nbody_collocation_points=256`) e bilanciamento adattivo del residuo (`nbody_loss_weight=2e-6`, `adaptive_nbody_balance=True`, `nbody_target_fraction=5e-3`)
+  lo stage physics usa i punti dati per la loss supervisionata e tempi di collocation uniformi nell'intervallo di training per il residuo n-body: questo rende la PINN piu fedele alla formulazione fisica senza legarsi solo agli istanti del dataset
   loss fisica n-body su residuo accelerazione: `a_pred(t) - a_grav(r_pred(t))`
   `physics_loss_weight`/`smoothness_loss_weight` non sono usati in questa architettura
   derivate `dr/dt` e `d2r/dt2` calcolate in modo vettorizzato con `torch.func` quando disponibile
+  su CUDA vengono abilitati `pin_memory`, `persistent_workers`, TF32 e `cudnn.benchmark`
   nessun ordinamento forzato dei batch (`sort_train_for_derivatives=False`) per evitare drift iniziale
-  in stage3 la supervisione velocita viene spenta (`velocity_loss_weight=0`) per lasciare che il fine-tuning fisico corregga soprattutto la traiettoria, mentre la 6D supervisionata rimane nello stage2
   in stage2 lo split resta `random` (evita validazione in extrapolazione pura)
   il checkpoint finale viene scelto tra `refine` e `physics` con metrica `val_pos_rmse_km`
 - confronto automatico `MLP/` vs `PINN/` nel notebook `05_compare_baseline_vs_pinn.ipynb`
   (la baseline viene caricata da `../MLP/artifacts/`, non usata in training)
-- metriche: RMSE fisiche in km e km/s + confronto orbitale su un anno in `03_inference_and_viz.ipynb` (tutti i pianeti)
+- metriche: RMSE fisiche in km e km/s + confronto orbitale su un anno in `03_inference_and_viz.ipynb`
+  con bar chart RMSE per corpo e viste separate `inner` / `outer` solar system
 - `03_inference_and_viz.ipynb` include benchmark multi-finestra (interpolazione fino al 2029 ed extrapolazione dal 2030)
 
 ## Esecuzione da codice (senza notebook)

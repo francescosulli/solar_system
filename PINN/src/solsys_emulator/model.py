@@ -14,6 +14,7 @@ class ModelConfig:
 
     num_bodies: int
     state_mode: str = "full"
+    backbone_type: str = "plain"
     hidden_dim: int = 256
     num_layers: int = 4
     fourier_features: int = 16
@@ -22,6 +23,8 @@ class ModelConfig:
     frequency_spacing: str = "linear"
     head_layers: int = 1
     head_hidden_dim: int = 128
+    body_embedding_dim: int = 0
+    use_layer_norm: bool = False
     dropout: float = 0.0
 
     def to_kwargs(self) -> dict:
@@ -37,10 +40,31 @@ class EmulatorModel(nn.Module):
     - per-body heads in ``self.heads`` (ModuleList)
     """
 
+    class ResidualBlock(nn.Module):
+        """Simple residual MLP block for deeper backbones."""
+
+        def __init__(self, hidden_dim: int, dropout: float = 0.0, use_layer_norm: bool = False) -> None:
+            super().__init__()
+            self.norm = nn.LayerNorm(hidden_dim) if use_layer_norm else nn.Identity()
+            self.fc1 = nn.Linear(hidden_dim, hidden_dim)
+            self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+            self.act = nn.SiLU()
+            self.dropout = nn.Dropout(dropout) if dropout > 0.0 else nn.Identity()
+
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            residual = x
+            y = self.norm(x)
+            y = self.fc1(y)
+            y = self.act(y)
+            y = self.dropout(y)
+            y = self.fc2(y)
+            return residual + y
+
     def __init__(
         self,
         num_bodies: int,
         state_mode: str = "full",
+        backbone_type: str = "plain",
         hidden_dim: int = 256,
         num_layers: int = 4,
         fourier_features: int = 16,
@@ -49,6 +73,8 @@ class EmulatorModel(nn.Module):
         frequency_spacing: str = "linear",
         head_layers: int = 1,
         head_hidden_dim: int = 128,
+        body_embedding_dim: int = 0,
+        use_layer_norm: bool = False,
         dropout: float = 0.0,
     ) -> None:
         super().__init__()
@@ -56,6 +82,8 @@ class EmulatorModel(nn.Module):
             raise ValueError("num_bodies must be positive")
         if state_mode not in {"full", "position_only"}:
             raise ValueError("state_mode must be 'full' or 'position_only'")
+        if backbone_type not in {"plain", "residual"}:
+            raise ValueError("backbone_type must be 'plain' or 'residual'")
         if num_layers < 1:
             raise ValueError("num_layers must be >= 1")
         if fourier_features < 1:
@@ -70,11 +98,14 @@ class EmulatorModel(nn.Module):
             raise ValueError("head_layers must be >= 1")
         if head_hidden_dim < 8:
             raise ValueError("head_hidden_dim must be >= 8")
+        if body_embedding_dim < 0:
+            raise ValueError("body_embedding_dim must be >= 0")
         if dropout < 0.0 or dropout >= 1.0:
             raise ValueError("dropout must be in [0, 1)")
 
         self.num_bodies = int(num_bodies)
         self.state_mode = str(state_mode)
+        self.backbone_type = str(backbone_type)
         self.hidden_dim = int(hidden_dim)
         self.num_layers = int(num_layers)
         self.fourier_features = int(fourier_features)
@@ -83,6 +114,8 @@ class EmulatorModel(nn.Module):
         self.frequency_spacing = str(frequency_spacing)
         self.head_layers = int(head_layers)
         self.head_hidden_dim = int(head_hidden_dim)
+        self.body_embedding_dim = int(body_embedding_dim)
+        self.use_layer_norm = bool(use_layer_norm)
         self.dropout = float(dropout)
 
         if self.frequency_spacing == "log":
@@ -101,20 +134,38 @@ class EmulatorModel(nn.Module):
         self.register_buffer("frequencies", frequencies, persistent=False)
 
         input_dim = 1 + 2 * self.fourier_features
-        layers: list[nn.Module] = []
-        in_dim = input_dim
-        for _ in range(self.num_layers):
-            layers.append(nn.Linear(in_dim, self.hidden_dim))
-            layers.append(nn.SiLU())
-            if self.dropout > 0.0:
-                layers.append(nn.Dropout(self.dropout))
-            in_dim = self.hidden_dim
-        self.backbone = nn.Sequential(*layers)
+        if self.backbone_type == "plain":
+            layers: list[nn.Module] = []
+            in_dim = input_dim
+            for _ in range(self.num_layers):
+                layers.append(nn.Linear(in_dim, self.hidden_dim))
+                layers.append(nn.SiLU())
+                if self.dropout > 0.0:
+                    layers.append(nn.Dropout(self.dropout))
+                in_dim = self.hidden_dim
+            self.backbone = nn.Sequential(*layers)
+        else:
+            self.backbone = nn.Sequential(
+                nn.Linear(input_dim, self.hidden_dim),
+                *[
+                    self.ResidualBlock(
+                        hidden_dim=self.hidden_dim,
+                        dropout=self.dropout,
+                        use_layer_norm=self.use_layer_norm,
+                    )
+                    for _ in range(self.num_layers)
+                ],
+            )
+        if self.body_embedding_dim > 0:
+            self.body_embeddings = nn.Embedding(self.num_bodies, self.body_embedding_dim)
+            nn.init.normal_(self.body_embeddings.weight, mean=0.0, std=0.02)
+        else:
+            self.body_embeddings = None
         out_dim = 6 if self.state_mode == "full" else 3
         self.heads = nn.ModuleList(
             [
                 self._make_head(
-                    in_dim=self.hidden_dim,
+                    in_dim=self.hidden_dim + self.body_embedding_dim,
                     out_dim=out_dim,
                     num_layers=self.head_layers,
                     hidden_dim=self.head_hidden_dim,
@@ -148,6 +199,7 @@ class EmulatorModel(nn.Module):
         return {
             "num_bodies": self.num_bodies,
             "state_mode": self.state_mode,
+            "backbone_type": self.backbone_type,
             "hidden_dim": self.hidden_dim,
             "num_layers": self.num_layers,
             "fourier_features": self.fourier_features,
@@ -156,6 +208,8 @@ class EmulatorModel(nn.Module):
             "frequency_spacing": self.frequency_spacing,
             "head_layers": self.head_layers,
             "head_hidden_dim": self.head_hidden_dim,
+            "body_embedding_dim": self.body_embedding_dim,
+            "use_layer_norm": self.use_layer_norm,
             "dropout": self.dropout,
         }
 
@@ -179,5 +233,12 @@ class EmulatorModel(nn.Module):
         """
         features = self.encode_time(t)
         shared = self.backbone(features)
-        body_outputs = [head(shared) for head in self.heads]
+        body_outputs = []
+        for body_idx, head in enumerate(self.heads):
+            if self.body_embeddings is not None:
+                emb = self.body_embeddings.weight[body_idx].unsqueeze(0).expand(shared.shape[0], -1)
+                head_input = torch.cat((shared, emb), dim=-1)
+            else:
+                head_input = shared
+            body_outputs.append(head(head_input))
         return torch.stack(body_outputs, dim=1)
