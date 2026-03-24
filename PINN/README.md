@@ -78,22 +78,24 @@ I notebook sono configurati in modalita robusta per massimizzare il fit alle orb
 - dataset: `2010-01-01 -> 2030-01-01`, passo `3h` (strict DE440/DE441)
 - modello PINN: `state_mode='position_only'` (predice solo `r(t)`), con
   `v=dr/dt` e `a=d2r/dt2` via autograd (tempo normalizzato)
-  backbone residuo e body embeddings nel profilo GPU
-  Fourier features multi-scala log-spaced: `fourier_features=64`, `min_frequency=0.05`, `max_frequency=64`
-- training PINN (loss fisica attiva): in **3 fasi** e indipendente dalla MLP
+  backbone residuo, body embeddings e interaction blocks nel profilo GPU
+  Fourier features multi-scala log-spaced: `fourier_features=96`, `min_frequency=0.02`, `max_frequency=96`
+- training PINN (loss fisica attiva): in **un'unica run**
   profilo CPU: conservativo, come fallback
-  profilo GPU: piu capiente e pensato per CUDA/TF32, con DataLoader multi-worker
-  stage1 coarse (GPU): 1000 epoche, fit solo sulle posizioni (`velocity_loss_weight=0`) con batch grande
-  stage2 refine (GPU): 320 epoche, riattiva la loss sulle velocita via autograd con peso moderato (`velocity_loss_weight=0.6`)
-  stage3 physics (GPU): 160 epoche, fine-tuning n-body con collocation physics (`nbody_collocation_points=256`) e bilanciamento adattivo del residuo (`nbody_loss_weight=2e-6`, `adaptive_nbody_balance=True`, `nbody_target_fraction=5e-3`)
-  lo stage physics usa i punti dati per la loss supervisionata e tempi di collocation uniformi nell'intervallo di training per il residuo n-body: questo rende la PINN piu fedele alla formulazione fisica senza legarsi solo agli istanti del dataset
-  loss fisica n-body su residuo accelerazione: `a_pred(t) - a_grav(r_pred(t))`
-  `physics_loss_weight`/`smoothness_loss_weight` non sono usati in questa architettura
+  profilo GPU: pensato per A100 / CUDA con DataLoader multi-worker
+  un solo training run con warmup interno della fisica: la loss dati parte subito, mentre il residuo n-body entra gradualmente (`nbody_start_epoch`, `nbody_warmup_epochs`) senza spezzare il training in fasi separate
+  profilo GPU default: `epochs=1400`, `batch_size=1536`, `velocity_loss_weight=0.5`, `nbody_loss_weight=4e-6`, `nbody_collocation_points=512`
+  lo stesso run usa punti dati per la supervisione e tempi di collocation uniformi nell'intervallo di training per il residuo n-body: questo rende la PINN piu fedele alla formulazione fisica senza legarsi solo agli istanti del dataset
+  loss fisiche attive:
+  residuo n-body su accelerazione: `a_pred(t) - a_grav(r_pred(t))`
+  conservazione pseudo-energia totale
+  conservazione pseudo-momento angolare totale
+  `physics_loss_weight`/`smoothness_loss_weight` legacy non sono usati in questa architettura
   derivate `dr/dt` e `d2r/dt2` calcolate in modo vettorizzato con `torch.func` quando disponibile
   su CUDA vengono abilitati `pin_memory`, `persistent_workers`, TF32 e `cudnn.benchmark`
   nessun ordinamento forzato dei batch (`sort_train_for_derivatives=False`) per evitare drift iniziale
-  in stage2 lo split resta `random` (evita validazione in extrapolazione pura)
-  il checkpoint finale viene scelto tra `refine` e `physics` con metrica `val_pos_rmse_km`
+  lo split resta `random` (evita validazione in extrapolazione pura)
+  il checkpoint finale del run unico viene selezionato con metrica `val_pos_rmse_km`
 - confronto automatico `MLP/` vs `PINN/` nel notebook `05_compare_baseline_vs_pinn.ipynb`
   (la baseline viene caricata da `../MLP/artifacts/`, non usata in training)
 - metriche: RMSE fisiche in km e km/s + confronto orbitale su un anno in `03_inference_and_viz.ipynb`

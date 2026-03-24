@@ -53,10 +53,16 @@ class TrainConfig:
     min_lr: float = 1e-5
     physics_loss_weight: float = 0.0
     smoothness_loss_weight: float = 0.0
+    energy_loss_weight: float = 0.0
+    angular_momentum_loss_weight: float = 0.0
     physics_start_epoch: int = 0
     smoothness_start_epoch: int = 0
+    energy_start_epoch: int = 0
+    angular_momentum_start_epoch: int = 0
     physics_warmup_epochs: int = 1
     smoothness_warmup_epochs: int = 1
+    energy_warmup_epochs: int = 1
+    angular_momentum_warmup_epochs: int = 1
     nbody_loss_weight: float = 0.0
     nbody_start_epoch: int = 0
     nbody_warmup_epochs: int = 200
@@ -254,6 +260,44 @@ def _nbody_acceleration_residual_loss(
     return torch.mean(rel)
 
 
+def _energy_conservation_loss(
+    positions: Tensor,
+    velocities: Tensor,
+    mu_values: Tensor,
+    softening_km: float,
+) -> Tensor:
+    """Variance penalty on a mass-weighted pseudo-total energy along sampled times."""
+    mass_like = mu_values.view(1, -1, 1)
+    kinetic = 0.5 * torch.sum(mass_like * torch.sum(velocities * velocities, dim=-1, keepdim=True), dim=1).squeeze(-1)
+
+    r_j_minus_i = positions[:, None, :, :] - positions[:, :, None, :]
+    dist = torch.sqrt(torch.sum(r_j_minus_i * r_j_minus_i, dim=-1) + float(softening_km) ** 2)
+    n_bodies = positions.shape[1]
+    eye = torch.eye(n_bodies, dtype=torch.bool, device=positions.device).unsqueeze(0)
+    inv_dist = torch.where(eye, torch.zeros_like(dist), 1.0 / dist)
+    pair_weight = (mu_values.view(1, n_bodies, 1) * mu_values.view(1, 1, n_bodies))
+    potential = -0.5 * torch.sum(pair_weight * inv_dist, dim=(1, 2))
+
+    total_energy = kinetic + potential
+    energy_centered = total_energy - torch.mean(total_energy)
+    denom = torch.mean(total_energy * total_energy) + 1e-12
+    return torch.mean(energy_centered * energy_centered) / denom
+
+
+def _angular_momentum_conservation_loss(
+    positions: Tensor,
+    velocities: Tensor,
+    mu_values: Tensor,
+) -> Tensor:
+    """Variance penalty on mass-weighted pseudo-total angular momentum along sampled times."""
+    mass_like = mu_values.view(1, -1, 1)
+    angular_momentum = torch.sum(mass_like * torch.cross(positions, velocities, dim=-1), dim=1)
+    centered = angular_momentum - torch.mean(angular_momentum, dim=0, keepdim=True)
+    numer = torch.mean(torch.sum(centered * centered, dim=-1))
+    denom = torch.mean(torch.sum(angular_momentum * angular_momentum, dim=-1)) + 1e-12
+    return numer / denom
+
+
 def _position_only_to_full_state_norm(
     model: EmulatorModel,
     t_norm: Tensor,
@@ -419,6 +463,8 @@ def train_emulator(
             head_layers=mcfg.head_layers,
             head_hidden_dim=mcfg.head_hidden_dim,
             body_embedding_dim=mcfg.body_embedding_dim,
+            interaction_layers=mcfg.interaction_layers,
+            interaction_hidden_dim=mcfg.interaction_hidden_dim,
             use_layer_norm=mcfg.use_layer_norm,
             dropout=mcfg.dropout,
         )
@@ -453,6 +499,10 @@ def train_emulator(
             )
         if cfg.smoothness_loss_weight > 0.0:
             raise ValueError("smoothness_loss_weight is not used with state_mode='position_only'.")
+    if cfg.energy_loss_weight < 0.0:
+        raise ValueError("energy_loss_weight must be >= 0")
+    if cfg.angular_momentum_loss_weight < 0.0:
+        raise ValueError("angular_momentum_loss_weight must be >= 0")
     if cfg.nbody_target_fraction < 0.0:
         raise ValueError("nbody_target_fraction must be >= 0")
     if not 0.0 <= cfg.nbody_balance_beta < 1.0:
@@ -528,12 +578,17 @@ def train_emulator(
 
     history = {
         "train_loss": [],
+        "train_objective_loss": [],
         "val_loss": [],
         "physics_loss": [],
         "smoothness_loss": [],
         "nbody_loss": [],
+        "energy_loss": [],
+        "angular_momentum_loss": [],
         "physics_weight": [],
         "smoothness_weight": [],
+        "energy_weight": [],
+        "angular_momentum_weight": [],
         "val_pos_rmse_km": [],
         "val_vel_rmse_km_s": [],
         "nbody_weight": [],
@@ -577,6 +632,22 @@ def train_emulator(
         else:
             smooth_weight_eff = 0.0
 
+        if cfg.energy_loss_weight > 0.0:
+            energy_warmup = max(1, int(cfg.energy_warmup_epochs))
+            start = max(0, int(cfg.energy_start_epoch))
+            progress = max(0.0, float(epoch_idx + 1 - start)) / float(energy_warmup)
+            energy_weight_eff = cfg.energy_loss_weight * min(1.0, progress)
+        else:
+            energy_weight_eff = 0.0
+
+        if cfg.angular_momentum_loss_weight > 0.0:
+            ang_warmup = max(1, int(cfg.angular_momentum_warmup_epochs))
+            start = max(0, int(cfg.angular_momentum_start_epoch))
+            progress = max(0.0, float(epoch_idx + 1 - start)) / float(ang_warmup)
+            angular_weight_eff = cfg.angular_momentum_loss_weight * min(1.0, progress)
+        else:
+            angular_weight_eff = 0.0
+
         if cfg.nbody_loss_weight > 0.0:
             warmup = max(1, int(cfg.nbody_warmup_epochs))
             start = max(0, int(cfg.nbody_start_epoch))
@@ -598,9 +669,12 @@ def train_emulator(
 
         model.train()
         running_train = 0.0
+        running_objective = 0.0
         running_phys = 0.0
         running_smooth = 0.0
         running_nbody = 0.0
+        running_energy = 0.0
+        running_angular = 0.0
         n_batches = 0
         for batch_t, batch_y in train_loader:
             batch_t = batch_t.to(device, non_blocking=pin_memory_eff)
@@ -609,14 +683,16 @@ def train_emulator(
             optimizer.zero_grad(set_to_none=True)
             if model.state_mode == "position_only":
                 need_acc = nbody_weight_eff > 0.0
-                use_collocation = need_acc and cfg.nbody_collocation_points is not None
+                need_energy = energy_weight_eff > 0.0
+                need_angular = angular_weight_eff > 0.0
+                use_collocation = (need_acc or need_energy or need_angular) and cfg.nbody_collocation_points is not None
                 use_nbody_subset = (
                     need_acc
                     and not use_collocation
                     and cfg.nbody_batch_size is not None
                     and int(cfg.nbody_batch_size) < int(batch_t.shape[0])
                 )
-                need_vel = cfg.velocity_loss_weight > 0.0
+                need_vel = cfg.velocity_loss_weight > 0.0 or ((need_energy or need_angular) and not use_collocation)
                 need_batch_acc = need_acc and not use_collocation and not use_nbody_subset
                 pred, pos_phys, vel_phys, acc_phys = _position_only_to_full_state_norm(
                     model=model,
@@ -636,30 +712,48 @@ def train_emulator(
                 )
                 phys_loss = torch.zeros((), device=device)
                 smooth_loss = torch.zeros((), device=device)
-                if need_acc and use_collocation:
+                energy_loss = torch.zeros((), device=device)
+                angular_loss = torch.zeros((), device=device)
+                if use_collocation:
                     collocation_size = int(cfg.nbody_collocation_points)
                     coll_t = torch.empty(collocation_size, device=device, dtype=batch_t.dtype).uniform_(
                         train_time_min_norm,
                         train_time_max_norm,
                     )
                     coll_t = coll_t.requires_grad_(True)
-                    _, pos_phys_coll, _, acc_phys_coll = _position_only_to_full_state_norm(
+                    _, pos_phys_coll, vel_phys_coll, acc_phys_coll = _position_only_to_full_state_norm(
                         model=model,
                         t_norm=coll_t,
                         scaler_mean_t=scaler_mean_t,
                         scaler_std_t=scaler_std_t,
                         time_std_seconds=float(time_std),
                         need_velocity=True,
-                        need_acceleration=True,
+                        need_acceleration=need_acc,
                         create_graph=True,
                     )
-                    nbody_loss = _nbody_acceleration_residual_loss(
-                        positions=pos_phys_coll,
-                        accelerations=acc_phys_coll,
-                        mu_values=mu_t,
-                        softening_km=cfg.nbody_softening_km,
-                        relative_floor_km_s2=cfg.nbody_relative_floor_km_s2,
-                    )
+                    if need_acc:
+                        nbody_loss = _nbody_acceleration_residual_loss(
+                            positions=pos_phys_coll,
+                            accelerations=acc_phys_coll,
+                            mu_values=mu_t,
+                            softening_km=cfg.nbody_softening_km,
+                            relative_floor_km_s2=cfg.nbody_relative_floor_km_s2,
+                        )
+                    else:
+                        nbody_loss = torch.zeros((), device=device)
+                    if need_energy:
+                        energy_loss = _energy_conservation_loss(
+                            positions=pos_phys_coll,
+                            velocities=vel_phys_coll,
+                            mu_values=mu_t,
+                            softening_km=cfg.nbody_softening_km,
+                        )
+                    if need_angular:
+                        angular_loss = _angular_momentum_conservation_loss(
+                            positions=pos_phys_coll,
+                            velocities=vel_phys_coll,
+                            mu_values=mu_t,
+                        )
                 elif need_acc and acc_phys is not None:
                     nbody_loss = _nbody_acceleration_residual_loss(
                         positions=pos_phys,
@@ -691,6 +785,21 @@ def train_emulator(
                     )
                 else:
                     nbody_loss = torch.zeros((), device=device)
+
+                if not use_collocation:
+                    if need_energy and vel_phys is not None:
+                        energy_loss = _energy_conservation_loss(
+                            positions=pos_phys,
+                            velocities=vel_phys,
+                            mu_values=mu_t,
+                            softening_km=cfg.nbody_softening_km,
+                        )
+                    if need_angular and vel_phys is not None:
+                        angular_loss = _angular_momentum_conservation_loss(
+                            positions=pos_phys,
+                            velocities=vel_phys,
+                            mu_values=mu_t,
+                        )
             else:
                 pred = model(batch_t)
                 data_loss = _state_data_loss(
@@ -715,11 +824,15 @@ def train_emulator(
                     phys_loss = torch.zeros((), device=device)
                     smooth_loss = torch.zeros((), device=device)
                     nbody_loss = torch.zeros((), device=device)
+                energy_loss = torch.zeros((), device=device)
+                angular_loss = torch.zeros((), device=device)
             loss = (
                 data_loss
                 + physics_weight_eff * phys_loss
                 + smooth_weight_eff * smooth_loss
                 + nbody_weight_eff * nbody_loss
+                + energy_weight_eff * energy_loss
+                + angular_weight_eff * angular_loss
             )
             loss.backward()
             if cfg.grad_clip_norm is not None:
@@ -727,15 +840,21 @@ def train_emulator(
             optimizer.step()
 
             running_train += float(data_loss.detach().cpu().item())
+            running_objective += float(loss.detach().cpu().item())
             running_phys += float(phys_loss.detach().cpu().item())
             running_smooth += float(smooth_loss.detach().cpu().item())
             running_nbody += float(nbody_loss.detach().cpu().item())
+            running_energy += float(energy_loss.detach().cpu().item())
+            running_angular += float(angular_loss.detach().cpu().item())
             n_batches += 1
 
         train_loss = running_train / max(1, n_batches)
+        train_objective_loss = running_objective / max(1, n_batches)
         physics_loss = running_phys / max(1, n_batches)
         smoothness_loss = running_smooth / max(1, n_batches)
         nbody_loss = running_nbody / max(1, n_batches)
+        energy_loss = running_energy / max(1, n_batches)
+        angular_loss = running_angular / max(1, n_batches)
         if cfg.adaptive_nbody_balance and cfg.nbody_target_fraction > 0.0:
             beta = float(cfg.nbody_balance_beta)
             if ema_train_loss is None:
@@ -818,39 +937,71 @@ def train_emulator(
             val_vel_rmse = running_val_vel_rmse / max(1, n_val_batches)
 
         history["train_loss"].append(train_loss)
+        history["train_objective_loss"].append(train_objective_loss)
         history["val_loss"].append(val_loss)
         history["physics_loss"].append(physics_loss)
         history["smoothness_loss"].append(smoothness_loss)
         history["nbody_loss"].append(nbody_loss)
+        history["energy_loss"].append(energy_loss)
+        history["angular_momentum_loss"].append(angular_loss)
         history["physics_weight"].append(float(physics_weight_eff))
         history["smoothness_weight"].append(float(smooth_weight_eff))
+        history["energy_weight"].append(float(energy_weight_eff))
+        history["angular_momentum_weight"].append(float(angular_weight_eff))
         history["val_pos_rmse_km"].append(val_pos_rmse)
         history["val_vel_rmse_km_s"].append(val_vel_rmse)
         history["nbody_weight"].append(float(nbody_weight_eff))
         history["lr"].append(float(optimizer.param_groups[0]["lr"]))
         if progress_enabled:
-            epoch_iter.set_postfix(
-                train=f"{train_loss:.3e}",
-                val=f"{val_loss:.3e}",
-                pos_rmse_km=f"{val_pos_rmse:.3e}",
-                phys=f"{physics_loss:.3e}",
-                smooth=f"{smoothness_loss:.3e}",
-                nbody=f"{nbody_loss:.3e}",
-                phys_w=f"{physics_weight_eff:.2e}",
-                nbody_w=f"{nbody_weight_eff:.2e}",
-                lr=f"{optimizer.param_groups[0]['lr']:.2e}",
-            )
+            if model.state_mode == "position_only":
+                postfix = {
+                    "obj": f"{train_objective_loss:.3e}",
+                    "data": f"{train_loss:.3e}",
+                    "val": f"{val_loss:.3e}",
+                    "pos_rmse_km": f"{val_pos_rmse:.3e}",
+                    "nbody": f"{nbody_loss:.3e}",
+                    "nbody_w": f"{nbody_weight_eff:.2e}",
+                    "energy": f"{energy_loss:.3e}",
+                    "angmom": f"{angular_loss:.3e}",
+                    "lr": f"{optimizer.param_groups[0]['lr']:.2e}",
+                }
+                if np.isfinite(val_vel_rmse):
+                    postfix["vel_rmse_km_s"] = f"{val_vel_rmse:.3e}"
+            else:
+                postfix = {
+                    "obj": f"{train_objective_loss:.3e}",
+                    "data": f"{train_loss:.3e}",
+                    "val": f"{val_loss:.3e}",
+                    "pos_rmse_km": f"{val_pos_rmse:.3e}",
+                    "phys": f"{physics_loss:.3e}",
+                    "smooth": f"{smoothness_loss:.3e}",
+                    "nbody": f"{nbody_loss:.3e}",
+                    "phys_w": f"{physics_weight_eff:.2e}",
+                    "nbody_w": f"{nbody_weight_eff:.2e}",
+                    "lr": f"{optimizer.param_groups[0]['lr']:.2e}",
+                }
+            epoch_iter.set_postfix(**postfix)
         elif cfg.show_progress and (epoch_idx + 1 == 1 or (epoch_idx + 1) % 25 == 0):
-            print(
-                (
+            if model.state_mode == "position_only":
+                msg = (
                     f"epoch {epoch_idx + 1:04d}/{cfg.epochs} "
-                    f"train={train_loss:.3e} val={val_loss:.3e} "
-                    f"val_pos_rmse_km={val_pos_rmse:.3e} "
-                    f"phys={physics_loss:.3e} phys_w={physics_weight_eff:.2e} "
-                    f"smooth={smoothness_loss:.3e} nbody={nbody_loss:.3e} nbody_w={nbody_weight_eff:.2e} "
+                    f"obj={train_objective_loss:.3e} data={train_loss:.3e} val={val_loss:.3e} "
+                    f"val_pos_rmse_km={val_pos_rmse:.3e} nbody={nbody_loss:.3e} "
+                    f"energy={energy_loss:.3e} angmom={angular_loss:.3e} "
+                    f"nbody_w={nbody_weight_eff:.2e} lr={optimizer.param_groups[0]['lr']:.2e}"
+                )
+                if np.isfinite(val_vel_rmse):
+                    msg += f" val_vel_rmse_km_s={val_vel_rmse:.3e}"
+            else:
+                msg = (
+                    f"epoch {epoch_idx + 1:04d}/{cfg.epochs} "
+                    f"obj={train_objective_loss:.3e} data={train_loss:.3e} val={val_loss:.3e} "
+                    f"val_pos_rmse_km={val_pos_rmse:.3e} phys={physics_loss:.3e} "
+                    f"phys_w={physics_weight_eff:.2e} smooth={smoothness_loss:.3e} "
+                    f"nbody={nbody_loss:.3e} nbody_w={nbody_weight_eff:.2e} "
                     f"lr={optimizer.param_groups[0]['lr']:.2e}"
                 )
-            )
+            print(msg)
 
         metric_value = val_loss if cfg.selection_metric == "val_loss" else val_pos_rmse
         if metric_value < best_val:

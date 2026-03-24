@@ -24,6 +24,8 @@ class ModelConfig:
     head_layers: int = 1
     head_hidden_dim: int = 128
     body_embedding_dim: int = 0
+    interaction_layers: int = 0
+    interaction_hidden_dim: int = 128
     use_layer_norm: bool = False
     dropout: float = 0.0
 
@@ -60,6 +62,51 @@ class EmulatorModel(nn.Module):
             y = self.fc2(y)
             return residual + y
 
+    class InteractionBlock(nn.Module):
+        """Lightweight interaction-network block over body features."""
+
+        def __init__(
+            self,
+            feature_dim: int,
+            hidden_dim: int,
+            dropout: float = 0.0,
+            use_layer_norm: bool = False,
+        ) -> None:
+            super().__init__()
+            self.feature_dim = int(feature_dim)
+            self.node_norm = nn.LayerNorm(feature_dim) if use_layer_norm else nn.Identity()
+            self.edge_mlp = nn.Sequential(
+                nn.Linear(2 * feature_dim, hidden_dim),
+                nn.SiLU(),
+                nn.Dropout(dropout) if dropout > 0.0 else nn.Identity(),
+                nn.Linear(hidden_dim, feature_dim),
+            )
+            self.node_mlp = nn.Sequential(
+                nn.Linear(2 * feature_dim, hidden_dim),
+                nn.SiLU(),
+                nn.Dropout(dropout) if dropout > 0.0 else nn.Identity(),
+                nn.Linear(hidden_dim, feature_dim),
+            )
+
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            if x.ndim != 3:
+                raise ValueError("InteractionBlock expects input [N, B, F]")
+            n_bodies = int(x.shape[1])
+            if n_bodies < 2:
+                return x
+
+            x_norm = self.node_norm(x)
+            x_i = x_norm.unsqueeze(2).expand(-1, -1, n_bodies, -1)
+            x_j = x_norm.unsqueeze(1).expand(-1, n_bodies, -1, -1)
+            pair_features = torch.cat((x_i, x_j), dim=-1)
+            messages = self.edge_mlp(pair_features)
+
+            eye = torch.eye(n_bodies, dtype=torch.bool, device=x.device).view(1, n_bodies, n_bodies, 1)
+            messages = messages.masked_fill(eye, 0.0)
+            aggregated = messages.sum(dim=2) / float(max(1, n_bodies - 1))
+            update = self.node_mlp(torch.cat((x_norm, aggregated), dim=-1))
+            return x + update
+
     def __init__(
         self,
         num_bodies: int,
@@ -74,6 +121,8 @@ class EmulatorModel(nn.Module):
         head_layers: int = 1,
         head_hidden_dim: int = 128,
         body_embedding_dim: int = 0,
+        interaction_layers: int = 0,
+        interaction_hidden_dim: int = 128,
         use_layer_norm: bool = False,
         dropout: float = 0.0,
     ) -> None:
@@ -100,6 +149,10 @@ class EmulatorModel(nn.Module):
             raise ValueError("head_hidden_dim must be >= 8")
         if body_embedding_dim < 0:
             raise ValueError("body_embedding_dim must be >= 0")
+        if interaction_layers < 0:
+            raise ValueError("interaction_layers must be >= 0")
+        if interaction_hidden_dim < 8:
+            raise ValueError("interaction_hidden_dim must be >= 8")
         if dropout < 0.0 or dropout >= 1.0:
             raise ValueError("dropout must be in [0, 1)")
 
@@ -115,6 +168,8 @@ class EmulatorModel(nn.Module):
         self.head_layers = int(head_layers)
         self.head_hidden_dim = int(head_hidden_dim)
         self.body_embedding_dim = int(body_embedding_dim)
+        self.interaction_layers = int(interaction_layers)
+        self.interaction_hidden_dim = int(interaction_hidden_dim)
         self.use_layer_norm = bool(use_layer_norm)
         self.dropout = float(dropout)
 
@@ -161,11 +216,26 @@ class EmulatorModel(nn.Module):
             nn.init.normal_(self.body_embeddings.weight, mean=0.0, std=0.02)
         else:
             self.body_embeddings = None
+        interaction_feature_dim = self.hidden_dim + self.body_embedding_dim
+        if self.interaction_layers > 0:
+            self.interaction_blocks = nn.ModuleList(
+                [
+                    self.InteractionBlock(
+                        feature_dim=interaction_feature_dim,
+                        hidden_dim=self.interaction_hidden_dim,
+                        dropout=self.dropout,
+                        use_layer_norm=self.use_layer_norm,
+                    )
+                    for _ in range(self.interaction_layers)
+                ]
+            )
+        else:
+            self.interaction_blocks = nn.ModuleList()
         out_dim = 6 if self.state_mode == "full" else 3
         self.heads = nn.ModuleList(
             [
                 self._make_head(
-                    in_dim=self.hidden_dim + self.body_embedding_dim,
+                    in_dim=interaction_feature_dim,
                     out_dim=out_dim,
                     num_layers=self.head_layers,
                     hidden_dim=self.head_hidden_dim,
@@ -209,6 +279,8 @@ class EmulatorModel(nn.Module):
             "head_layers": self.head_layers,
             "head_hidden_dim": self.head_hidden_dim,
             "body_embedding_dim": self.body_embedding_dim,
+            "interaction_layers": self.interaction_layers,
+            "interaction_hidden_dim": self.interaction_hidden_dim,
             "use_layer_norm": self.use_layer_norm,
             "dropout": self.dropout,
         }
@@ -233,12 +305,19 @@ class EmulatorModel(nn.Module):
         """
         features = self.encode_time(t)
         shared = self.backbone(features)
-        body_outputs = []
-        for body_idx, head in enumerate(self.heads):
+        body_inputs = []
+        for body_idx in range(self.num_bodies):
             if self.body_embeddings is not None:
                 emb = self.body_embeddings.weight[body_idx].unsqueeze(0).expand(shared.shape[0], -1)
                 head_input = torch.cat((shared, emb), dim=-1)
             else:
                 head_input = shared
-            body_outputs.append(head(head_input))
+            body_inputs.append(head_input)
+        body_features = torch.stack(body_inputs, dim=1)
+        for block in self.interaction_blocks:
+            body_features = block(body_features)
+
+        body_outputs = []
+        for body_idx, head in enumerate(self.heads):
+            body_outputs.append(head(body_features[:, body_idx, :]))
         return torch.stack(body_outputs, dim=1)

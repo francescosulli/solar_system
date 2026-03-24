@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -35,7 +34,7 @@ from solsys_emulator.train import TrainConfig, train_emulator
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train the Solar System PINN.")
+    parser = argparse.ArgumentParser(description="Train the Solar System PINN with a single unified run.")
     parser.add_argument("--dataset-path", type=Path, default=DEFAULT_DATASET_PATH, help="Input dataset .npz path.")
     parser.add_argument(
         "--checkpoint-path",
@@ -51,15 +50,28 @@ def parse_args() -> argparse.Namespace:
         help="Training device. 'auto' selects cuda when available.",
     )
     parser.add_argument(
-        "--skip-physics-stage",
-        action="store_true",
-        help="Skip the final n-body PINN fine-tuning stage.",
-    )
-    parser.add_argument(
         "--loader-workers",
         type=int,
         default=None,
-        help="Override DataLoader workers. By default: 4 on cuda, 0 on cpu.",
+        help="Override DataLoader workers. By default: 8 on cuda, 0 on cpu.",
+    )
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=None,
+        help="Override total epochs. Default depends on device profile.",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=None,
+        help="Override training batch size. Default depends on device profile.",
+    )
+    parser.add_argument(
+        "--collocation-points",
+        type=int,
+        default=None,
+        help="Override collocation points per batch for n-body residual.",
     )
     parser.add_argument(
         "--plots-dir",
@@ -78,134 +90,82 @@ def resolve_device(device_arg: str) -> str:
     return device_arg
 
 
-def save_figures(
-    plots_dir: Path,
-    coarse: dict[str, Any],
-    refine: dict[str, Any],
-    physics: dict[str, Any] | None,
-) -> None:
-    plots_dir.mkdir(parents=True, exist_ok=True)
-
-    plt.figure(figsize=(10, 4))
-    plt.plot(coarse["history"]["train_loss"], label="coarse train(data)")
-    plt.plot(coarse["history"]["val_loss"], label="coarse val(data)")
-    offset = len(coarse["history"]["train_loss"])
-    plt.plot(
-        range(offset, offset + len(refine["history"]["train_loss"])),
-        refine["history"]["train_loss"],
-        label="refine train(data)",
-    )
-    plt.plot(
-        range(offset, offset + len(refine["history"]["val_loss"])),
-        refine["history"]["val_loss"],
-        label="refine val(data)",
-    )
-    if physics is not None:
-        offset2 = offset + len(refine["history"]["train_loss"])
-        plt.plot(
-            range(offset2, offset2 + len(physics["history"]["train_loss"])),
-            physics["history"]["train_loss"],
-            label="physics train(data)",
-        )
-        plt.plot(
-            range(offset2, offset2 + len(physics["history"]["val_loss"])),
-            physics["history"]["val_loss"],
-            label="physics val(data)",
-        )
-    plt.yscale("log")
-    plt.xlabel("epoch")
-    plt.ylabel("loss")
-    plt.title("PINN training history")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.savefig(plots_dir / "pinn_training_history.png", dpi=160)
-    plt.close()
-
-    plt.figure(figsize=(10, 3))
-    plt.plot(coarse["history"]["val_pos_rmse_km"], label="coarse val position RMSE [km]")
-    coarse_offset = len(coarse["history"]["val_pos_rmse_km"])
-    plt.plot(
-        range(coarse_offset, coarse_offset + len(refine["history"]["val_pos_rmse_km"])),
-        refine["history"]["val_pos_rmse_km"],
-        label="refine val position RMSE [km]",
-    )
-    if physics is not None:
-        offset2 = coarse_offset + len(refine["history"]["val_pos_rmse_km"])
-        plt.plot(
-            range(offset2, offset2 + len(physics["history"]["val_pos_rmse_km"])),
-            physics["history"]["val_pos_rmse_km"],
-            label="physics val position RMSE [km]",
-        )
-    plt.yscale("log")
-    plt.xlabel("epoch")
-    plt.ylabel("RMSE")
-    plt.title("PINN validation position RMSE")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.savefig(plots_dir / "pinn_validation_position_rmse.png", dpi=160)
-    plt.close()
-
-    if physics is not None:
-        plt.figure(figsize=(10, 3))
-        nbody_raw = np.array(physics["history"]["nbody_loss"], dtype=float)
-        nbody_w = np.array(physics["history"]["nbody_weight"], dtype=float)
-        plt.plot(nbody_raw, label="physics nbody raw")
-        plt.plot(np.maximum(1e-16, nbody_raw * nbody_w), label="physics nbody weighted")
-        plt.yscale("log")
-        plt.xlabel("epoch")
-        plt.ylabel("loss contribution scale")
-        plt.title("Physics-stage contribution diagnostics")
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-        plt.tight_layout()
-        plt.savefig(plots_dir / "pinn_physics_contributions.png", dpi=160)
-        plt.close()
-
-
-def main() -> None:
-    args = parse_args()
-    ensure_project_dirs()
-
-    dataset = load_dataset(args.dataset_path)
-    device = resolve_device(args.device)
+def build_profile(
+    dataset: dict[str, Any],
+    device: str,
+    loader_workers_override: int | None = None,
+    epochs_override: int | None = None,
+    batch_size_override: int | None = None,
+    collocation_override: int | None = None,
+) -> tuple[ModelConfig, TrainConfig, dict[str, Any]]:
     use_gpu_profile = device == "cuda"
-    loader_workers = args.loader_workers if args.loader_workers is not None else (4 if use_gpu_profile else 0)
+    loader_workers = loader_workers_override if loader_workers_override is not None else (8 if use_gpu_profile else 0)
     pin_memory = True if use_gpu_profile else None
     persistent_workers = True if use_gpu_profile and loader_workers > 0 else False
-    plots_dir = args.plots_dir or args.checkpoint_path.parent
-
-    print("Project root:", PROJECT_ROOT)
-    print("Python executable:", sys.executable)
-    print("Dataset source:", dataset.get("metadata", {}).get("sample_source"))
-    print("States shape:", dataset["states"].shape)
-    print("Num samples:", len(dataset["times_seconds"]))
-    print("Device:", device)
-    print("GPU-heavy profile:", use_gpu_profile)
-
-    checkpoint_path = Path(args.checkpoint_path)
-    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
-    coarse_ckpt = checkpoint_path.with_name("emulator_pinn_coarse.pt")
-    refine_ckpt = checkpoint_path.with_name("emulator_pinn_refine.pt")
-    physics_ckpt = checkpoint_path.with_name("emulator_pinn_physics.pt")
 
     if use_gpu_profile:
         model_cfg = ModelConfig(
             num_bodies=len(dataset["bodies"]),
             state_mode="position_only",
             backbone_type="residual",
-            hidden_dim=640,
+            hidden_dim=768,
             num_layers=8,
-            fourier_features=64,
-            min_frequency=0.05,
-            max_frequency=64.0,
+            fourier_features=96,
+            min_frequency=0.02,
+            max_frequency=96.0,
             frequency_spacing="log",
             head_layers=3,
-            head_hidden_dim=256,
-            body_embedding_dim=32,
+            head_hidden_dim=384,
+            body_embedding_dim=64,
+            interaction_layers=2,
+            interaction_hidden_dim=384,
             use_layer_norm=True,
             dropout=0.0,
+        )
+        train_cfg = TrainConfig(
+            epochs=epochs_override or 1400,
+            batch_size=batch_size_override or 1536,
+            lr=2.5e-4,
+            weight_decay=5e-7,
+            val_fraction=0.10,
+            split_mode="random",
+            shuffle=True,
+            train_loader_workers=loader_workers,
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+            early_stopping_patience=260,
+            lr_scheduler="cosine",
+            min_lr=5e-7,
+            nbody_loss_weight=4e-6,
+            adaptive_nbody_balance=True,
+            nbody_target_fraction=1e-2,
+            nbody_balance_beta=0.97,
+            nbody_balance_max_scale=1e8,
+            nbody_collocation_points=collocation_override or 512,
+            nbody_start_epoch=40,
+            nbody_warmup_epochs=320,
+            nbody_softening_km=50_000.0,
+            nbody_relative_floor_km_s2=2e-4,
+            physics_loss_weight=0.0,
+            smoothness_loss_weight=0.0,
+            energy_loss_weight=2e-4,
+            angular_momentum_loss_weight=2e-4,
+            energy_start_epoch=40,
+            angular_momentum_start_epoch=40,
+            energy_warmup_epochs=320,
+            angular_momentum_warmup_epochs=320,
+            position_loss_weight=1.0,
+            velocity_loss_weight=0.5,
+            grad_clip_norm=1.0,
+            compute_val_velocity_rmse=True,
+            selection_metric="val_pos_rmse_km",
+            force_chronological_for_derivatives=False,
+            sort_train_for_derivatives=False,
+            show_progress=True,
+            device=device,
+            cuda_matmul_precision="high",
+            allow_tf32=True,
+            cudnn_benchmark=True,
         )
     else:
         model_cfg = ModelConfig(
@@ -221,16 +181,15 @@ def main() -> None:
             head_layers=2,
             head_hidden_dim=160,
             body_embedding_dim=0,
+            interaction_layers=0,
+            interaction_hidden_dim=128,
             use_layer_norm=False,
             dropout=0.0,
         )
-    print("Model config:", model_cfg)
-
-    if use_gpu_profile:
-        coarse_cfg = TrainConfig(
-            epochs=1000,
-            batch_size=2048,
-            lr=3e-4,
+        train_cfg = TrainConfig(
+            epochs=epochs_override or 600,
+            batch_size=batch_size_override or 384,
+            lr=2e-4,
             weight_decay=1e-6,
             val_fraction=0.10,
             split_mode="random",
@@ -238,161 +197,31 @@ def main() -> None:
             train_loader_workers=loader_workers,
             pin_memory=pin_memory,
             persistent_workers=persistent_workers,
-            early_stopping_patience=180,
-            lr_scheduler="cosine",
-            min_lr=5e-6,
-            nbody_loss_weight=0.0,
-            physics_loss_weight=0.0,
-            smoothness_loss_weight=0.0,
-            position_loss_weight=1.0,
-            velocity_loss_weight=0.0,
-            grad_clip_norm=1.0,
-            compute_val_velocity_rmse=False,
-            selection_metric="val_pos_rmse_km",
-            force_chronological_for_derivatives=False,
-            sort_train_for_derivatives=False,
-            show_progress=True,
-            device=device,
-        )
-        refine_cfg = TrainConfig(
-            epochs=320,
-            batch_size=1024,
-            lr=5e-5,
-            weight_decay=1e-6,
-            val_fraction=0.10,
-            split_mode="random",
-            shuffle=True,
-            train_loader_workers=loader_workers,
-            pin_memory=pin_memory,
-            persistent_workers=persistent_workers,
-            early_stopping_patience=90,
-            lr_scheduler="cosine",
-            min_lr=1e-6,
-            nbody_loss_weight=0.0,
-            physics_loss_weight=0.0,
-            smoothness_loss_weight=0.0,
-            position_loss_weight=1.0,
-            velocity_loss_weight=0.6,
-            grad_clip_norm=1.0,
-            compute_val_velocity_rmse=True,
-            selection_metric="val_pos_rmse_km",
-            force_chronological_for_derivatives=False,
-            sort_train_for_derivatives=False,
-            show_progress=True,
-            device=device,
-        )
-        physics_cfg = TrainConfig(
-            epochs=160,
-            batch_size=768,
-            lr=5e-6,
-            weight_decay=1e-6,
-            val_fraction=0.10,
-            split_mode="random",
-            shuffle=True,
-            train_loader_workers=loader_workers,
-            pin_memory=pin_memory,
-            persistent_workers=persistent_workers,
-            early_stopping_patience=40,
-            lr_scheduler="cosine",
-            min_lr=1e-6,
-            nbody_loss_weight=2e-6,
-            adaptive_nbody_balance=True,
-            nbody_target_fraction=5e-3,
-            nbody_balance_beta=0.95,
-            nbody_balance_max_scale=1e7,
-            nbody_collocation_points=256,
-            nbody_start_epoch=8,
-            nbody_warmup_epochs=80,
-            nbody_softening_km=80_000.0,
-            nbody_relative_floor_km_s2=5e-4,
-            physics_loss_weight=0.0,
-            smoothness_loss_weight=0.0,
-            position_loss_weight=1.0,
-            velocity_loss_weight=0.2,
-            grad_clip_norm=1.0,
-            compute_val_velocity_rmse=True,
-            selection_metric="val_pos_rmse_km",
-            force_chronological_for_derivatives=False,
-            sort_train_for_derivatives=False,
-            show_progress=True,
-            device=device,
-        )
-    else:
-        coarse_cfg = TrainConfig(
-            epochs=450,
-            batch_size=512,
-            lr=3e-4,
-            weight_decay=1e-6,
-            val_fraction=0.10,
-            split_mode="random",
-            shuffle=True,
-            early_stopping_patience=100,
-            lr_scheduler="cosine",
-            min_lr=1e-6,
-            nbody_loss_weight=0.0,
-            physics_loss_weight=0.0,
-            smoothness_loss_weight=0.0,
-            position_loss_weight=1.0,
-            velocity_loss_weight=0.0,
-            grad_clip_norm=1.0,
-            compute_val_velocity_rmse=False,
-            selection_metric="val_pos_rmse_km",
-            force_chronological_for_derivatives=False,
-            sort_train_for_derivatives=False,
-            show_progress=True,
-            device=device,
-        )
-        refine_cfg = TrainConfig(
-            epochs=220,
-            batch_size=384,
-            lr=3e-5,
-            weight_decay=1e-6,
-            val_fraction=0.10,
-            split_mode="random",
-            shuffle=True,
-            early_stopping_patience=60,
-            lr_scheduler="cosine",
-            min_lr=1e-6,
-            nbody_loss_weight=0.0,
-            physics_loss_weight=0.0,
-            smoothness_loss_weight=0.0,
-            position_loss_weight=1.0,
-            velocity_loss_weight=0.4,
-            grad_clip_norm=1.0,
-            compute_val_velocity_rmse=True,
-            selection_metric="val_pos_rmse_km",
-            force_chronological_for_derivatives=False,
-            sort_train_for_derivatives=False,
-            show_progress=True,
-            device=device,
-        )
-        physics_cfg = TrainConfig(
-            epochs=60,
-            batch_size=384,
-            lr=2e-6,
-            weight_decay=1e-6,
-            val_fraction=0.10,
-            split_mode="random",
-            shuffle=True,
-            early_stopping_patience=12,
+            early_stopping_patience=120,
             lr_scheduler="cosine",
             min_lr=5e-7,
-            nbody_loss_weight=1e-6,
+            nbody_loss_weight=1.2e-6,
             adaptive_nbody_balance=True,
-            nbody_target_fraction=2e-3,
-            nbody_balance_beta=0.9,
+            nbody_target_fraction=3e-3,
+            nbody_balance_beta=0.95,
             nbody_balance_max_scale=1e6,
-            nbody_batch_size=48,
-            nbody_start_epoch=6,
-            nbody_warmup_epochs=36,
+            nbody_collocation_points=collocation_override or 64,
+            nbody_start_epoch=20,
+            nbody_warmup_epochs=140,
             nbody_softening_km=80_000.0,
             nbody_relative_floor_km_s2=5e-4,
             physics_loss_weight=0.0,
             smoothness_loss_weight=0.0,
+            energy_loss_weight=5e-5,
+            angular_momentum_loss_weight=5e-5,
+            energy_start_epoch=20,
+            angular_momentum_start_epoch=20,
+            energy_warmup_epochs=140,
+            angular_momentum_warmup_epochs=140,
             position_loss_weight=1.0,
-            velocity_loss_weight=0.0,
+            velocity_loss_weight=0.35,
             grad_clip_norm=1.0,
-            compute_val_velocity_rmse=False,
+            compute_val_velocity_rmse=True,
             selection_metric="val_pos_rmse_km",
             force_chronological_for_derivatives=False,
             sort_train_for_derivatives=False,
@@ -400,82 +229,126 @@ def main() -> None:
             device=device,
         )
 
-    coarse = train_emulator(
-        dataset,
-        train_config=coarse_cfg,
-        model_config=model_cfg,
-        checkpoint_path=coarse_ckpt,
+    runtime = {
+        "use_gpu_profile": use_gpu_profile,
+        "loader_workers": loader_workers,
+        "pin_memory": pin_memory,
+        "persistent_workers": persistent_workers,
+    }
+    return model_cfg, train_cfg, runtime
+
+
+def save_figures(plots_dir: Path, artifacts: dict[str, Any]) -> None:
+    plots_dir.mkdir(parents=True, exist_ok=True)
+    history = artifacts["history"]
+
+    plt.figure(figsize=(10, 4))
+    plt.plot(history["train_loss"], label="train data loss")
+    if "train_objective_loss" in history:
+        plt.plot(history["train_objective_loss"], label="train objective loss")
+    plt.plot(history["val_loss"], label="val data loss")
+    plt.yscale("log")
+    plt.xlabel("epoch")
+    plt.ylabel("loss")
+    plt.title("PINN unified training history")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(plots_dir / "pinn_unified_training_history.png", dpi=160)
+    plt.close()
+
+    plt.figure(figsize=(10, 3))
+    plt.plot(history["val_pos_rmse_km"], label="val position RMSE [km]")
+    plt.plot(history["val_vel_rmse_km_s"], label="val velocity RMSE [km/s]")
+    plt.yscale("log")
+    plt.xlabel("epoch")
+    plt.ylabel("RMSE")
+    plt.title("PINN unified validation RMSE")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(plots_dir / "pinn_unified_validation_rmse.png", dpi=160)
+    plt.close()
+
+    plt.figure(figsize=(10, 3))
+    nbody_raw = np.array(history["nbody_loss"], dtype=float)
+    nbody_w = np.array(history["nbody_weight"], dtype=float)
+    plt.plot(np.maximum(1e-16, nbody_raw), label="nbody raw")
+    plt.plot(np.maximum(1e-16, nbody_raw * nbody_w), label="nbody weighted")
+    plt.yscale("log")
+    plt.xlabel("epoch")
+    plt.ylabel("loss contribution scale")
+    plt.title("PINN n-body residual diagnostics")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(plots_dir / "pinn_unified_nbody_diagnostics.png", dpi=160)
+    plt.close()
+
+    plt.figure(figsize=(8, 3))
+    plt.plot(history["lr"])
+    plt.xlabel("epoch")
+    plt.ylabel("lr")
+    plt.title("PINN learning-rate schedule")
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(plots_dir / "pinn_unified_lr_schedule.png", dpi=160)
+    plt.close()
+
+
+def main() -> None:
+    args = parse_args()
+    ensure_project_dirs()
+
+    dataset = load_dataset(args.dataset_path)
+    device = resolve_device(args.device)
+    plots_dir = args.plots_dir or args.checkpoint_path.parent
+    checkpoint_path = Path(args.checkpoint_path)
+    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+
+    model_cfg, train_cfg, runtime = build_profile(
+        dataset=dataset,
+        device=device,
+        loader_workers_override=args.loader_workers,
+        epochs_override=args.epochs,
+        batch_size_override=args.batch_size,
+        collocation_override=args.collocation_points,
     )
-    coarse_best_epoch = int(np.argmin(coarse["history"]["val_pos_rmse_km"])) + 1
-    coarse_best_rmse = float(np.min(coarse["history"]["val_pos_rmse_km"]))
-    print("Coarse checkpoint:", coarse_ckpt)
-    print("Coarse best epoch:", coarse_best_epoch)
-    print("Coarse best val position RMSE [km]:", f"{coarse_best_rmse:,.2f}")
 
-    refine = train_emulator(
+    print("Project root:", PROJECT_ROOT)
+    print("Python executable:", sys.executable)
+    print("Dataset source:", dataset.get("metadata", {}).get("sample_source"))
+    print("States shape:", dataset["states"].shape)
+    print("Num samples:", len(dataset["times_seconds"]))
+    print("Device:", device)
+    print("GPU-heavy profile:", runtime["use_gpu_profile"])
+    print("Model config:", model_cfg)
+    print("Train config:", train_cfg)
+    print("Note: for position_only PINN, the active physics term is n-body residual; physics/smoothness losses stay disabled by design.")
+
+    artifacts = train_emulator(
         dataset,
-        train_config=refine_cfg,
+        train_config=train_cfg,
         model_config=model_cfg,
-        checkpoint_path=refine_ckpt,
-        initial_checkpoint_path=coarse_ckpt,
+        checkpoint_path=checkpoint_path,
     )
-    refine_best_epoch = int(np.argmin(refine["history"]["val_pos_rmse_km"])) + 1
-    refine_best_rmse = float(np.min(refine["history"]["val_pos_rmse_km"]))
-    print("Refine checkpoint:", refine_ckpt)
-    print("Refine best epoch:", refine_best_epoch)
-    print("Refine best val position RMSE [km]:", f"{refine_best_rmse:,.2f}")
 
-    physics: dict[str, Any] | None = None
-    physics_best_epoch: int | None = None
-    physics_best_rmse: float | None = None
-    if not args.skip_physics_stage:
-        physics = train_emulator(
-            dataset,
-            train_config=physics_cfg,
-            model_config=model_cfg,
-            checkpoint_path=physics_ckpt,
-            initial_checkpoint_path=refine_ckpt,
-        )
-        physics_best_epoch = int(np.argmin(physics["history"]["val_pos_rmse_km"])) + 1
-        physics_best_rmse = float(np.min(physics["history"]["val_pos_rmse_km"]))
-        print("Physics checkpoint:", physics_ckpt)
-        print("Physics best epoch:", physics_best_epoch)
-        print("Physics best val position RMSE [km]:", f"{physics_best_rmse:,.2f}")
-
-    selected_stage = "refine"
-    selected_ckpt = refine_ckpt
-    selected_rmse = refine_best_rmse
-    if physics is not None and physics_best_rmse is not None and physics_best_rmse < selected_rmse:
-        selected_stage = "physics"
-        selected_ckpt = physics_ckpt
-        selected_rmse = physics_best_rmse
-
-    shutil.copy2(selected_ckpt, checkpoint_path)
+    best_epoch = int(np.argmin(artifacts["history"]["val_pos_rmse_km"])) + 1
+    best_rmse = float(np.min(artifacts["history"]["val_pos_rmse_km"]))
     print("Final PINN checkpoint:", checkpoint_path)
-    print("Selected stage:", selected_stage)
-    print("Best val position RMSE [km]:", f"{selected_rmse:,.2f}")
+    print("Best epoch:", best_epoch)
+    print("Best val position RMSE [km]:", f"{best_rmse:,.2f}")
 
-    save_figures(
-        plots_dir=plots_dir,
-        coarse=coarse,
-        refine=refine,
-        physics=physics,
-    )
+    save_figures(plots_dir=plots_dir, artifacts=artifacts)
     summary = {
         "device": device,
         "dataset_path": str(Path(args.dataset_path).resolve()),
         "checkpoint_path": str(checkpoint_path.resolve()),
-        "coarse_checkpoint_path": str(coarse_ckpt.resolve()),
-        "refine_checkpoint_path": str(refine_ckpt.resolve()),
-        "physics_checkpoint_path": str(physics_ckpt.resolve()),
-        "selected_stage": selected_stage,
-        "best_val_position_rmse_km": selected_rmse,
-        "skip_physics_stage": bool(args.skip_physics_stage),
-        "loader_workers": loader_workers,
+        "best_epoch": best_epoch,
+        "best_val_position_rmse_km": best_rmse,
         "model_config": model_cfg.to_kwargs(),
-        "coarse_config": vars(coarse_cfg),
-        "refine_config": vars(refine_cfg),
-        "physics_config": vars(physics_cfg),
+        "train_config": vars(train_cfg),
+        "runtime": runtime,
     }
     (plots_dir / "pinn_train_summary.json").write_text(json.dumps(summary, indent=2))
     print("Training plots and summary saved to:", plots_dir)

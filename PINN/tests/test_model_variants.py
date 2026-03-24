@@ -17,6 +17,8 @@ def test_residual_position_only_model_with_body_embeddings():
         head_layers=2,
         head_hidden_dim=32,
         body_embedding_dim=12,
+        interaction_layers=2,
+        interaction_hidden_dim=48,
         use_layer_norm=True,
     )
     t = torch.linspace(-1.0, 1.0, steps=5, requires_grad=True)
