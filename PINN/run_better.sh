@@ -229,31 +229,12 @@ print('GPU          :', torch.cuda.get_device_name(0) if torch.cuda.is_available
 echo ""
 echo "--- Starting pipeline ---"
 
-# python run_pipeline.py \
-#     --start              "${START_YEAR}-01-01T00:00:00" \
-#     --end                "${END_YEAR}-01-01T00:00:00" \
-#     --step-hours         "${STEP_HOURS}" \
-#     --epochs-stage1      "${EPOCHS_STAGE1}" \
-#     --epochs-stage2      "${EPOCHS_STAGE2}" \
-#     --batch-size         "${BATCH_SIZE}" \
-#     --hidden-dim         "${HIDDEN_DIM}" \
-#     --num-layers         "${NUM_LAYERS}" \
-#     --fourier-features   "${FOURIER_FEATURES}" \
-#     --infer-start        "${INFER_START}" \
-#     --infer-end          "${INFER_END}" \
-#     --infer-step-hours   "${INFER_STEP_HOURS}" \
-#     --output-dir         "${OUTPUT_DIR}" \
-#     --device             "${DEVICE}" \
-#     --kernel             "${KERNEL}"
-#     # --do-stage2        # uncomment to enable physics fine-tuning (Stage 2)
-#     # --skip-dataset     # uncomment to reuse existing data/dataset_demo.npz
-#     # --skip-train       # uncomment to skip training, run inference only
 python solsys_setup.py \
 	--dataset-path $(pwd)/data/dataset_demo.npz \
 
-python PINN_train.py \
+python PINN_train_improved.py \
 	--dataset-path $(pwd)/data/dataset_demo.npz \
-	--checkpoint-path $(pwd)/artifacts \
+	--checkpoint-path $(pwd)/checkpoints \
 	--plots-dir $(pwd)/plots/ 
 
 EXIT_CODE=$?
