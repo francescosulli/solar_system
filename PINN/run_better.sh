@@ -248,10 +248,12 @@ echo "--- Starting pipeline ---"
 #     # --do-stage2        # uncomment to enable physics fine-tuning (Stage 2)
 #     # --skip-dataset     # uncomment to reuse existing data/dataset_demo.npz
 #     # --skip-train       # uncomment to skip training, run inference only
+python solsys_setup.py \
+	--dataset-path $(pwd)/data/dataset_demo.npz \
 
 python PINN_train.py \
 	--dataset-path $(pwd)/data/dataset_demo.npz \
-	--checkpoint-path $(pwd)/artifacts/ \
+	--checkpoint-path $(pwd)/artifacts \
 	--plots-dir $(pwd)/plots/ 
 
 EXIT_CODE=$?

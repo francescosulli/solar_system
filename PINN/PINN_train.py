@@ -10,6 +10,7 @@ import shutil
 import sys
 from pathlib import Path
 from typing import Any
+import gc         # garbage collect library
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 os.environ.setdefault("MPLCONFIGDIR", str(PROJECT_ROOT / ".mplconfig"))
@@ -400,34 +401,54 @@ def main() -> None:
             device=device,
         )
 
-    coarse = train_emulator(
-        dataset,
-        train_config=coarse_cfg,
-        model_config=model_cfg,
-        checkpoint_path=coarse_ckpt,
-    )
-    coarse_best_epoch = int(np.argmin(coarse["history"]["val_pos_rmse_km"])) + 1
-    coarse_best_rmse = float(np.min(coarse["history"]["val_pos_rmse_km"]))
-    print("Coarse checkpoint:", coarse_ckpt)
-    print("Coarse best epoch:", coarse_best_epoch)
-    print("Coarse best val position RMSE [km]:", f"{coarse_best_rmse:,.2f}")
+      
+    if not any("emulator_pinn_coarse.pt" in f.name for f in Path(checkpoint_path).iterdir()):
+        coarse = train_emulator(
+            dataset,
+            train_config=coarse_cfg,
+            model_config=model_cfg,
+            checkpoint_path=coarse_ckpt,
+        )
+        coarse_best_epoch = int(np.argmin(coarse["history"]["val_pos_rmse_km"])) + 1
+        coarse_best_rmse = float(np.min(coarse["history"]["val_pos_rmse_km"]))
+        print("Coarse checkpoint:", coarse_ckpt)
+        print("Coarse best epoch:", coarse_best_epoch)
+        print("Coarse best val position RMSE [km]:", f"{coarse_best_rmse:,.2f}")
+        del coarse # make sure to delete models from the GPU, otherwise V100s will overfill and crash with CUDA OOM.
 
-    refine = train_emulator(
-        dataset,
-        train_config=refine_cfg,
-        model_config=model_cfg,
-        checkpoint_path=refine_ckpt,
-        initial_checkpoint_path=coarse_ckpt,
-    )
-    refine_best_epoch = int(np.argmin(refine["history"]["val_pos_rmse_km"])) + 1
-    refine_best_rmse = float(np.min(refine["history"]["val_pos_rmse_km"]))
-    print("Refine checkpoint:", refine_ckpt)
-    print("Refine best epoch:", refine_best_epoch)
-    print("Refine best val position RMSE [km]:", f"{refine_best_rmse:,.2f}")
+        gc.collect()
+        torch.cuda.empty_cache() 
+
+    else:
+        print("Checkpoint for coarse was provided: skipping coarse stage...")
+    
+    
+    if not any("emulator_pinn_refine.pt" in f.name for f in Path(checkpoint_path).iterdir()):
+        refine = train_emulator(
+            dataset,
+            train_config=refine_cfg,
+            model_config=model_cfg,
+            checkpoint_path=refine_ckpt,
+            initial_checkpoint_path=coarse_ckpt,
+        )
+        refine_best_epoch = int(np.argmin(refine["history"]["val_pos_rmse_km"])) + 1
+        refine_best_rmse = float(np.min(refine["history"]["val_pos_rmse_km"]))
+        print("Refine checkpoint:", refine_ckpt)
+        print("Refine best epoch:", refine_best_epoch)
+        print("Refine best val position RMSE [km]:", f"{refine_best_rmse:,.2f}")
+        
+        del refine
+
+        gc.collect()
+        torch.cuda.empty_cache() 
+
+    else:
+        print("Checkpoint for refine was provided: skipping refine stage...")
 
     physics: dict[str, Any] | None = None
     physics_best_epoch: int | None = None
     physics_best_rmse: float | None = None
+
     if not args.skip_physics_stage:
         physics = train_emulator(
             dataset,
@@ -449,6 +470,8 @@ def main() -> None:
         selected_stage = "physics"
         selected_ckpt = physics_ckpt
         selected_rmse = physics_best_rmse
+    
+    del physics
 
     shutil.copy2(selected_ckpt, checkpoint_path)
     print("Final PINN checkpoint:", checkpoint_path)
