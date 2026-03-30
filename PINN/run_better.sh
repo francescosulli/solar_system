@@ -22,14 +22,14 @@
 # =============================================================================
 
 #SBATCH --job-name=solsys_pinn
-#SBATCH -A dssc
-#SBATCH --partition=GPU
+#SBATCH -A astreo 
+#SBATCH --partition=DGX
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64GB
 #SBATCH --time=02:00:00
-#SBATCH --gres=gpu:V100:1
+#SBATCH --gres=gpu:A100:1
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -143,7 +143,7 @@ export NUMEXPR_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export TORCH_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
 # Use only the GPU assigned by SLURM
-export CUDA_VISIBLE_DEVICES=$SLURM_JOB_GPUS
+# export CUDA_VISIBLE_DEVICES=$SLURM_JOB_GPUS
 
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export CUDA_LAUNCH_BLOCKING=1
