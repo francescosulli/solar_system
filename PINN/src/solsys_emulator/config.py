@@ -31,7 +31,7 @@ DEFAULT_BODIES = (
 DEFAULT_DE440_URL = "https://ssd.jpl.nasa.gov/ftp/eph/planets/bsp/de440.bsp"
 DEFAULT_KERNEL_PATH = DATA_DIR / "de440.bsp"
 DEFAULT_DATASET_PATH = DATA_DIR / "dataset_demo.npz"
-DEFAULT_CHECKPOINT_PATH = ARTIFACTS_DIR / "emulator_pinn.pt"
+DEFAULT_CHECKPOINT_PATH = ARTIFACTS_DIR 
 
 SOFTENING_EPSILON_KM = 0.0
 
