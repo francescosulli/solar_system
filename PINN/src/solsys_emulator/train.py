@@ -34,6 +34,7 @@ class TrainConfig:
 
     epochs: int = 200
     batch_size: int = 64
+    gradient_accumulation_steps: int = 1
     lr: float = 1e-3
     weight_decay: float = 1e-6
     val_fraction: float = 0.2
@@ -513,6 +514,8 @@ def train_emulator(
         raise ValueError("nbody_batch_size must be >= 1 when provided")
     if cfg.nbody_collocation_points is not None and cfg.nbody_collocation_points < 1:
         raise ValueError("nbody_collocation_points must be >= 1 when provided")
+    if cfg.gradient_accumulation_steps < 1:
+        raise ValueError("gradient_accumulation_steps must be >= 1")
     if cfg.train_loader_workers < 0:
         raise ValueError("train_loader_workers must be >= 0")
 
@@ -676,11 +679,11 @@ def train_emulator(
         running_energy = 0.0
         running_angular = 0.0
         n_batches = 0
+        accum_steps = max(1, int(cfg.gradient_accumulation_steps))
+        optimizer.zero_grad(set_to_none=True)
         for batch_t, batch_y in train_loader:
             batch_t = batch_t.to(device, non_blocking=pin_memory_eff)
             batch_y = batch_y.to(device, non_blocking=pin_memory_eff)
-
-            optimizer.zero_grad(set_to_none=True)
             if model.state_mode == "position_only":
                 need_acc = nbody_weight_eff > 0.0
                 need_energy = energy_weight_eff > 0.0
@@ -834,10 +837,13 @@ def train_emulator(
                 + energy_weight_eff * energy_loss
                 + angular_weight_eff * angular_loss
             )
-            loss.backward()
-            if cfg.grad_clip_norm is not None:
-                torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.grad_clip_norm)
-            optimizer.step()
+            scaled_loss = loss / float(accum_steps)
+            scaled_loss.backward()
+            if ((n_batches + 1) % accum_steps == 0) or ((n_batches + 1) == len(train_loader)):
+                if cfg.grad_clip_norm is not None:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.grad_clip_norm)
+                optimizer.step()
+                optimizer.zero_grad(set_to_none=True)
 
             running_train += float(data_loss.detach().cpu().item())
             running_objective += float(loss.detach().cpu().item())

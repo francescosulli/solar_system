@@ -68,6 +68,12 @@ def parse_args() -> argparse.Namespace:
         help="Override training batch size. Default depends on device profile.",
     )
     parser.add_argument(
+        "--grad-accum-steps",
+        type=int,
+        default=None,
+        help="Override gradient accumulation steps. Useful to lower peak GPU memory.",
+    )
+    parser.add_argument(
         "--collocation-points",
         type=int,
         default=None,
@@ -96,6 +102,7 @@ def build_profile(
     loader_workers_override: int | None = None,
     epochs_override: int | None = None,
     batch_size_override: int | None = None,
+    grad_accum_override: int | None = None,
     collocation_override: int | None = None,
 ) -> tuple[ModelConfig, TrainConfig, dict[str, Any]]:
     use_gpu_profile = device == "cuda"
@@ -108,23 +115,24 @@ def build_profile(
             num_bodies=len(dataset["bodies"]),
             state_mode="position_only",
             backbone_type="residual",
-            hidden_dim=768,
+            hidden_dim=640,
             num_layers=8,
-            fourier_features=96,
+            fourier_features=80,
             min_frequency=0.02,
             max_frequency=96.0,
             frequency_spacing="log",
             head_layers=3,
-            head_hidden_dim=384,
+            head_hidden_dim=320,
             body_embedding_dim=64,
             interaction_layers=2,
-            interaction_hidden_dim=384,
+            interaction_hidden_dim=256,
             use_layer_norm=True,
             dropout=0.0,
         )
         train_cfg = TrainConfig(
             epochs=epochs_override or 1400,
-            batch_size=batch_size_override or 1536,
+            batch_size=batch_size_override or 768,
+            gradient_accumulation_steps=grad_accum_override or 2,
             lr=2.5e-4,
             weight_decay=5e-7,
             val_fraction=0.10,
@@ -141,7 +149,7 @@ def build_profile(
             nbody_target_fraction=1e-2,
             nbody_balance_beta=0.97,
             nbody_balance_max_scale=1e8,
-            nbody_collocation_points=collocation_override or 512,
+            nbody_collocation_points=collocation_override or 192,
             nbody_start_epoch=40,
             nbody_warmup_epochs=320,
             nbody_softening_km=50_000.0,
@@ -189,6 +197,7 @@ def build_profile(
         train_cfg = TrainConfig(
             epochs=epochs_override or 600,
             batch_size=batch_size_override or 384,
+            gradient_accumulation_steps=grad_accum_override or 1,
             lr=2e-4,
             weight_decay=1e-6,
             val_fraction=0.10,
@@ -234,6 +243,7 @@ def build_profile(
         "loader_workers": loader_workers,
         "pin_memory": pin_memory,
         "persistent_workers": persistent_workers,
+        "effective_batch_size": int(train_cfg.batch_size) * int(train_cfg.gradient_accumulation_steps),
     }
     return model_cfg, train_cfg, runtime
 
@@ -312,6 +322,7 @@ def main() -> None:
         loader_workers_override=args.loader_workers,
         epochs_override=args.epochs,
         batch_size_override=args.batch_size,
+        grad_accum_override=args.grad_accum_steps,
         collocation_override=args.collocation_points,
     )
 
@@ -322,6 +333,7 @@ def main() -> None:
     print("Num samples:", len(dataset["times_seconds"]))
     print("Device:", device)
     print("GPU-heavy profile:", runtime["use_gpu_profile"])
+    print("Effective batch size:", runtime["effective_batch_size"])
     print("Model config:", model_cfg)
     print("Train config:", train_cfg)
     print("Note: for position_only PINN, the active physics term is n-body residual; physics/smoothness losses stay disabled by design.")

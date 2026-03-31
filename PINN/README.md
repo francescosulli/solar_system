@@ -84,7 +84,7 @@ I notebook sono configurati in modalita robusta per massimizzare il fit alle orb
   profilo CPU: conservativo, come fallback
   profilo GPU: pensato per A100 / CUDA con DataLoader multi-worker
   un solo training run con warmup interno della fisica: la loss dati parte subito, mentre il residuo n-body entra gradualmente (`nbody_start_epoch`, `nbody_warmup_epochs`) senza spezzare il training in fasi separate
-  profilo GPU default: `epochs=1400`, `batch_size=1536`, `velocity_loss_weight=0.5`, `nbody_loss_weight=4e-6`, `nbody_collocation_points=512`
+  profilo GPU default: `epochs=1400`, `batch_size=768`, `gradient_accumulation_steps=2`, `velocity_loss_weight=0.5`, `nbody_loss_weight=4e-6`, `nbody_collocation_points=192`
   lo stesso run usa punti dati per la supervisione e tempi di collocation uniformi nell'intervallo di training per il residuo n-body: questo rende la PINN piu fedele alla formulazione fisica senza legarsi solo agli istanti del dataset
   loss fisiche attive:
   residuo n-body su accelerazione: `a_pred(t) - a_grav(r_pred(t))`
