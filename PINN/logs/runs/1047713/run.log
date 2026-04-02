@@ -1,0 +1,47 @@
+============================================================
+ Job name    : bash
+ Job ID      : 1047713
+ Node        : gpu002
+ CPUs/task   : 8
+ Start time  : Tue Mar 31 07:48:29 PM CEST 2026
+ Run dir     : logs/runs/1047713
+============================================================
+Metadata saved to logs/runs/1047713/meta.txt
+./run_better.sh: line 136: uv: command not found
+
+=== NVIDIA-SMI debug setup ===
+Tue Mar 31 19:48:30 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.105.08             Driver Version: 580.105.08     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  Tesla V100-PCIE-32GB           Off |   00000000:3B:00.0 Off |                    0 |
+| N/A   29C    P0             24W /  250W |       0MiB /  32768MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+2026/03/31 19:48:30.103, 0, Tesla V100-PCIE-32GB, GPU-30788faf-e0ad-be8a-8840-ed02b093a048, 580.105.08, 32768, 0, 32495, 0, 0, 29, 24.64, 250.00
+nvidia-smi sampler PID : 3294493
+GPU timeseries log     : logs/runs/1047713/nvidia-smi.csv
+Process monitor log    : logs/runs/1047713/nvidia-smi.pmon.csv
+=============================
+
+--- Python / torch ---
+Python : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+Python 3.11.14
+torch        : 2.10.0+cu128
+CUDA available: True
+GPU          : Tesla V100-PCIE-32GB
+MASTER_ADDR=gpu002
+
+--- Starting pipeline ---

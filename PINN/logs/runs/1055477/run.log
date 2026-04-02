@@ -1,0 +1,13 @@
+============================================================
+ Job name      : solsys_pinn_ddp
+ Job ID        : 1055477
+ Node          : gpu002
+ Nodes         : 1
+ Tasks/node    : 2
+ GPUs/node     : 2
+ CPUs/task     : 8
+ Start time    : Thu Apr  2 12:49:53 PM CEST 2026
+ Run dir       : logs/runs/1055477
+============================================================
+Metadata saved to logs/runs/1055477/meta.txt
+/var/spool/slurm/d/job1055477/slurm_script: line 159: uv: command not found
