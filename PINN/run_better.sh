@@ -232,7 +232,7 @@ echo "--- Starting pipeline ---"
 python solsys_setup.py \
 	--dataset-path $(pwd)/data/dataset_demo.npz \
 
-python PINN_train_improved.py \
+python PINN_train.py \
 	--dataset-path $(pwd)/data/dataset_demo.npz \
 	--checkpoint-path $(pwd)/checkpoints \
 	--plots-dir $(pwd)/plots/ 
