@@ -23,13 +23,13 @@
 
 #SBATCH --job-name=solsys_pinn
 #SBATCH -A astreo 
-#SBATCH --partition=DGX
+#SBATCH --partition=GPU
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64GB
 #SBATCH --time=02:00:00
-#SBATCH --gres=gpu:A100:1
+#SBATCH --gres=gpu:V100:1
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -229,13 +229,22 @@ print('GPU          :', torch.cuda.get_device_name(0) if torch.cuda.is_available
 echo ""
 echo "--- Starting pipeline ---"
 
-python solsys_setup.py \
+.venv/bin/python verify_setup.py 
+
+.venv/bin/python solsys_setup.py \
 	--dataset-path $(pwd)/data/dataset_demo.npz \
 
-python PINN_train.py \
-	--dataset-path $(pwd)/data/dataset_demo.npz \
-	--checkpoint-path $(pwd)/checkpoints \
-	--plots-dir $(pwd)/plots/ 
+# python PINN_train.py \
+# 	--dataset-path $(pwd)/data/dataset_demo.npz \
+# 	--checkpoint-path $(pwd)/checkpoints \
+# 	--plots-dir $(pwd)/plots/ 
+
+.venv/bin/python train.py --device cpu --epochs 10 --training-mode=multi 
+# .venv/bin/torchrun --nproc_per_node=$SLURM_JOB_GPUS train.py 
+# 	--training-mode=multi 
+# 	--dataset-path $(pwd)/data/dataset_demo.npz \
+# 	--checkpoint-path $(pwd)/checkpoints \
+# 	--plots-dir $(pwd)/plots/ 
 
 EXIT_CODE=$?
 

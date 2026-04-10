@@ -21,6 +21,11 @@ except Exception:  # pragma: no cover - old torch fallback.
     vmap = None
     _HAS_TORCH_FUNC = False
 
+import os
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data.distributed import DistributedSampler
+
 from .config import DEFAULT_CHECKPOINT_PATH, SOFTENING_EPSILON_KM
 from .constants import mu_array
 from .model import EmulatorModel, ModelConfig
@@ -82,6 +87,10 @@ class TrainConfig:
     compute_val_velocity_rmse: bool = True
     selection_metric: str = "val_loss"
     show_progress: bool = True
+    distributed: bool = False  # Enable DDP mode
+    local_rank: int = 0  # Local GPU rank (set by torchrun)
+    find_unused_parameters: bool = False  # For models with conditional paths
+
 
 
 def _compatible_model_kwargs(
@@ -449,6 +458,38 @@ def train_emulator(
     norm_states = scaler_obj.transform(raw_states).astype(np.float32)
     norm_times, time_mean, time_std = _normalize_time_axis(times_seconds)
 
+    ## DDP INIT ##
+    rank = 0
+    world_size = 1
+    is_distributed = cfg.distributed
+    
+    if is_distributed:
+        if not dist.is_initialized():
+            raise RuntimeError(
+                "DDP mode enabled but torch.distributed not initialized. "
+                "Launch with: torchrun --nproc_per_node=N train_ddp.py"
+            )
+        
+        rank = dist.get_rank()
+        world_size = dist.get_world_size()
+        local_rank = cfg.local_rank
+        
+        # Set device to local rank
+        device = torch.device(f"cuda:{local_rank}")
+        torch.cuda.set_device(device)
+        
+        # Helper for rank-0 only printing
+        def print_rank0(*args, **kwargs):
+            if rank == 0:
+                print(*args, **kwargs)
+    else:
+        device = torch.device(cfg.device)
+        print_rank0 = print
+    
+    print_rank0(f"[Rank {rank}/{world_size}] Training on {device}")
+
+    ## DDP INIT ##
+
     mcfg = model_config or ModelConfig(num_bodies=len(bodies))
     if mcfg.num_bodies != len(bodies):
         mcfg = ModelConfig(
@@ -483,6 +524,7 @@ def train_emulator(
         cfg.seed,
         split_mode=split_mode_eff,
     )
+        
     if ordered_batches_required and cfg.sort_train_for_derivatives:
         train_idx = np.sort(train_idx)
     x_tensor = torch.from_numpy(norm_times.astype(np.float32))
@@ -527,25 +569,79 @@ def train_emulator(
         torch.backends.cudnn.benchmark = bool(cfg.cudnn_benchmark)
     pin_memory_eff = bool(cfg.pin_memory) if cfg.pin_memory is not None else device.type == "cuda"
 
+    # train_loader_kwargs: dict[str, Any] = {
+    #     "batch_size": min(cfg.batch_size, len(train_idx)),
+    #     "shuffle": effective_shuffle,
+    #     "num_workers": int(cfg.train_loader_workers),
+    #     "pin_memory": pin_memory_eff,
+    # }
+    # if cfg.train_loader_workers > 0:
+    #     train_loader_kwargs["persistent_workers"] = bool(cfg.persistent_workers)
+    # train_loader = DataLoader(TensorDataset(x_tensor[train_idx], y_tensor[train_idx]), **train_loader_kwargs)
+
+    # val_loader_kwargs: dict[str, Any] = {
+    #     "batch_size": min(cfg.batch_size, len(val_idx)),
+    #     "shuffle": False,
+    #     "num_workers": int(cfg.train_loader_workers),
+    #     "pin_memory": pin_memory_eff,
+    # }
+    # if cfg.train_loader_workers > 0:
+    #     val_loader_kwargs["persistent_workers"] = bool(cfg.persistent_workers)
+    # val_loader = DataLoader(TensorDataset(x_tensor[val_idx], y_tensor[val_idx]), **val_loader_kwargs)
+    
+    ## DDP ##
+    train_dataset = TensorDataset(x_tensor[train_idx], y_tensor[train_idx])
+    val_dataset = TensorDataset(x_tensor[val_idx], y_tensor[val_idx])
+
+    # Distributed samplers
+    if is_distributed:
+        train_sampler = DistributedSampler(
+            train_dataset,
+            num_replicas=world_size,
+            rank=rank,
+            shuffle=effective_shuffle,
+            seed=cfg.seed,
+        )
+        val_sampler = DistributedSampler(
+            val_dataset,
+            num_replicas=world_size,
+            rank=rank,
+            shuffle=False,
+        )
+        # Don't shuffle in DataLoader when using DistributedSampler
+        train_shuffle = False
+    else:
+        train_sampler = None
+        val_sampler = None
+        train_shuffle = effective_shuffle
+
+    # Train loader
     train_loader_kwargs: dict[str, Any] = {
-        "batch_size": min(cfg.batch_size, len(train_idx)),
-        "shuffle": effective_shuffle,
+        "batch_size": min(cfg.batch_size, len(train_idx) // max(1, world_size)),
+        "shuffle": train_shuffle,
+        "sampler": train_sampler,
         "num_workers": int(cfg.train_loader_workers),
         "pin_memory": pin_memory_eff,
+        "drop_last": True,  # Important for DDP stability
     }
     if cfg.train_loader_workers > 0:
         train_loader_kwargs["persistent_workers"] = bool(cfg.persistent_workers)
-    train_loader = DataLoader(TensorDataset(x_tensor[train_idx], y_tensor[train_idx]), **train_loader_kwargs)
-
+    train_loader = DataLoader(train_dataset, **train_loader_kwargs)
+    
+    # Val loader
     val_loader_kwargs: dict[str, Any] = {
-        "batch_size": min(cfg.batch_size, len(val_idx)),
+        "batch_size": min(cfg.batch_size, len(val_idx) // max(1, world_size)),
         "shuffle": False,
+        "sampler": val_sampler,
         "num_workers": int(cfg.train_loader_workers),
         "pin_memory": pin_memory_eff,
+        "drop_last": False,
     }
     if cfg.train_loader_workers > 0:
         val_loader_kwargs["persistent_workers"] = bool(cfg.persistent_workers)
-    val_loader = DataLoader(TensorDataset(x_tensor[val_idx], y_tensor[val_idx]), **val_loader_kwargs)
+    val_loader = DataLoader(val_dataset, **val_loader_kwargs)
+    ## DDP ##
+
     train_time_min_norm = float(np.min(norm_times[train_idx]))
     train_time_max_norm = float(np.max(norm_times[train_idx]))
     model = EmulatorModel(**mcfg.to_kwargs()).to(device)
@@ -563,6 +659,16 @@ def train_emulator(
                     f"(mismatch on key '{bad_key}')"
                 )
         model.load_state_dict(init_payload["model_state_dict"])
+    # === ADD DDP WRAPPER ===
+    if is_distributed:
+        model = DDP(
+            model,
+            device_ids=[local_rank],
+            output_device=local_rank,
+            find_unused_parameters=cfg.find_unused_parameters,
+        )
+        print_rank0(f"[Rank {rank}] Model wrapped with DistributedDataParallel")
+    # === DDP WRAPPER ===
 
     scaler_mean_t = torch.as_tensor(scaler_obj.mean, dtype=torch.float32, device=device)
     scaler_std_t = torch.as_tensor(scaler_obj.std, dtype=torch.float32, device=device)
@@ -619,6 +725,8 @@ def train_emulator(
         epoch_iter = range(cfg.epochs)
 
     for epoch_idx in epoch_iter:
+        if is_distributed and train_sampler is not None:
+            train_sampler.set_epoch(epoch_idx)
         if cfg.physics_loss_weight > 0.0:
             physics_warmup = max(1, int(cfg.physics_warmup_epochs))
             start = max(0, int(cfg.physics_start_epoch))
@@ -853,6 +961,40 @@ def train_emulator(
             running_energy += float(energy_loss.detach().cpu().item())
             running_angular += float(angular_loss.detach().cpu().item())
             n_batches += 1
+        # === ADD METRIC AGGREGATION ===
+        if is_distributed:
+            # Stack all metrics that need aggregation
+            metrics_tensor = torch.tensor(
+                [
+                    running_train,
+                    running_objective,
+                    running_phys,
+                    running_smooth,
+                    running_nbody,
+                    running_energy,
+                    running_angular,
+                    float(n_batches),
+                ],
+                dtype=torch.float32,
+                device=device,
+            )
+            
+            # Sum across all ranks
+            dist.all_reduce(metrics_tensor, op=dist.ReduceOp.SUM)
+            
+            # Unpack aggregated metrics
+            (
+                running_train,
+                running_objective,
+                running_phys,
+                running_smooth,
+                running_nbody,
+                running_energy,
+                running_angular,
+                n_batches_total,
+            ) = metrics_tensor.tolist()
+            
+            n_batches = int(n_batches_total)
 
         train_loss = running_train / max(1, n_batches)
         train_objective_loss = running_objective / max(1, n_batches)
@@ -935,6 +1077,26 @@ def train_emulator(
                     running_val_pos_rmse += float(pos_rmse.cpu().item())
                     running_val_vel_rmse += float(vel_rmse.cpu().item())
                     n_val_batches += 1
+
+                ## DDP ##
+                if is_distributed:
+                    val_metrics_tensor = torch.tensor(
+                        [val_running, val_pos_error_sum, val_vel_error_sum, float(val_count)],
+                        dtype=torch.float32,
+                        device=device,
+                    )
+                    dist.all_reduce(val_metrics_tensor, op=dist.ReduceOp.SUM)
+                    val_running, val_pos_error_sum, val_vel_error_sum, val_count_total = (
+                        val_metrics_tensor.tolist()
+                    )
+                    val_count = int(val_count_total)
+
+        epoch_val_loss = running_val/ max(1, len(val_loader) * world_size)
+        epoch_val_pos_rmse = running_val_pos_rmse/ max(1, len(val_loader) * world_size)
+        epoch_val_vel_rmse = running_val_vel_rmse/ max(1, len(val_loader) * world_size)
+
+                ## DDP ##
+
         val_loss = running_val / max(1, n_val_batches)
         val_pos_rmse = running_val_pos_rmse / max(1, n_val_batches)
         if model.state_mode == "position_only" and not cfg.compute_val_velocity_rmse and cfg.velocity_loss_weight <= 0.0:
@@ -1014,6 +1176,16 @@ def train_emulator(
             best_val = metric_value
             best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
             stale_epochs = 0
+            # === MODIFIED: Get state dict correctly for DDP ===
+            if is_distributed:
+                # DDP wraps the model, access .module to get underlying model
+                best_state = {k: v.cpu() for k, v in model.module.state_dict().items()}
+            else:
+                best_state = {k: v.cpu() for k, v in model.state_dict().items()}
+            
+            stale_epochs = 0
+            print_rank0(f"  → New best {cfg.selection_metric}: {best_val:.6f}")
+
         else:
             stale_epochs += 1
 
@@ -1041,6 +1213,29 @@ def train_emulator(
         },
         train_config=cfg,
     )
+    # === MODIFIED: Save only from rank 0 ===
+    if rank == 0:
+        if best_state is None:
+            if is_distributed:
+                best_state = {k: v.cpu() for k, v in model.module.state_dict().items()}
+            else:
+                best_state = {k: v.cpu() for k, v in model.state_dict().items()}
+        
+        save_payload = {
+            "model_state_dict": best_state,
+            "model_kwargs": mcfg.to_kwargs(),
+            "scaler_mean": scaler_obj.mean,
+            "scaler_std": scaler_obj.std,
+            "bodies": bodies,
+            "history": history,
+        }
+        torch.save(save_payload, checkpoint_path)
+        print_rank0(f"✓ Checkpoint saved: {checkpoint_path}")
+    
+    # === ADD BARRIER ===
+    # Ensure all ranks wait for rank 0 to finish saving
+    if is_distributed:
+        dist.barrier()
 
     return {
         "model": model,
