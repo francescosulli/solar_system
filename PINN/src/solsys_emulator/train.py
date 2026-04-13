@@ -318,6 +318,7 @@ def _position_only_to_full_state_norm(
     need_velocity: bool,
     need_acceleration: bool,
     create_graph: bool,
+    verbose: bool = False
 ) -> tuple[Tensor, Tensor, Tensor | None, Tensor | None]:
     """
     Evaluate a position-only model and derive velocity/acceleration by autograd.
@@ -337,19 +338,20 @@ def _position_only_to_full_state_norm(
         t_norm = t_norm.detach().clone().requires_grad_(True)
 
     N = t_norm.shape[0]
-    # B = scaler_mean_t.shape[1]
-    B = 5 
+    B = scaler_mean_t.shape[1]
 
     pos_norm = model(t_norm)
-    print(f"pos_norm:{pos_norm.shape}")
     mean_pos = scaler_mean_t[:, :, :3]
-    print(f"mean_pos:{mean_pos.shape}")
     std_pos = scaler_std_t[:, :, :3]
-    print(f"std_pos:{std_pos.shape}")
     mean_vel = scaler_mean_t[:, :, 3:]
-    print(f"mean_vel:{mean_vel.shape}")
     std_vel = scaler_std_t[:, :, 3:]
-    print(f"std_vel:{std_vel.shape}")
+
+    if verbose:
+        print(f"pos_norm:{pos_norm.shape}")
+        print(f"mean_pos:{mean_pos.shape}")
+        print(f"std_pos:{std_pos.shape}")
+        print(f"mean_vel:{mean_vel.shape}")
+        print(f"std_vel:{std_vel.shape}")
 
     pos_phys = pos_norm * std_pos + mean_pos
     inv_time_std = 1.0 / float(time_std_seconds)
@@ -403,8 +405,6 @@ def _position_only_to_full_state_norm(
 
     pred_norm_full = torch.cat((pos_norm, vel_norm), dim=-1)
     
-    print(f"ASSERTION PARAMETERS: N:{N}, B:{B}")
-
     assert pred_norm_full.shape == (N, B, 6), f"AssertionError: pred_norm_full should have shape {(N, B, 6)}, but actually has {pred_norm_full.shape}"
     assert pos_phys.shape == (N, B, 3), f"AssertionError: pos_phys should have shape {(N, B, 3)}, but actually has {pos_phys.shape}"
 
@@ -422,11 +422,13 @@ def _state_data_loss(
     targets: Tensor,
     position_weight: float,
     velocity_weight: float,
+    verbose: boool = False
 ) -> Tensor:
     """Weighted MSE between predicted and target state components."""
 
-    print("PREDICTIONS SHAPE:", predictions.shape)
-    print("TARGETS SHAPE:", targets.shape)
+    if verbose:
+        print("PREDICTIONS SHAPE:", predictions.shape)
+        print("TARGETS SHAPE:", targets.shape)
     
     pos_loss = F.mse_loss(predictions[:, :, :3], targets[:, :, :3])
     vel_loss = F.mse_loss(predictions[:, :, 3:], targets[:, :, 3:])
@@ -447,6 +449,10 @@ def save_checkpoint(
     """Persist model and preprocessing artifacts."""
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
+
+    if cfg.distributed:
+        model = model.module
+
     payload = {
         "model_state_dict": model.state_dict(),
         "model_kwargs": model.model_kwargs(),
@@ -467,6 +473,7 @@ def train_emulator(
     scaler: StateScaler | None = None,
     checkpoint_path: str | Path = DEFAULT_CHECKPOINT_PATH,
     initial_checkpoint_path: str | Path | None = None,
+    verbose: bool = False
 ) -> dict[str, Any]:
     """Train emulator on a dataset and store checkpoint.
 
@@ -486,10 +493,8 @@ def train_emulator(
             )
         
         rank = dist.get_rank()
-        print(f"Rank from dist.get_rank(): {rank}")
         world_size = dist.get_world_size()
         local_rank = cfg.local_rank
-        print(f"Rank from local_rank: {cfg.local_rank}")
         # Set device to local rank
         device = torch.device(f"cuda:{local_rank}")
         torch.cuda.set_device(device)
@@ -498,6 +503,10 @@ def train_emulator(
         def print_rank0(*args, **kwargs):
             if rank == 0:
                 print(*args, **kwargs)
+
+        if verbose:
+            print(f"Rank from dist.get_rank(): {rank}")
+            print(f"Rank from local_rank: {cfg.local_rank}")
     else:
         rank = 0
         world_size = 1
@@ -508,16 +517,20 @@ def train_emulator(
 
     raw_states = np.asarray(dataset["states"], dtype=float)
 
-    print(f"raw_states: {raw_states.shape}")
 
     n_timesteps, n_bodies, n_features = raw_states.shape
 
     # Split bodies across GPUs
+
     bodies_per_rank = n_bodies // world_size
     start_body = rank * bodies_per_rank
     end_body = start_body + bodies_per_rank if rank < world_size - 1 else n_bodies
 
-
+    if verbose:
+        print(f"raw_states: {raw_states.shape}")
+        print(f"bodies_per_rank: {bodies_per_rank}")
+        print(f"Start body: {start_body}")
+        print(f"end body: {end_body}")
 
     bodies = [str(b) for b in np.asarray(dataset["bodies"]).tolist()]
     times_seconds = np.asarray(dataset["times_seconds"], dtype=float)
@@ -533,46 +546,16 @@ def train_emulator(
     norm_times, time_mean, time_std = _normalize_time_axis(times_seconds)
 
     # Each GPU gets ALL timesteps but only SOME bodies
-    x_tensor = torch.from_numpy(norm_times.astype(np.float32)).to(device)
-    y_tensor = torch.from_numpy(norm_states[:, start_body:end_body, :]).to(device)  # Slice bodies dimension
+    ## shouldn't move stuff to GPU here already.
+    # x_tensor = torch.from_numpy(norm_times.astype(np.float32)).to(device)
+    # y_tensor = torch.from_numpy(norm_states[:, start_body:end_body, :]).to(device)  # Slice bodies dimension
     
+    x_tensor = torch.from_numpy(norm_times.astype(np.float32))
+    y_tensor = torch.from_numpy(norm_states)  # Slice bodies dimension
+
     assigned_bodies = bodies[start_body:end_body]
     print(f"[Rank {rank}] Assigned bodies: {bodies[start_body:end_body]}")
     print(f"[Rank {rank}] y_tensor shape: {y_tensor.shape}")  # Should be (n_timesteps, bodies_per_rank, 6)
-
-    ## DDP INIT ##
-    # rank = 0
-    # world_size = 1
-    # is_distributed = cfg.distributed
-    # is_distributed = True
-    
-    # if is_distributed:
-    #     if not dist.is_initialized():
-    #         raise RuntimeError(
-    #             "DDP mode enabled but torch.distributed not initialized. "
-    #             "Launch with: torchrun --nproc_per_node=N train_ddp.py"
-    #         )
-        
-    #     rank = dist.get_rank()
-    #     world_size = dist.get_world_size()
-    #     local_rank = cfg.local_rank
-        
-    #     # Set device to local rank
-    #     device = torch.device(f"cuda:{local_rank}")
-    #     torch.cuda.set_device(device)
-        
-    #     # Helper for rank-0 only printing
-    #     def print_rank0(*args, **kwargs):
-    #         if rank == 0:
-    #             print(*args, **kwargs)
-    # else:
-    #     device = torch.device(cfg.device)
-    #     print_rank0 = print
-    
-    # print_rank0(f"[Rank {rank}/{world_size}] Training on {device}")
-
-    ## DDP INIT ##
-
 
     ## What is the reason of this repetition?
     # if mcfg.num_bodies != len(bodies):
@@ -613,52 +596,6 @@ def train_emulator(
         
     if ordered_batches_required and cfg.sort_train_for_derivatives:
         train_idx = np.sort(train_idx)
-    ## CLAUDE
-    # # After line 534, before creating TensorDataset:
-    # n_timesteps, n_bodies, n_features = norm_states.shape
-
-    # # Flatten: each index represents a (timestep, body) pair
-    # # index = timestep * n_bodies + body_idx
-    # x_flat = np.repeat(norm_times, n_bodies)  # shape: (n_timesteps * n_bodies,)
-    # y_flat = norm_states.reshape(-1, n_features)  # shape: (n_timesteps * n_bodies, n_features)
-
-    # # Expand train/val indices to include all bodies for selected timesteps
-    # # For each timestep in train_idx, include all n_bodies indices
-    # train_idx_flat = (train_idx[:, None] * n_bodies + np.arange(n_bodies)).ravel()
-    # val_idx_flat = (val_idx[:, None] * n_bodies + np.arange(n_bodies)).ravel()
-
-    # x_tensor = torch.from_numpy(x_flat.astype(np.float32))
-    # y_tensor = torch.from_numpy(y_flat.astype(np.float32))
-
-    # train_dataset = TensorDataset(x_tensor[train_idx_flat], y_tensor[train_idx_flat])
-    # val_dataset = TensorDataset(x_tensor[val_idx_flat], y_tensor[val_idx_flat])
-    
-    # Keep the original 3D structure - just slice by bodies
-
-    # n_timesteps, n_bodies, n_features = norm_states.shape
-
-    # # Split bodies across GPUs
-    # bodies_per_rank = n_bodies // world_size
-    # start_body = rank * bodies_per_rank
-    # end_body = start_body + bodies_per_rank if rank < world_size - 1 else n_bodies
-
-    # # Each GPU gets ALL timesteps but only SOME bodies
-    # x_tensor = torch.from_numpy(norm_times.astype(np.float32))
-    # y_tensor = torch.from_numpy(norm_states[:, start_body:end_body, :])  # Slice bodies dimension
-
-    # print(f"[Rank {rank}] Assigned bodies: {bodies[start_body:end_body]}")
-    # print(f"[Rank {rank}] y_tensor shape: {y_tensor.shape}")  # Should be (n_timesteps, bodies_per_rank, 6)
-    
-    ## TODO
-    # mcfg.num_bodies = len(bodies[start_body:end_body])  
-
-    # train_dataset = TensorDataset(x_tensor[train_idx], y_tensor[train_idx])
-    # val_dataset = TensorDataset(x_tensor[val_idx], y_tensor[val_idx])
-
-    ## CLAUDE
-
-    # x_tensor = torch.from_numpy(norm_times.astype(np.float32))
-    # y_tensor = torch.from_numpy(norm_states)
 
     effective_shuffle = cfg.shuffle
     if ordered_batches_required and cfg.shuffle:
@@ -698,106 +635,9 @@ def train_emulator(
         torch.backends.cudnn.benchmark = bool(cfg.cudnn_benchmark)
     pin_memory_eff = bool(cfg.pin_memory) if cfg.pin_memory is not None else device.type == "cuda"
 
-    # train_loader_kwargs: dict[str, Any] = {
-    #     "batch_size": min(cfg.batch_size, len(train_idx)),
-    #     "shuffle": effective_shuffle,
-    #     "num_workers": int(cfg.train_loader_workers),
-    #     "pin_memory": pin_memory_eff,
-    # }
-    # if cfg.train_loader_workers > 0:
-    #     train_loader_kwargs["persistent_workers"] = bool(cfg.persistent_workers)
-    # train_loader = DataLoader(TensorDataset(x_tensor[train_idx], y_tensor[train_idx]), **train_loader_kwargs)
-
-    # val_loader_kwargs: dict[str, Any] = {
-    #     "b, chunk_size=1atch_size": min(cfg.batch_size, len(val_idx)),
-    #     "shuffle": False,
-    #     "num_workers": int(cfg.train_loader_workers),
-    #     "pin_memory": pin_memory_eff,
-    # }
-    # if cfg.train_loader_workers > 0:
-    #     val_loader_kwargs["persistent_workers"] = bool(cfg.persistent_workers)
-    # val_loader = DataLoader(TensorDataset(x_tensor[val_idx], y_tensor[val_idx]), **val_loader_kwargs)
-    
-    ## DDP ##
     train_dataset = TensorDataset(x_tensor[train_idx], y_tensor[train_idx])
     val_dataset = TensorDataset(x_tensor[val_idx], y_tensor[val_idx])
 
-    # Distributed samplers
-    # if is_distributed:
-
-        ## Trying approach without distributed sampler...     
-
-        # train_sampler = DistributedSampler(
-        #     train_dataset,
-        #     num_replicas=world_size,
-        #     rank=rank,
-        #     # shuffle=effective_shuffle,
-        #     shuffle=False,
-        #     seed=cfg.seed,
-        # )
-        # train_sampler = BodyGroupedDistributedSampler(
-        #     train_dataset,
-        #     num_replicas=world_size,
-        #     rank=rank,
-        #     # shuffle=effective_shuffle,
-        #     shuffle=False,
-        #     seed=cfg.seed,
-        # )
-
-        # train_sampler = BodyGroupedDistributedSampler(
-        #     dataset_length=len(train_dataset),
-        #     n_bodies=n_bodies,
-        #     body_names=bodies,
-        #     num_replicas=world_size,
-        #     rank=rank,
-        #     shuffle=False,
-        #     seed=cfg.seed,
-        # )
-
-        # val_sampler = DistributedSampler(
-        #     val_dataset,
-        #     num_replicas=world_size,
-        #     rank=rank,
-        #     shuffle=False,
-        # )
-        # val_sampler = BodyGroupedDistributedSampler(
-        #             val_dataset,
-        #             num_replicas=world_size,
-        #             rank=rank,
-        #             shuffle=False,
-        #         )
-
-        # val_sampler = BodyGroupedDistributedSampler(
-        #     dataset_length=len(val_dataset),
-        #     n_bodies=n_bodies,
-        #     body_names=bodies,
-        #     num_replicas=world_size,
-        #     rank=rank,
-        #     shuffle=False,
-        #     seed=cfg.seed,
-        # )
-
-        # print(f"Instantiated Distributed Sampler at rank {rank}")
-
-        # epoch = 0
-        # train_sampler.set_epoch(epoch)
-        # tr_indices = list(iter(train_sampler))        # this yields the indices assigned to this rank
-        # print(f"rank={rank}: {tr_indices}")
-
-        # val_sampler.set_epoch(epoch)
-        # val_indices = list(iter(val_sampler))        # this yields the indices assigned to this rank
-        # print(f"rank={rank}: {val_indices}")
-
-        # Don't shuffle in DataLoader when using DistributedSampler
-        # train_shuffle = False
-
-        # train_sampler = None
-        # val_sampler = None
-    # else:
-        # print(f"NOT Instantiated Distributed Sampler at rank {rank}")
-        # train_sampler = None
-        # val_sampler = None
-        # train_shuffle = effective_shuffle
 
     train_sampler = None
     val_sampler = None
@@ -829,7 +669,6 @@ def train_emulator(
         val_loader_kwargs["persistent_workers"] = bool(cfg.persistent_workers)
     val_loader = DataLoader(val_dataset, **val_loader_kwargs)
 
-    ## DDP ##
 
     train_time_min_norm = float(np.min(norm_times[train_idx]))
     train_time_max_norm = float(np.max(norm_times[train_idx]))
@@ -850,7 +689,11 @@ def train_emulator(
                     "initial checkpoint model config does not match current model_config "
                     f"(mismatch on key '{bad_key}')"
                 )
-        model.load_state_dict(init_payload["model_state_dict"])
+        if is_distributed:
+            model.module.load_state_dict(init_payload["model_state_dict"])
+        else:
+            model.load_state_dict(init_payload["model_state_dict"])
+
     # === ADD DDP WRAPPER ===
     if is_distributed:
         model = DDP(
@@ -983,9 +826,7 @@ def train_emulator(
         optimizer.zero_grad(set_to_none=True)
         for batch_t, batch_y in train_loader:
             batch_t = batch_t.to(device, non_blocking=pin_memory_eff)
-            print(f"batch_t shape: {batch_t.shape}")
             batch_y = batch_y.to(device, non_blocking=pin_memory_eff)
-            print(f"batch_y shape: {batch_y.shape}")
             if mcfg.state_mode == "position_only":
                 need_acc = nbody_weight_eff > 0.0
                 need_energy = energy_weight_eff > 0.0
@@ -1013,7 +854,6 @@ def train_emulator(
                     need_acceleration=need_batch_acc,
                     create_graph=True,
                 )
-                print(f"SHAPE OF PRED: {pred.shape}")
 
                 data_loss = _state_data_loss(
                     pred,
@@ -1228,6 +1068,7 @@ def train_emulator(
                 need_val_vel = cfg.velocity_loss_weight > 0.0 or cfg.compute_val_velocity_rmse
                 val_pred, val_pos_phys, val_vel_phys, _ = _position_only_to_full_state_norm(
                     model=model,
+                    model_config=mcfg,
                     t_norm=val_t.detach().clone().requires_grad_(True),
                     scaler_mean_t=scaler_mean_t,
                     scaler_std_t=scaler_std_t,
@@ -1396,7 +1237,10 @@ def train_emulator(
             scheduler.step()
 
     if best_state is not None:
-        model.load_state_dict(best_state)
+        if is_distributed:
+            model.module.load_state_dict(best_state)
+        else:
+            model.load_state_dict(best_state)
 
     checkpoint = save_checkpoint(
         checkpoint_path,
