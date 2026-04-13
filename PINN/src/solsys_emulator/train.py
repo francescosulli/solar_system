@@ -31,7 +31,7 @@ from .constants import mu_array
 from .model import EmulatorModel, ModelConfig
 from .preprocessing import StateScaler, fit_scaler
 from .utils import set_seed
-
+from .de440_dataset import BodyGroupedDistributedSampler
 
 @dataclass
 class TrainConfig:
@@ -87,7 +87,7 @@ class TrainConfig:
     compute_val_velocity_rmse: bool = True
     selection_metric: str = "val_loss"
     show_progress: bool = True
-    distributed: bool = False  # Enable DDP mode
+    distributed: bool = True # Enable DDP mode
     local_rank: int = 0  # Local GPU rank (set by torchrun)
     find_unused_parameters: bool = False  # For models with conditional paths
 
@@ -310,6 +310,7 @@ def _angular_momentum_conservation_loss(
 
 def _position_only_to_full_state_norm(
     model: EmulatorModel,
+    model_config: ModelConfig,
     t_norm: Tensor,
     scaler_mean_t: Tensor,
     scaler_std_t: Tensor,
@@ -327,19 +328,28 @@ def _position_only_to_full_state_norm(
     - vel_phys: [N,B,3] km/s or None
     - acc_phys: [N,B,3] km/s^2 or None
     """
-    if model.state_mode != "position_only":
-        raise ValueError("_position_only_to_full_state_norm requires model.state_mode='position_only'")
+    if model_config.state_mode != "position_only":
+        raise ValueError("_position_only_to_full_state_norm requires model_config.state_mode='position_only'")
 
     if t_norm.ndim != 1:
         raise ValueError("t_norm must have shape [N]")
     if not t_norm.requires_grad:
         t_norm = t_norm.detach().clone().requires_grad_(True)
 
+    N = t_norm.shape[0]
+    # B = scaler_mean_t.shape[1]
+    B = 5 
+
     pos_norm = model(t_norm)
+    print(f"pos_norm:{pos_norm.shape}")
     mean_pos = scaler_mean_t[:, :, :3]
+    print(f"mean_pos:{mean_pos.shape}")
     std_pos = scaler_std_t[:, :, :3]
+    print(f"std_pos:{std_pos.shape}")
     mean_vel = scaler_mean_t[:, :, 3:]
+    print(f"mean_vel:{mean_vel.shape}")
     std_vel = scaler_std_t[:, :, 3:]
+    print(f"std_vel:{std_vel.shape}")
 
     pos_phys = pos_norm * std_pos + mean_pos
     inv_time_std = 1.0 / float(time_std_seconds)
@@ -352,10 +362,12 @@ def _position_only_to_full_state_norm(
         if _HAS_TORCH_FUNC:
             def _single_time_pos_norm(t_scalar: Tensor) -> Tensor:
                 return model(t_scalar.reshape(1))[0]
-
+            ## TODO: this is creating some issues for GPU parallelism
+            # vel_norm_time = vmap(jacrev(_single_time_pos_norm, chunk_size=1), chunk_size=1)(t_norm)
             vel_norm_time = vmap(jacrev(_single_time_pos_norm))(t_norm)
             vel_phys = vel_norm_time * std_pos * inv_time_std
             if need_acceleration:
+                # acc_norm_time = vmap(jacrev(jacrev(_single_time_pos_norm, chunk_size=1), chunk_size=1), chunk_size=1)(t_norm)
                 acc_norm_time = vmap(jacrev(jacrev(_single_time_pos_norm)))(t_norm)
                 acc_phys = acc_norm_time * std_pos * inv_time_std_sq
         else:  # pragma: no cover - legacy torch fallback.
@@ -388,7 +400,20 @@ def _position_only_to_full_state_norm(
         vel_norm = (vel_phys - mean_vel) / std_vel
     else:
         vel_norm = torch.zeros_like(mean_vel).expand(pos_norm.shape[0], -1, -1)
+
     pred_norm_full = torch.cat((pos_norm, vel_norm), dim=-1)
+    
+    print(f"ASSERTION PARAMETERS: N:{N}, B:{B}")
+
+    assert pred_norm_full.shape == (N, B, 6), f"AssertionError: pred_norm_full should have shape {(N, B, 6)}, but actually has {pred_norm_full.shape}"
+    assert pos_phys.shape == (N, B, 3), f"AssertionError: pos_phys should have shape {(N, B, 3)}, but actually has {pos_phys.shape}"
+
+    if vel_phys is not None:
+        assert vel_phys.shape == (N, B, 3), f"AssertionError: vel_phys should have shape {(N, B, 3)}, but actually has {vel_phys.shape}"
+
+    if acc_phys is not None:
+        assert acc_phys.shape == (N, B, 3), f"AssertionError: acc_phys should have shape {(N, B, 3)}, but actually has {acc_phys.shape}"
+
     return pred_norm_full, pos_phys, vel_phys, acc_phys
 
 
@@ -399,8 +424,13 @@ def _state_data_loss(
     velocity_weight: float,
 ) -> Tensor:
     """Weighted MSE between predicted and target state components."""
+
+    print("PREDICTIONS SHAPE:", predictions.shape)
+    print("TARGETS SHAPE:", targets.shape)
+    
     pos_loss = F.mse_loss(predictions[:, :, :3], targets[:, :, :3])
     vel_loss = F.mse_loss(predictions[:, :, 3:], targets[:, :, 3:])
+
     return position_weight * pos_loss + velocity_weight * vel_loss
 
 
@@ -445,23 +475,8 @@ def train_emulator(
     cfg = train_config or TrainConfig()
     set_seed(cfg.seed)
 
-    raw_states = np.asarray(dataset["states"], dtype=float)
-    bodies = [str(b) for b in np.asarray(dataset["bodies"]).tolist()]
-    times_seconds = np.asarray(dataset["times_seconds"], dtype=float)
-    use_derivative_losses = (
-        (cfg.physics_loss_weight > 0.0)
-        or (cfg.smoothness_loss_weight > 0.0)
-        or (cfg.nbody_loss_weight > 0.0)
-    )
-
-    scaler_obj = scaler or fit_scaler(raw_states)
-    norm_states = scaler_obj.transform(raw_states).astype(np.float32)
-    norm_times, time_mean, time_std = _normalize_time_axis(times_seconds)
-
-    ## DDP INIT ##
-    rank = 0
-    world_size = 1
-    is_distributed = cfg.distributed
+    # is_distributed = cfg.distributed 
+    is_distributed = True
     
     if is_distributed:
         if not dist.is_initialized():
@@ -483,33 +498,103 @@ def train_emulator(
             if rank == 0:
                 print(*args, **kwargs)
     else:
+        rank = 0
+        world_size = 1
         device = torch.device(cfg.device)
         print_rank0 = print
     
     print_rank0(f"[Rank {rank}/{world_size}] Training on {device}")
 
+    raw_states = np.asarray(dataset["states"], dtype=float)
+
+    print(f"raw_states: {raw_states.shape}")
+
+    n_timesteps, n_bodies, n_features = raw_states.shape
+
+    # Split bodies across GPUs
+    bodies_per_rank = n_bodies // world_size
+    start_body = rank * bodies_per_rank
+    end_body = start_body + bodies_per_rank if rank < world_size - 1 else n_bodies
+
+
+
+    bodies = [str(b) for b in np.asarray(dataset["bodies"]).tolist()]
+    times_seconds = np.asarray(dataset["times_seconds"], dtype=float)
+    use_derivative_losses = (
+        (cfg.physics_loss_weight > 0.0)
+        or (cfg.smoothness_loss_weight > 0.0)
+        or (cfg.nbody_loss_weight > 0.0)
+    )
+
+    assigned_bodies_raw_states = raw_states[:, start_body:end_body, :]
+    scaler_obj = scaler or fit_scaler(assigned_bodies_raw_states)
+    norm_states = scaler_obj.transform(assigned_bodies_raw_states).astype(np.float32)
+    norm_times, time_mean, time_std = _normalize_time_axis(times_seconds)
+
+    # Each GPU gets ALL timesteps but only SOME bodies
+    x_tensor = torch.from_numpy(norm_times.astype(np.float32))
+    y_tensor = torch.from_numpy(norm_states[:, start_body:end_body, :])  # Slice bodies dimension
+    
+    assigned_bodies = bodies[start_body:end_body]
+    print(f"[Rank {rank}] Assigned bodies: {bodies[start_body:end_body]}")
+    print(f"[Rank {rank}] y_tensor shape: {y_tensor.shape}")  # Should be (n_timesteps, bodies_per_rank, 6)
+
+    ## DDP INIT ##
+    # rank = 0
+    # world_size = 1
+    # is_distributed = cfg.distributed
+    # is_distributed = True
+    
+    # if is_distributed:
+    #     if not dist.is_initialized():
+    #         raise RuntimeError(
+    #             "DDP mode enabled but torch.distributed not initialized. "
+    #             "Launch with: torchrun --nproc_per_node=N train_ddp.py"
+    #         )
+        
+    #     rank = dist.get_rank()
+    #     world_size = dist.get_world_size()
+    #     local_rank = cfg.local_rank
+        
+    #     # Set device to local rank
+    #     device = torch.device(f"cuda:{local_rank}")
+    #     torch.cuda.set_device(device)
+        
+    #     # Helper for rank-0 only printing
+    #     def print_rank0(*args, **kwargs):
+    #         if rank == 0:
+    #             print(*args, **kwargs)
+    # else:
+    #     device = torch.device(cfg.device)
+    #     print_rank0 = print
+    
+    # print_rank0(f"[Rank {rank}/{world_size}] Training on {device}")
+
     ## DDP INIT ##
 
-    mcfg = model_config or ModelConfig(num_bodies=len(bodies))
-    if mcfg.num_bodies != len(bodies):
-        mcfg = ModelConfig(
-            num_bodies=len(bodies),
-            state_mode=mcfg.state_mode,
-            backbone_type=mcfg.backbone_type,
-            hidden_dim=mcfg.hidden_dim,
-            num_layers=mcfg.num_layers,
-            fourier_features=mcfg.fourier_features,
-            min_frequency=mcfg.min_frequency,
-            max_frequency=mcfg.max_frequency,
-            frequency_spacing=mcfg.frequency_spacing,
-            head_layers=mcfg.head_layers,
-            head_hidden_dim=mcfg.head_hidden_dim,
-            body_embedding_dim=mcfg.body_embedding_dim,
-            interaction_layers=mcfg.interaction_layers,
-            interaction_hidden_dim=mcfg.interaction_hidden_dim,
-            use_layer_norm=mcfg.use_layer_norm,
-            dropout=mcfg.dropout,
-        )
+
+    ## What is the reason of this repetition?
+    # if mcfg.num_bodies != len(bodies):
+    mcfg = model_config or ModelConfig(num_bodies=len(assigned_bodies))
+    mcfg = ModelConfig(
+        num_bodies=len(assigned_bodies),
+        state_mode=mcfg.state_mode,
+        backbone_type=mcfg.backbone_type,
+        hidden_dim=mcfg.hidden_dim,
+        num_layers=mcfg.num_layers,
+        fourier_features=mcfg.fourier_features,
+        min_frequency=mcfg.min_frequency,
+        max_frequency=mcfg.max_frequency,
+        frequency_spacing=mcfg.frequency_spacing,
+        head_layers=mcfg.head_layers,
+        head_hidden_dim=mcfg.head_hidden_dim,
+        body_embedding_dim=mcfg.body_embedding_dim,
+        interaction_layers=mcfg.interaction_layers,
+        interaction_hidden_dim=mcfg.interaction_hidden_dim,
+        use_layer_norm=mcfg.use_layer_norm,
+        dropout=mcfg.dropout,
+    )
+
     ordered_batches_required = use_derivative_losses and mcfg.state_mode != "position_only"
 
     split_mode_eff = cfg.split_mode
@@ -527,8 +612,52 @@ def train_emulator(
         
     if ordered_batches_required and cfg.sort_train_for_derivatives:
         train_idx = np.sort(train_idx)
-    x_tensor = torch.from_numpy(norm_times.astype(np.float32))
-    y_tensor = torch.from_numpy(norm_states)
+    ## CLAUDE
+    # # After line 534, before creating TensorDataset:
+    # n_timesteps, n_bodies, n_features = norm_states.shape
+
+    # # Flatten: each index represents a (timestep, body) pair
+    # # index = timestep * n_bodies + body_idx
+    # x_flat = np.repeat(norm_times, n_bodies)  # shape: (n_timesteps * n_bodies,)
+    # y_flat = norm_states.reshape(-1, n_features)  # shape: (n_timesteps * n_bodies, n_features)
+
+    # # Expand train/val indices to include all bodies for selected timesteps
+    # # For each timestep in train_idx, include all n_bodies indices
+    # train_idx_flat = (train_idx[:, None] * n_bodies + np.arange(n_bodies)).ravel()
+    # val_idx_flat = (val_idx[:, None] * n_bodies + np.arange(n_bodies)).ravel()
+
+    # x_tensor = torch.from_numpy(x_flat.astype(np.float32))
+    # y_tensor = torch.from_numpy(y_flat.astype(np.float32))
+
+    # train_dataset = TensorDataset(x_tensor[train_idx_flat], y_tensor[train_idx_flat])
+    # val_dataset = TensorDataset(x_tensor[val_idx_flat], y_tensor[val_idx_flat])
+    
+    # Keep the original 3D structure - just slice by bodies
+
+    # n_timesteps, n_bodies, n_features = norm_states.shape
+
+    # # Split bodies across GPUs
+    # bodies_per_rank = n_bodies // world_size
+    # start_body = rank * bodies_per_rank
+    # end_body = start_body + bodies_per_rank if rank < world_size - 1 else n_bodies
+
+    # # Each GPU gets ALL timesteps but only SOME bodies
+    # x_tensor = torch.from_numpy(norm_times.astype(np.float32))
+    # y_tensor = torch.from_numpy(norm_states[:, start_body:end_body, :])  # Slice bodies dimension
+
+    # print(f"[Rank {rank}] Assigned bodies: {bodies[start_body:end_body]}")
+    # print(f"[Rank {rank}] y_tensor shape: {y_tensor.shape}")  # Should be (n_timesteps, bodies_per_rank, 6)
+    
+    ## TODO
+    # mcfg.num_bodies = len(bodies[start_body:end_body])  
+
+    train_dataset = TensorDataset(x_tensor[train_idx], y_tensor[train_idx])
+    val_dataset = TensorDataset(x_tensor[val_idx], y_tensor[val_idx])
+
+    ## CLAUDE
+
+    # x_tensor = torch.from_numpy(norm_times.astype(np.float32))
+    # y_tensor = torch.from_numpy(norm_states)
 
     effective_shuffle = cfg.shuffle
     if ordered_batches_required and cfg.shuffle:
@@ -580,7 +709,7 @@ def train_emulator(
     # train_loader = DataLoader(TensorDataset(x_tensor[train_idx], y_tensor[train_idx]), **train_loader_kwargs)
 
     # val_loader_kwargs: dict[str, Any] = {
-    #     "batch_size": min(cfg.batch_size, len(val_idx)),
+    #     "b, chunk_size=1atch_size": min(cfg.batch_size, len(val_idx)),
     #     "shuffle": False,
     #     "num_workers": int(cfg.train_loader_workers),
     #     "pin_memory": pin_memory_eff,
@@ -595,22 +724,77 @@ def train_emulator(
 
     # Distributed samplers
     if is_distributed:
-        train_sampler = DistributedSampler(
-            train_dataset,
-            num_replicas=world_size,
-            rank=rank,
-            shuffle=effective_shuffle,
-            seed=cfg.seed,
-        )
-        val_sampler = DistributedSampler(
-            val_dataset,
-            num_replicas=world_size,
-            rank=rank,
-            shuffle=False,
-        )
+
+        ## Trying approach without distributed sampler...     
+
+        # train_sampler = DistributedSampler(
+        #     train_dataset,
+        #     num_replicas=world_size,
+        #     rank=rank,
+        #     # shuffle=effective_shuffle,
+        #     shuffle=False,
+        #     seed=cfg.seed,
+        # )
+        # train_sampler = BodyGroupedDistributedSampler(
+        #     train_dataset,
+        #     num_replicas=world_size,
+        #     rank=rank,
+        #     # shuffle=effective_shuffle,
+        #     shuffle=False,
+        #     seed=cfg.seed,
+        # )
+
+        # train_sampler = BodyGroupedDistributedSampler(
+        #     dataset_length=len(train_dataset),
+        #     n_bodies=n_bodies,
+        #     body_names=bodies,
+        #     num_replicas=world_size,
+        #     rank=rank,
+        #     shuffle=False,
+        #     seed=cfg.seed,
+        # )
+
+        # val_sampler = DistributedSampler(
+        #     val_dataset,
+        #     num_replicas=world_size,
+        #     rank=rank,
+        #     shuffle=False,
+        # )
+        # val_sampler = BodyGroupedDistributedSampler(
+        #             val_dataset,
+        #             num_replicas=world_size,
+        #             rank=rank,
+        #             shuffle=False,
+        #         )
+
+        # val_sampler = BodyGroupedDistributedSampler(
+        #     dataset_length=len(val_dataset),
+        #     n_bodies=n_bodies,
+        #     body_names=bodies,
+        #     num_replicas=world_size,
+        #     rank=rank,
+        #     shuffle=False,
+        #     seed=cfg.seed,
+        # )
+
+        # print(f"Instantiated Distributed Sampler at rank {rank}")
+
+        # epoch = 0
+        # train_sampler.set_epoch(epoch)
+        # tr_indices = list(iter(train_sampler))        # this yields the indices assigned to this rank
+        # print(f"rank={rank}: {tr_indices}")
+
+        # val_sampler.set_epoch(epoch)
+        # val_indices = list(iter(val_sampler))        # this yields the indices assigned to this rank
+        # print(f"rank={rank}: {val_indices}")
+
         # Don't shuffle in DataLoader when using DistributedSampler
         train_shuffle = False
+
+        train_sampler = None
+        val_sampler = None
     else:
+        print(f"NOT Instantiated Distributed Sampler at rank {rank}")
         train_sampler = None
         val_sampler = None
         train_shuffle = effective_shuffle
@@ -618,7 +802,7 @@ def train_emulator(
     # Train loader
     train_loader_kwargs: dict[str, Any] = {
         "batch_size": min(cfg.batch_size, len(train_idx) // max(1, world_size)),
-        "shuffle": train_shuffle,
+        "shuffle": False,
         "sampler": train_sampler,
         "num_workers": int(cfg.train_loader_workers),
         "pin_memory": pin_memory_eff,
@@ -637,9 +821,11 @@ def train_emulator(
         "pin_memory": pin_memory_eff,
         "drop_last": False,
     }
+
     if cfg.train_loader_workers > 0:
         val_loader_kwargs["persistent_workers"] = bool(cfg.persistent_workers)
     val_loader = DataLoader(val_dataset, **val_loader_kwargs)
+
     ## DDP ##
 
     train_time_min_norm = float(np.min(norm_times[train_idx]))
@@ -791,8 +977,10 @@ def train_emulator(
         optimizer.zero_grad(set_to_none=True)
         for batch_t, batch_y in train_loader:
             batch_t = batch_t.to(device, non_blocking=pin_memory_eff)
+            print(f"batch_t shape: {batch_t.shape}")
             batch_y = batch_y.to(device, non_blocking=pin_memory_eff)
-            if model.state_mode == "position_only":
+            print(f"batch_y shape: {batch_y.shape}")
+            if mcfg.state_mode == "position_only":
                 need_acc = nbody_weight_eff > 0.0
                 need_energy = energy_weight_eff > 0.0
                 need_angular = angular_weight_eff > 0.0
@@ -805,8 +993,12 @@ def train_emulator(
                 )
                 need_vel = cfg.velocity_loss_weight > 0.0 or ((need_energy or need_angular) and not use_collocation)
                 need_batch_acc = need_acc and not use_collocation and not use_nbody_subset
+
+                # the problem is pred! returns shape of 10 instead of 5.
+
                 pred, pos_phys, vel_phys, acc_phys = _position_only_to_full_state_norm(
                     model=model,
+                    model_config=mcfg,
                     t_norm=batch_t.detach().clone().requires_grad_(True),
                     scaler_mean_t=scaler_mean_t,
                     scaler_std_t=scaler_std_t,
@@ -815,12 +1007,15 @@ def train_emulator(
                     need_acceleration=need_batch_acc,
                     create_graph=True,
                 )
+                print(f"SHAPE OF PRED: {pred.shape}")
+
                 data_loss = _state_data_loss(
                     pred,
                     batch_y,
                     position_weight=cfg.position_loss_weight,
                     velocity_weight=cfg.velocity_loss_weight,
                 )
+
                 phys_loss = torch.zeros((), device=device)
                 smooth_loss = torch.zeros((), device=device)
                 energy_loss = torch.zeros((), device=device)
@@ -1020,7 +1215,7 @@ def train_emulator(
         running_val_pos_rmse = 0.0
         running_val_vel_rmse = 0.0
         n_val_batches = 0
-        if model.state_mode == "position_only":
+        if mcfg.state_mode == "position_only":
             for val_t, val_y in val_loader:
                 val_t = val_t.to(device, non_blocking=pin_memory_eff)
                 val_y = val_y.to(device, non_blocking=pin_memory_eff)
@@ -1099,7 +1294,7 @@ def train_emulator(
 
         val_loss = running_val / max(1, n_val_batches)
         val_pos_rmse = running_val_pos_rmse / max(1, n_val_batches)
-        if model.state_mode == "position_only" and not cfg.compute_val_velocity_rmse and cfg.velocity_loss_weight <= 0.0:
+        if mcfg.state_mode == "position_only" and not cfg.compute_val_velocity_rmse and cfg.velocity_loss_weight <= 0.0:
             val_vel_rmse = float("nan")
         else:
             val_vel_rmse = running_val_vel_rmse / max(1, n_val_batches)
@@ -1121,7 +1316,7 @@ def train_emulator(
         history["nbody_weight"].append(float(nbody_weight_eff))
         history["lr"].append(float(optimizer.param_groups[0]["lr"]))
         if progress_enabled:
-            if model.state_mode == "position_only":
+            if mcfg.state_mode == "position_only":
                 postfix = {
                     "obj": f"{train_objective_loss:.3e}",
                     "data": f"{train_loss:.3e}",
@@ -1150,7 +1345,7 @@ def train_emulator(
                 }
             epoch_iter.set_postfix(**postfix)
         elif cfg.show_progress and (epoch_idx + 1 == 1 or (epoch_idx + 1) % 25 == 0):
-            if model.state_mode == "position_only":
+            if mcfg.state_mode == "position_only":
                 msg = (
                     f"epoch {epoch_idx + 1:04d}/{cfg.epochs} "
                     f"obj={train_objective_loss:.3e} data={train_loss:.3e} val={val_loss:.3e} "
@@ -1250,4 +1445,4 @@ def train_emulator(
 
 def load_checkpoint(path: str | Path, map_location: str = "cpu") -> dict[str, Any]:
     """Load serialized training artifacts."""
-    return torch.load(Path(path), map_location=map_location)
+    return torch.load(Path(path), map_location=map_location, weights_only=False)

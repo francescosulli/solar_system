@@ -24,6 +24,161 @@ from .config import (
 )
 from .time_frames import TimeInput, build_time_grid, parse_time
 
+import numpy as np
+from torch.utils.data import Sampler
+from torch.utils.data.distributed import DistributedSampler
+import torch.distributed as dist
+
+class BodyGroupedDistributedSampler(Sampler):
+    """Distributes flattened (timestep, body) data by assigning complete bodies to each GPU.
+    
+    Assumes data is flattened where: flat_index = timestep * n_bodies + body_index
+    Each GPU processes ALL timesteps for its assigned bodies.
+    
+    Args:
+        dataset_length: Total number of samples in the dataset
+        n_bodies: Total number of bodies in the system
+        body_names: Optional list of body names for logging
+        num_replicas: Number of processes (GPUs)
+        rank: Rank of current process
+        shuffle: Whether to shuffle samples (shuffles within assigned bodies)
+        seed: Random seed for shuffling
+    """
+    
+    def __init__(self, dataset_length, n_bodies, body_names=None,
+                 num_replicas=None, rank=None, shuffle=False, seed=0):
+        if num_replicas is None:
+            if not dist.is_available():
+                raise RuntimeError("Requires distributed package to be available")
+            num_replicas = dist.get_world_size()
+        if rank is None:
+            if not dist.is_available():
+                raise RuntimeError("Requires distributed package to be available")
+            rank = dist.get_rank()
+            
+        self.dataset_length = dataset_length
+        self.n_bodies = n_bodies
+        self.body_names = body_names if body_names is not None else [f"body_{i}" for i in range(n_bodies)]
+        self.num_replicas = num_replicas
+        self.rank = rank
+        self.epoch = 0
+        self.shuffle = shuffle
+        self.seed = seed
+        
+        # Distribute bodies across GPUs
+        bodies_per_rank = n_bodies // num_replicas
+        remainder = n_bodies % num_replicas
+        
+        # Give extra bodies to first 'remainder' ranks
+        if rank < remainder:
+            start_body = rank * (bodies_per_rank + 1)
+            end_body = start_body + bodies_per_rank + 1
+        else:
+            start_body = remainder * (bodies_per_rank + 1) + (rank - remainder) * bodies_per_rank
+            end_body = start_body + bodies_per_rank
+        
+        self.my_body_indices = list(range(start_body, end_body))
+        self.my_body_names = [self.body_names[i] for i in self.my_body_indices]
+        
+        # Collect all indices belonging to my assigned bodies
+        # Since flat_index = timestep * n_bodies + body_index,
+        # we want all indices where (index % n_bodies) is in my_body_indices
+        self.indices = [i for i in range(dataset_length) if i % n_bodies in self.my_body_indices]
+        self.num_samples = len(self.indices)
+        
+        print(f"[Rank {rank}/{num_replicas}] Assigned bodies: {self.my_body_names}")
+        print(f"[Rank {rank}/{num_replicas}] Processing {self.num_samples:,} samples (out of {dataset_length:,} total)")
+    
+    def __iter__(self):
+        if self.shuffle:
+            # Shuffle samples within this rank's assigned bodies
+            g = torch.Generator()
+            g.manual_seed(self.seed + self.epoch)
+            perm = torch.randperm(len(self.indices), generator=g).tolist()
+            indices = [self.indices[i] for i in perm]
+        else:
+            indices = self.indices.copy()
+        
+        return iter(indices)
+    
+    def __len__(self):
+        return self.num_samples
+    
+    def set_epoch(self, epoch):
+        """Set epoch for shuffling (call at start of each epoch)."""
+        self.epoch = epoch
+# class BodyGroupedDistributedSampler(Sampler):
+#     """Distributes data by grouping complete bodies to each GPU."""
+    
+#     def __init__(self, dataset, num_replicas=None, rank=None, shuffle=True, seed=0):
+#         if num_replicas is None:
+#             num_replicas = dist.get_world_size()
+#         if rank is None:
+#             rank = dist.get_rank()
+            
+#         self.dataset = dataset
+#         self.num_replicas = num_replicas
+#         self.rank = rank
+#         self.epoch = 0
+#         self.shuffle = shuffle
+#         self.seed = seed
+        
+#         body_states = dataset["states"][:, i, :]
+#         all_indices = np.arange(dataset["states"].shape[0])
+        
+#         print(f" {b} (column {i}):")
+#         print(f"   states shape: {body_states.shape}")
+#         print(f"   indices: 0 to {len(all_indices)-1}")   
+
+#         # Group indices by body
+#         self.body_to_indices = {}
+#         for idx, body in enumerate(dataset["bodies"]):
+#             if body not in self.body_to_indices:
+#                 self.body_to_indices[body] = []
+#             self.body_to_indices[body].append(idx)
+        
+#         # Assign bodies to ranks (split bodies evenly across GPUs)
+#         all_bodies = sorted(self.body_to_indices.keys())
+#         bodies_per_rank = len(all_bodies) // num_replicas
+#         start_body = rank * bodies_per_rank
+#         end_body = start_body + bodies_per_rank if rank < num_replicas - 1 else len(all_bodies)
+        
+#         self.my_bodies = all_bodies[start_body:end_body]
+        
+#         # Collect all indices for this rank's bodies
+#         self.indices = []
+#         for body in self.my_bodies:
+#             self.indices.extend(self.body_to_indices[body])
+        
+#         self.num_samples = len(self.indices)
+        
+#         print(f"Rank {rank}: assigned bodies {self.my_bodies}")
+#         print(f"Rank {rank}: {self.num_samples} total samples")
+    
+#     def __iter__(self):
+#         if self.shuffle:
+#             # Shuffle within each body group, then concatenate
+#             g = torch.Generator()
+#             g.manual_seed(self.seed + self.epoch)
+#             indices = []
+#             for body in self.my_bodies:
+#                 body_indices = self.body_to_indices[body].copy()
+#                 perm = torch.randperm(len(body_indices), generator=g).tolist()
+#                 indices.extend([body_indices[i] for i in perm])
+#         else:
+#             indices = self.indices.copy()
+        
+#         return iter(indices)
+    
+#     def __len__(self):
+#         return self.num_samples
+    
+#     def set_epoch(self, epoch):
+#         self.epoch = epoch
+
+# Usage:
+# sampler = BodyGroupedDistributedSampler(dataset, shuffle=True)
+# dataloader = DataLoader(dataset, batch_size=32, sampler=sampler)
 
 def _normalize_body_names(bodies: Sequence[str]) -> list[str]:
     return [body.lower() for body in bodies]
@@ -172,7 +327,7 @@ def save_dataset(path: str | Path, dataset: dict[str, Any]) -> Path:
     return target
 
 
-def load_dataset(path: str | Path) -> dict[str, Any]:
+def load_dataset(path: str | Path, debug=True) -> dict[str, Any]:
     """Load dataset from NPZ while restoring metadata."""
     source = Path(path)
     with np.load(source, allow_pickle=False) as payload:
@@ -180,13 +335,61 @@ def load_dataset(path: str | Path) -> dict[str, Any]:
         if isinstance(raw_metadata, bytes):
             raw_metadata = raw_metadata.decode("utf-8")
         metadata = json.loads(raw_metadata)
-        return {
+        dataset = {
             "times_seconds": payload["times_seconds"],
             "times_iso": payload["times_iso"],
             "states": payload["states"],
             "bodies": payload["bodies"],
             "metadata": metadata,
         }
+        
+        if debug:
+            print("Debugging de440 dataset.")
+            print(f"\nDataset structure:")
+            for key in dataset:
+                if key != 'metadata':
+                    print(f"  {key}: shape={dataset[key].shape}, dtype={dataset[key].dtype}")
+                else:
+                    print(f"  {key}: {type(dataset[key])}")
+            
+            # Create a DataFrame-like view
+            print(f"\nDataset preview (first 5 rows):")
+            n_preview = min(5, len(dataset['times_seconds']))
+            
+            # Determine state columns (assuming states is 2D: [n_times, n_dims])
+            if dataset['states'].ndim > 1:
+                n_state_cols = dataset['states'].shape[1]
+                state_labels = [f"state_{i}" for i in range(n_state_cols)]
+            else:
+                state_labels = ["state"]
+            
+            # Build preview
+            for i in range(n_preview):
+                print(f"\n[{i}]")
+                print(f"  time_seconds: {dataset['times_seconds'][i]}")
+                print(f"  time_iso: {dataset['times_iso'][i]}")
+                if dataset['states'].ndim > 1:
+                    print(f"  states: {dataset['states'][i]}")
+                else:
+                    print(f"  states: {dataset['states'][i]}")
+                if len(dataset['bodies']) > i:
+                    print(f"  body: {dataset['bodies'][i]}")
+
+            bodies = dataset["bodies"]
+
+            print("Solar system bodies:", bodies)
+
+            for i, b in enumerate(bodies):
+                body_states = dataset["states"][:, i, :]
+                all_indices = np.arange(dataset["states"].shape[0])
+
+                print(f" {b} (column {i}):")
+                print(f"   states shape: {body_states.shape}")
+                print(f"   indices: 0 to {len(all_indices)-1}")
+
+            print(f"\nMetadata keys: {list(dataset['metadata'].keys())}")
+
+        return dataset
 
 
 def find_local_kernel(

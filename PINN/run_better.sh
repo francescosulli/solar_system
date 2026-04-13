@@ -29,7 +29,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64GB
 #SBATCH --time=02:00:00
-#SBATCH --gres=gpu:V100:1
+#SBATCH --gres=gpu:V100:2
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -82,7 +82,7 @@ mkdir -p logs
 RUN_ID="${SLURM_JOB_ID:-$(date +%Y%m%d_%H%M%S)}"
 RUN_DIR="logs/runs/${RUN_ID}"
 mkdir -p "${RUN_DIR}"
-
+NGPUS=$(echo "$SLURM_JOB_GPUS" | tr ',' '\n' | wc -l)
 # Mirror all stdout/stderr into the run folder as well
 exec > >(tee -a "${RUN_DIR}/run.log") 2>&1
 
@@ -91,6 +91,7 @@ echo " Job name    : $SLURM_JOB_NAME"
 echo " Job ID      : $SLURM_JOB_ID"
 echo " Node        : $SLURMD_NODENAME"
 echo " CPUs/task   : $SLURM_CPUS_PER_TASK"
+echo " N. of allocated GPUs   : $NGPUS"
 echo " Start time  : $(date)"
 echo " Run dir     : ${RUN_DIR}"
 echo "============================================================"
@@ -232,19 +233,17 @@ echo "--- Starting pipeline ---"
 .venv/bin/python verify_setup.py 
 
 .venv/bin/python solsys_setup.py \
-	--dataset-path $(pwd)/data/dataset_demo.npz \
+	--dataset-path $(pwd)/data/dataset_demo.npz
 
 # python PINN_train.py \
 # 	--dataset-path $(pwd)/data/dataset_demo.npz \
 # 	--checkpoint-path $(pwd)/checkpoints \
 # 	--plots-dir $(pwd)/plots/ 
 
-.venv/bin/python train.py --device cpu --epochs 10 --training-mode=multi 
-# .venv/bin/torchrun --nproc_per_node=$SLURM_JOB_GPUS train.py 
-# 	--training-mode=multi 
-# 	--dataset-path $(pwd)/data/dataset_demo.npz \
-# 	--checkpoint-path $(pwd)/checkpoints \
-# 	--plots-dir $(pwd)/plots/ 
+# .venv/bin/python train.py --device cpu --epochs 10 --training-mode=multi 
+#
+
+.venv/bin/torchrun --nproc_per_node=$NGPUS train.py --training-mode=multi --dataset-path $(pwd)/data/dataset_demo.npz --checkpoint-path $(pwd)/checkpoints --plots-dir $(pwd)/plots/ 
 
 EXIT_CODE=$?
 

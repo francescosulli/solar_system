@@ -36,7 +36,7 @@ from solsys_emulator.config import DEFAULT_CHECKPOINT_PATH, DEFAULT_DATASET_PATH
 from solsys_emulator.de440_dataset import load_dataset
 from solsys_emulator.model import ModelConfig
 from solsys_emulator.train import TrainConfig, train_emulator
-
+from train_ddp import setup_ddp, barrier, cleanup_ddp
 
 # ============================================================================
 # Argument Parsing
@@ -245,7 +245,7 @@ def build_unified_profile(
             show_progress=True,
             device=device,
             cuda_matmul_precision="high",
-            allow_tf32=True,
+            allow_tf32=False,
             cudnn_benchmark=True,
         )
     else:
@@ -378,7 +378,7 @@ def build_multi_stage_configs(
         show_progress=True,
         device=device,
         cuda_matmul_precision="high" if use_gpu_profile else "high",
-        allow_tf32=True if use_gpu_profile else True,
+        allow_tf32=False if use_gpu_profile else True,
         cudnn_benchmark=True if use_gpu_profile else True,
     )
 
@@ -412,7 +412,7 @@ def build_multi_stage_configs(
         show_progress=True,
         device=device,
         cuda_matmul_precision="high" if use_gpu_profile else "high",
-        allow_tf32=True if use_gpu_profile else True,
+        allow_tf32=False if use_gpu_profile else True,
         cudnn_benchmark=True if use_gpu_profile else True,
     )
 
@@ -453,7 +453,7 @@ def build_multi_stage_configs(
         show_progress=True,
         device=device,
         cuda_matmul_precision="high" if use_gpu_profile else "high",
-        allow_tf32=True if use_gpu_profile else True,
+        allow_tf32=False if use_gpu_profile else True,
         cudnn_benchmark=True if use_gpu_profile else True,
     )
 
@@ -951,23 +951,43 @@ def main() -> None:
     args = parse_args()
     ensure_project_dirs()
 
+    dataset = load_dataset(args.dataset_path)
+    # Initialize DDP
+    rank, world_size, local_rank = setup_ddp() # TODO: HANDLE CASE WHERE GPUs are not available
+    # TODO: stil some issues to be solved regarding data distribution between GPUs, but we're getting there. Check logs for details.
     print("=" * 80)
     print("SOLAR SYSTEM PINN TRAINING")
     print("=" * 80)
     print(f"Project root: {PROJECT_ROOT}")
     print(f"Python: {sys.executable}")
     
-    dataset = load_dataset(args.dataset_path)
     device = resolve_device(args.device)
-    # device = os.environ["LOCAL_RANK"]
-    
-    if args.training_mode == "unified":
-        run_unified_training(args, dataset, device)
-    elif args.training_mode == "multi":
-        run_multi_stage_training(args, dataset, device)
-    else:
-        raise ValueError(f"Unknown training mode: {args.training_mode}")
+    # dataset = load_dataset(args.dataset_path)
 
+    print("Debugging de440 dataset.")
+    for d in dataset:
+        print(f"Key: {d}")
+        print(f"  Type: {type(dataset[d])}")
+        if hasattr(dataset[d], 'shape'):
+            print(f"  Shape: {dataset[d].shape}")
+        if hasattr(dataset[d], 'dtype'):
+            print(f"  Dtype: {dataset[d].dtype}")
+    print("Mercury states:", dataset["states"][:,1,:].shape)
+    print("Solar system bodies:", dataset["bodies"])
+    # device = os.environ["LOCAL_RANK"]
+    try: 
+        if args.training_mode == "unified":
+            run_unified_training(args, dataset, device)
+        elif args.training_mode == "multi":
+            run_multi_stage_training(args, dataset, device)
+        else:
+            raise ValueError(f"Unknown training mode: {args.training_mode}")
+    except Exception as e:
+        print(f"ERROR: {e}", flush=True)
+        raise   
+        sys.exit(1)
+    finally:
+        cleanup_ddp()
 
 if __name__ == "__main__":
     main()
