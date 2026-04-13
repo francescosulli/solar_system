@@ -322,6 +322,7 @@ def build_unified_profile(
 def build_multi_stage_configs(
     dataset: dict[str, Any],
     device: str,
+    local_rank: int,
     loader_workers_override: int | None = None,
 ) -> tuple[ModelConfig, TrainConfig, TrainConfig, TrainConfig, int]:
     """Build configurations for multi-stage training (coarse, refine, physics)."""
@@ -380,6 +381,7 @@ def build_multi_stage_configs(
         cuda_matmul_precision="high" if use_gpu_profile else "high",
         allow_tf32=False if use_gpu_profile else True,
         cudnn_benchmark=True if use_gpu_profile else True,
+        local_rank=local_rank
     )
 
     # Stage 2: Refine training (add velocity supervision)
@@ -414,6 +416,7 @@ def build_multi_stage_configs(
         cuda_matmul_precision="high" if use_gpu_profile else "high",
         allow_tf32=False if use_gpu_profile else True,
         cudnn_benchmark=True if use_gpu_profile else True,
+        local_rank=local_rank
     )
 
     # Stage 3: Physics training (add n-body residual)
@@ -455,6 +458,7 @@ def build_multi_stage_configs(
         cuda_matmul_precision="high" if use_gpu_profile else "high",
         allow_tf32=False if use_gpu_profile else True,
         cudnn_benchmark=True if use_gpu_profile else True,
+        local_rank=local_rank
     )
 
     return model_cfg, coarse_cfg, refine_cfg, physics_cfg, loader_workers
@@ -729,7 +733,7 @@ def run_unified_training(args: argparse.Namespace, dataset: dict[str, Any], devi
     print(f"✓ Summary: {plots_dir / 'training_summary.json'}")
 
 
-def run_multi_stage_training(args: argparse.Namespace, dataset: dict[str, Any], device: str) -> None:
+def run_multi_stage_training(args: argparse.Namespace, dataset: dict[str, Any], device: str, local_rank: int) -> None:
     """Run three-stage training with checkpointing and resumption support."""
     print("\n" + "=" * 80)
     print("MULTI-STAGE TRAINING MODE (coarse → refine → physics)")
@@ -753,6 +757,7 @@ def run_multi_stage_training(args: argparse.Namespace, dataset: dict[str, Any], 
     model_cfg, coarse_cfg, refine_cfg, physics_cfg, loader_workers = build_multi_stage_configs(
         dataset=dataset,
         device=device,
+        local_rank=local_rank,
         loader_workers_override=args.loader_workers,
     )
 
@@ -948,12 +953,16 @@ def run_multi_stage_training(args: argparse.Namespace, dataset: dict[str, Any], 
 # ============================================================================
 
 def main() -> None:
+
     args = parse_args()
     ensure_project_dirs()
 
     dataset = load_dataset(args.dataset_path)
+
     # Initialize DDP
-    rank, world_size, local_rank = setup_ddp() # TODO: HANDLE CASE WHERE GPUs are not available
+    local_rank, world_size, device = setup_ddp() # TODO: HANDLE CASE WHERE GPUs are not available
+    print(f"setup_ddp() on [Rank {local_rank}] with world_size {world_size} and device {device}")
+
     # TODO: stil some issues to be solved regarding data distribution between GPUs, but we're getting there. Check logs for details.
     print("=" * 80)
     print("SOLAR SYSTEM PINN TRAINING")
@@ -961,7 +970,7 @@ def main() -> None:
     print(f"Project root: {PROJECT_ROOT}")
     print(f"Python: {sys.executable}")
     
-    device = resolve_device(args.device)
+    # device = resolve_device(args.device)
     # dataset = load_dataset(args.dataset_path)
 
     print("Debugging de440 dataset.")
@@ -977,9 +986,9 @@ def main() -> None:
     # device = os.environ["LOCAL_RANK"]
     try: 
         if args.training_mode == "unified":
-            run_unified_training(args, dataset, device)
+            run_unified_training(args, dataset, device, local_rank)
         elif args.training_mode == "multi":
-            run_multi_stage_training(args, dataset, device)
+            run_multi_stage_training(args, dataset, device, local_rank)
         else:
             raise ValueError(f"Unknown training mode: {args.training_mode}")
     except Exception as e:

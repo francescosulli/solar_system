@@ -88,7 +88,7 @@ class TrainConfig:
     selection_metric: str = "val_loss"
     show_progress: bool = True
     distributed: bool = True # Enable DDP mode
-    local_rank: int = 0  # Local GPU rank (set by torchrun)
+    local_rank: int = 100 # Local GPU rank (set by torchrun)
     find_unused_parameters: bool = False  # For models with conditional paths
 
 
@@ -486,9 +486,10 @@ def train_emulator(
             )
         
         rank = dist.get_rank()
+        print(f"Rank from dist.get_rank(): {rank}")
         world_size = dist.get_world_size()
         local_rank = cfg.local_rank
-        
+        print(f"Rank from local_rank: {cfg.local_rank}")
         # Set device to local rank
         device = torch.device(f"cuda:{local_rank}")
         torch.cuda.set_device(device)
@@ -532,8 +533,8 @@ def train_emulator(
     norm_times, time_mean, time_std = _normalize_time_axis(times_seconds)
 
     # Each GPU gets ALL timesteps but only SOME bodies
-    x_tensor = torch.from_numpy(norm_times.astype(np.float32))
-    y_tensor = torch.from_numpy(norm_states[:, start_body:end_body, :])  # Slice bodies dimension
+    x_tensor = torch.from_numpy(norm_times.astype(np.float32)).to(device)
+    y_tensor = torch.from_numpy(norm_states[:, start_body:end_body, :]).to(device)  # Slice bodies dimension
     
     assigned_bodies = bodies[start_body:end_body]
     print(f"[Rank {rank}] Assigned bodies: {bodies[start_body:end_body]}")
@@ -651,8 +652,8 @@ def train_emulator(
     ## TODO
     # mcfg.num_bodies = len(bodies[start_body:end_body])  
 
-    train_dataset = TensorDataset(x_tensor[train_idx], y_tensor[train_idx])
-    val_dataset = TensorDataset(x_tensor[val_idx], y_tensor[val_idx])
+    # train_dataset = TensorDataset(x_tensor[train_idx], y_tensor[train_idx])
+    # val_dataset = TensorDataset(x_tensor[val_idx], y_tensor[val_idx])
 
     ## CLAUDE
 
@@ -690,7 +691,6 @@ def train_emulator(
     if cfg.train_loader_workers < 0:
         raise ValueError("train_loader_workers must be >= 0")
 
-    device = torch.device(cfg.device)
     if device.type == "cuda":
         torch.set_float32_matmul_precision(str(cfg.cuda_matmul_precision))
         torch.backends.cuda.matmul.allow_tf32 = bool(cfg.allow_tf32)
@@ -723,7 +723,7 @@ def train_emulator(
     val_dataset = TensorDataset(x_tensor[val_idx], y_tensor[val_idx])
 
     # Distributed samplers
-    if is_distributed:
+    # if is_distributed:
 
         ## Trying approach without distributed sampler...     
 
@@ -789,15 +789,18 @@ def train_emulator(
         # print(f"rank={rank}: {val_indices}")
 
         # Don't shuffle in DataLoader when using DistributedSampler
-        train_shuffle = False
+        # train_shuffle = False
 
-        train_sampler = None
-        val_sampler = None
-    else:
-        print(f"NOT Instantiated Distributed Sampler at rank {rank}")
-        train_sampler = None
-        val_sampler = None
-        train_shuffle = effective_shuffle
+        # train_sampler = None
+        # val_sampler = None
+    # else:
+        # print(f"NOT Instantiated Distributed Sampler at rank {rank}")
+        # train_sampler = None
+        # val_sampler = None
+        # train_shuffle = effective_shuffle
+
+    train_sampler = None
+    val_sampler = None
 
     # Train loader
     train_loader_kwargs: dict[str, Any] = {
@@ -831,6 +834,9 @@ def train_emulator(
     train_time_min_norm = float(np.min(norm_times[train_idx]))
     train_time_max_norm = float(np.max(norm_times[train_idx]))
     model = EmulatorModel(**mcfg.to_kwargs()).to(device)
+
+    print(f"SET MODEL TO {device}")
+
     if initial_checkpoint_path is not None:
         init_payload = load_checkpoint(initial_checkpoint_path, map_location=str(device))
         init_bodies = [str(b) for b in init_payload.get("bodies", [])]
