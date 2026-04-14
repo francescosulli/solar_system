@@ -995,9 +995,8 @@ def main() -> None:
         else:
             raise ValueError(f"Unknown training mode: {args.training_mode}")
     except Exception as e:
-        print(f"ERROR: {e}", flush=True)
+        print(f"[Rank {local_rank}] ERROR: {e}", flush=True)
         raise   
-        sys.exit(1)
     finally:
         cleanup_ddp()
 

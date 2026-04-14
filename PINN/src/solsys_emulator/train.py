@@ -450,7 +450,7 @@ def save_checkpoint(
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
 
-    if cfg.distributed:
+    if train_config.distributed:
         model = model.module
 
     payload = {
