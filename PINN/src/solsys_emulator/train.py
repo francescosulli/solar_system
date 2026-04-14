@@ -11,6 +11,7 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor
 from torch.utils.data import DataLoader, TensorDataset
+import torch.profiler as profiler
 
 try:  # pragma: no cover - available on modern torch, optional fallback.
     from torch.func import jacrev, vmap
@@ -32,6 +33,12 @@ from .model import EmulatorModel, ModelConfig
 from .preprocessing import StateScaler, fit_scaler
 from .utils import set_seed
 
+# EXTRA LOGGING
+from torch.utils.tensorboard import SummaryWriter
+import wandb
+from .logging import DistributedLogger
+from torch.profiler import profile, record_function, ProfilerActivity
+##
 
 @dataclass
 class TrainConfig:
@@ -437,6 +444,11 @@ def train_emulator(
     scaler: StateScaler | None = None,
     checkpoint_path: str | Path = DEFAULT_CHECKPOINT_PATH,
     initial_checkpoint_path: str | Path | None = None,
+    enable_tensorboard: bool = True,
+    use_wandb: bool = True,
+    wandb_project: str = pinn-solar-system,
+    enable_profiling: bool = True
+    log_dir="logs/runs"
 ) -> dict[str, Any]:
     """Train emulator on a dataset and store checkpoint.
 
@@ -724,7 +736,83 @@ def train_emulator(
     else:
         epoch_iter = range(cfg.epochs)
 
+    # TENSORBOARD
+    writer = None
+    if rank == 0 and enable_tensorboard:
+        from datetime import datetime
+        run_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_gpu{world_size}"
+        writer = SummaryWriter(log_dir=f"{log_dir}/{run_name}")
+        
+        # Log hyperparameters
+        hparams = {
+            'batch_size': cfg.batch_size,
+            'lr': cfg.lr,
+            'hidden_dim': mcfg.hidden_dim,
+            'num_layers': mcfg.num_layers,
+            'world_size': world_size,
+        }
+        writer.add_hparams(hparams, {})
+        
+        # Log model graph
+        dummy_input = torch.randn(1, ..., device=device)
+        writer.add_graph(model, dummy_input)
+
+    # TENSORBOARD
+
+    # Initialize W&B (only rank 0)
+    if rank == 0 and use_wandb:
+        config = {
+            # Model config
+            'model_type': mcfg.backbone_type,
+            'hidden_dim': mcfg.hidden_dim,
+            'num_layers': mcfg.num_layers,
+            'fourier_features': mcfg.fourier_features,
+            
+            # Training config
+            'batch_size': cfg.batch_size,
+            'effective_batch_size': cfg.batch_size * world_size,
+            'lr': cfg.lr,
+            'weight_decay': cfg.weight_decay,
+            'epochs': cfg.epochs,
+            
+            # DDP config
+            'world_size': world_size,
+            'distributed': is_distributed,
+            
+            # Dataset
+            'num_bodies': len(bodies),
+            'num_samples': len(dataset['times_seconds']),
+        }
+        
+        run = wandb.init(
+            project=wandb_project,
+            config=config,
+            name=f"ddp_gpu{world_size}_{datetime.now().strftime('%m%d_%H%M')}",
+            tags=['ddp', f'{world_size}gpu', cfg.training_mode],
+        )
+        
+        # Watch model (logs gradients and parameters)
+        wandb.watch(model, log='all', log_freq=100)
+    # 
+
+    logger = DistributedLogger(
+        name="pinn_training",
+        log_dir=Path("logs"),
+        rank=rank,
+        world_size=world_size,
+        log_level=logging.DEBUG if rank == 0 else logging.INFO,
+    )
+    
+    logger.info("Starting training...")
+    logger.info(f"World size: {world_size}")
+    logger.info(f"Batch size per GPU: {cfg.batch_size}")
+    logger.info(f"Effective batch size: {cfg.batch_size * world_size}")
+
+    # with profiler_ctx if profiler_ctx else nullcontext()
     for epoch_idx in epoch_iter:
+
+        logger.info(f"Epoch {epoch_idx + 1}/{cfg.epochs}")
+
         if is_distributed and train_sampler is not None:
             train_sampler.set_epoch(epoch_idx)
         if cfg.physics_loss_weight > 0.0:
@@ -789,7 +877,12 @@ def train_emulator(
         n_batches = 0
         accum_steps = max(1, int(cfg.gradient_accumulation_steps))
         optimizer.zero_grad(set_to_none=True)
-        for batch_t, batch_y in train_loader:
+        for batch_idx, (batch_t, batch_y) in enumerate(train_loader):
+
+            # Log batch stats (debug)
+            if batch_idx % 100 == 0:
+                logger.log_batch_stats(batch_t, batch_idx)
+
             batch_t = batch_t.to(device, non_blocking=pin_memory_eff)
             batch_y = batch_y.to(device, non_blocking=pin_memory_eff)
             if model.state_mode == "position_only":
@@ -953,6 +1046,19 @@ def train_emulator(
                 optimizer.step()
                 optimizer.zero_grad(set_to_none=True)
 
+            # Log gradients
+            if batch_idx % 100 == 0:
+                logger.log_gradients(model, batch_idx)
+            
+            # Log GPU memory
+            if batch_idx % 100 == 0:
+                logger.log_gpu_memory(batch_idx)
+
+        logger.info(
+            f"Epoch {epoch_idx + 1} complete | "
+            f"train_loss={train_loss:.6f}, "
+            f"val_loss={epoch_val_loss:.6f}"
+
             running_train += float(data_loss.detach().cpu().item())
             running_objective += float(loss.detach().cpu().item())
             running_phys += float(phys_loss.detach().cpu().item())
@@ -1104,6 +1210,109 @@ def train_emulator(
         else:
             val_vel_rmse = running_val_vel_rmse / max(1, n_val_batches)
 
+        ## TENSORBOARD
+        if rank == 0 and writer is not None:
+            # Scalars
+            writer.add_scalar('Loss/train', epoch_train_loss, epoch_idx)
+            writer.add_scalar('Loss/val', epoch_val_loss, epoch_idx)
+            writer.add_scalar('RMSE/position', val_pos_rmse, epoch_idx)
+            writer.add_scalar('RMSE/velocity', val_vel_rmse, epoch_idx)
+            writer.add_scalar('LR', optimizer.param_groups[0]['lr'], epoch_idx)
+            
+            # Physics losses
+            writer.add_scalar('Physics/nbody_raw', nbody_loss_raw, epoch_idx)
+            writer.add_scalar('Physics/nbody_weight', nbody_weight_eff, epoch_idx)
+            writer.add_scalar('Physics/nbody_weighted', nbody_loss_weighted, epoch_idx)
+            
+            # Gradients
+            total_norm = 0.0
+            for name, param in model.named_parameters():
+                if param.grad is not None:
+                    param_norm = param.grad.data.norm(2).item()
+                    total_norm += param_norm ** 2
+                    writer.add_scalar(f'Gradients/{name}', param_norm, epoch_idx)
+            
+            total_norm = total_norm ** 0.5
+            writer.add_scalar('Gradients/total_norm', total_norm, epoch_idx)
+            
+            # Memory usage
+            if torch.cuda.is_available():
+                for i in range(torch.cuda.device_count()):
+                    mem_allocated = torch.cuda.memory_allocated(i) / 1024**3
+                    mem_reserved = torch.cuda.memory_reserved(i) / 1024**3
+                    writer.add_scalar(f'Memory/gpu_{i}_allocated_GB', mem_allocated, epoch_idx)
+                    writer.add_scalar(f'Memory/gpu_{i}_reserved_GB', mem_reserved, epoch_idx)
+            
+            # Histograms (every N epochs to reduce overhead)
+            if epoch_idx % 10 == 0:
+                for name, param in model.named_parameters():
+                    writer.add_histogram(f'Parameters/{name}', param, epoch_idx)
+                    if param.grad is not None:
+                        writer.add_histogram(f'Gradients/{name}', param.grad, epoch_idx)
+            
+            writer.flush()
+        ## TENSORBOARD
+
+        ## WANDB
+        if rank == 0 and use_wandb:
+            # Log metrics
+            metrics = {
+                'epoch': epoch_idx,
+                'train/loss': epoch_train_loss,
+                'train/objective_loss': epoch_objective_loss,
+                'val/loss': epoch_val_loss,
+                'val/pos_rmse_km': val_pos_rmse,
+                'val/vel_rmse_km_s': val_vel_rmse,
+                'physics/nbody_loss': nbody_loss_raw,
+                'physics/nbody_weight': nbody_weight_eff,
+                'physics/energy_loss': energy_loss,
+                'physics/angular_momentum_loss': angular_momentum_loss,
+                'optim/lr': optimizer.param_groups[0]['lr'],
+                'optim/grad_norm': total_grad_norm,
+            }
+            
+            # GPU metrics (all devices)
+            for i in range(torch.cuda.device_count()):
+                metrics[f'gpu_{i}/memory_allocated_GB'] = \
+                    torch.cuda.memory_allocated(i) / 1024**3
+                metrics[f'gpu_{i}/memory_reserved_GB'] = \
+                    torch.cuda.memory_reserved(i) / 1024**3
+            
+            wandb.log(metrics, step=epoch_idx)
+            
+            # Log images (every N epochs)
+            if epoch_idx % 50 == 0:
+                # Plot training curves
+                fig, ax = plt.subplots(figsize=(10, 6))
+                ax.plot(history['train_loss'], label='Train')
+                ax.plot(history['val_loss'], label='Val')
+                ax.set_yscale('log')
+                ax.set_xlabel('Epoch')
+                ax.set_ylabel('Loss')
+                ax.legend()
+                wandb.log({"training_curves": wandb.Image(fig)}, step=epoch_idx)
+                plt.close(fig)
+        # WANDB
+
+        # PYTORCH MEMORY PROFILER
+        if not enable_profiling or rank != 0:
+            profiler_ctx = None
+        else:
+            profiler_ctx = profile(
+                activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+                schedule=torch.profiler.schedule(
+                    wait=1,
+                    warmup=1,
+                    active=3,
+                    repeat=2
+                ),
+                on_trace_ready=torch.profiler.tensorboard_trace_handler('./profiler_logs'),
+                record_shapes=True,
+                profile_memory=True,
+                with_stack=True,
+            )
+        # PYTORCH MEMORY PROFILER
+
         history["train_loss"].append(train_loss)
         history["train_objective_loss"].append(train_objective_loss)
         history["val_loss"].append(val_loss)
@@ -1232,10 +1441,28 @@ def train_emulator(
         torch.save(save_payload, checkpoint_path)
         print_rank0(f"✓ Checkpoint saved: {checkpoint_path}")
     
+
+
     # === ADD BARRIER ===
     # Ensure all ranks wait for rank 0 to finish saving
     if is_distributed:
         dist.barrier()
+    # TENSORBOARD
+    if rank == 0 and writer is not None:
+        writer.close()
+    # TENSORBOARD
+
+    # WANDB
+    if rank == 0 and use_wandb:
+        # Save final checkpoint to W&B
+        wandb.save(str(checkpoint_path))
+        
+        # Log summary metrics
+        wandb.run.summary['best_val_loss'] = best_val
+        wandb.run.summary['total_epochs'] = epoch_idx + 1
+        
+        wandb.finish()
+    # WANDB
 
     return {
         "model": model,
