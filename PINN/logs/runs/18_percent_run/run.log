@@ -1,0 +1,624 @@
+============================================================
+ Job name    : solsys_pinn
+ Job ID      : 1110519
+ Node        : gpu002
+ CPUs/task   : 8
+ N. of allocated GPUs   : 2
+ Start time  : Mon Apr 13 07:25:15 PM CEST 2026
+ Run dir     : logs/runs/1110519
+============================================================
+Metadata saved to logs/runs/1110519/meta.txt
+/var/spool/slurm/d/job1110519/slurm_script: line 137: uv: command not found
+
+=== NVIDIA-SMI debug setup ===
+Mon Apr 13 19:25:15 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.105.08             Driver Version: 580.105.08     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  Tesla V100-PCIE-32GB           Off |   00000000:3B:00.0 Off |                    0 |
+| N/A   32C    P0             25W /  250W |       0MiB /  32768MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+|   1  Tesla V100-PCIE-32GB           Off |   00000000:AF:00.0 Off |                    0 |
+| N/A   31C    P0             24W /  250W |       0MiB /  32768MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+2026/04/13 19:25:15.342, 0, Tesla V100-PCIE-32GB, GPU-30788faf-e0ad-be8a-8840-ed02b093a048, 580.105.08, 32768, 0, 32495, 0, 0, 32, 25.13, 250.00
+2026/04/13 19:25:15.345, 1, Tesla V100-PCIE-32GB, GPU-4fad8716-ebae-e9c8-0460-4ac0f923a9e7, 580.105.08, 32768, 0, 32495, 0, 0, 31, 24.72, 250.00
+nvidia-smi sampler PID : 2226754
+GPU timeseries log     : logs/runs/1110519/nvidia-smi.csv
+Process monitor log    : logs/runs/1110519/nvidia-smi.pmon.csv
+=============================
+
+--- Python / torch ---
+Python : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+Python 3.11.14
+torch        : 2.10.0+cu128
+CUDA available: True
+GPU          : Tesla V100-PCIE-32GB
+
+--- Starting pipeline ---
+================================================================================
+PINN TRAINING ENVIRONMENT VERIFICATION
+================================================================================
+
+================================================================================
+PYTHON VERSION
+================================================================================
+Python 3.11.14
+✓ OK
+
+================================================================================
+PYTORCH
+================================================================================
+PyTorch version: 2.10.0+cu128
+CUDA available: True
+CUDA version: 12.8
+GPU count: 2
+  GPU 0: Tesla V100-PCIE-32GB (31.7 GB)
+  GPU 1: Tesla V100-PCIE-32GB (31.7 GB)
+✓ OK - CUDA ready
+
+================================================================================
+DISTRIBUTED TRAINING
+================================================================================
+torch.distributed available: True
+Available backends: nccl, gloo
+✓ OK - NCCL backend available (recommended for multi-GPU)
+
+================================================================================
+OPTIONAL DEPENDENCIES
+================================================================================
+✓ numpy           - Required
+✓ matplotlib      - Required for plotting
+✓ tqdm            - Progress bars
+✓ tensorboard     - TensorBoard logging
+⚠ wandb           - Weights & Biases logging (optional)
+
+================================================================================
+PROJECT FILES
+================================================================================
+
+Required files:
+✓ train.py                                 - Unified training script
+✓ train_ddp.py                             - DDP training script
+✓ src/solsys_emulator/train.py             - Training module
+✓ src/solsys_emulator/model.py             - Model module
+✓ data/dataset_demo.npz                    - Demo dataset
+
+Documentation:
+✓ DDP_IMPLEMENTATION.md                    - DDP guide
+✓ LOGGING_GUIDE.md                         - Logging guide
+✓ QUICK_REFERENCE.md                       - Quick reference
+✓ minimal_ddp_example.py                   - Minimal DDP example
+
+================================================================================
+GPU MEMORY
+================================================================================
+GPU 0: Tesla V100-PCIE-32GB
+  Total: 32.0 GB
+  Free:  31.7 GB
+GPU 1: Tesla V100-PCIE-32GB
+  Total: 32.0 GB
+  Free:  31.7 GB
+✓ OK
+
+================================================================================
+SUMMARY
+================================================================================
+PYTHON               ✓ PASS
+PYTORCH              ✓ PASS
+DISTRIBUTED          ✓ PASS
+DEPENDENCIES         ✓ PASS
+FILES                ✓ PASS
+GPU_MEMORY           ✓ PASS
+
+✓ All checks passed!
+
+
+================================================================================
+RECOMMENDATIONS
+================================================================================
+Multi-GPU setup (2 GPUs):
+  • First, implement DDP modifications:
+    1. Read DDP_PATCH.md
+    2. Modify src/solsys_emulator/train.py
+    3. Test with minimal example:
+       torchrun --nproc_per_node=2 minimal_ddp_example.py
+
+  • Then use DDP training:
+    torchrun --nproc_per_node=2 train_ddp.py \
+      --training-mode unified \
+      --batch-size 768 \
+      --epochs 1400
+
+  • Expected speedup: ~1.7x
+  • Memory per GPU: ~50% of single-GPU mode
+
+================================================================================
+Next steps:
+  1. Read README.md for overview
+  2. Try a test run: python train.py --device cuda --epochs 10
+  3. Read DDP_IMPLEMENTATION.md for multi-GPU setup
+================================================================================
+
+19:25:22 | INFO     | === Stage 0: Setup & dependency check ===
+19:25:22 | INFO     | Project root : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN
+19:25:22 | INFO     | Python       : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+19:25:22 | INFO     | Frame        : icrs | Origin: barycentric
+19:25:22 | INFO     | Time scale   : tdb
+19:25:22 | INFO     | Unit system  : UnitSystem(length='km', time='s', velocity='km/s', mu='km^3/s^2')
+19:25:22 | INFO     | Bodies       : ('sun', 'mercury', 'venus', 'earth', 'moon', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune')
+19:25:22 | INFO     | All required packages found.
+19:25:22 | INFO     | DE440 kernel : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/data/de440.bsp
+19:25:22 | INFO     | === Stage 1: Building dataset ===
+19:25:22 | INFO     | Kernel path   : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/data/de440.bsp
+19:25:22 | INFO     | Date range    : 2010-01-01T00:00:00 → 2030-01-01T00:00:00
+19:25:22 | INFO     | Step          : 3.0 h
+19:25:22 | INFO     | States shape  : (58441, 10, 6)
+19:25:22 | INFO     | Num samples   : 58441
+19:25:22 | INFO     | Frame         : icrs | Timescale: tdb
+19:25:24 | INFO     | Dataset saved : /u/astreo/gbillo/solar_system/PINN/data/dataset_demo.npz
+Debugging de440 dataset.
+
+Dataset structure:
+  times_seconds: shape=(58441,), dtype=float64
+  times_iso: shape=(58441,), dtype=<U32
+  states: shape=(58441, 10, 6), dtype=float64
+  bodies: shape=(10,), dtype=<U16
+  metadata: <class 'dict'>
+
+Dataset preview (first 5 rows):
+
+[0]
+  time_seconds: 315576000.0
+  time_iso: 2010-01-01T00:00:00.000
+  states: [[-5.60672802e+05  4.01372349e+05  1.74761924e+05 -5.17750124e-03
+  -8.83433043e-03 -3.69841019e-03]
+ [ 7.05467551e+06  4.07509323e+07  2.09389922e+07 -5.78122079e+01
+   6.62773263e+00  9.53509135e+00]
+ [ 7.41972755e+06 -9.83561649e+07 -4.47630616e+07  3.46850196e+01
+   3.01536703e+00 -8.38193662e-01]
+ [-2.68925595e+07  1.33184392e+08  5.77396781e+07 -2.97840575e+01
+  -5.00193780e+00 -2.16691434e+00]
+ [-2.69739359e+07  1.33503710e+08  5.78830619e+07 -3.08431311e+01
+  -5.20419093e+00 -2.36392753e+00]
+ [-1.09717942e+08  1.97127474e+08  9.33560627e+07 -2.07433269e+01
+  -8.21909864e+00 -3.20939992e+00]
+ [ 6.73985765e+08 -2.91486279e+08 -1.41360091e+08  5.49559698e+00
+   1.14458794e+01  4.77220172e+00]
+ [-1.41639359e+09  1.37577779e+07  6.66553532e+07 -7.83206329e-01
+  -8.95770681e+00 -3.66618406e+00]
+ [ 2.99687527e+09 -1.94187802e+08 -1.27436592e+08  4.68877198e-01
+   5.93143877e+00  2.59119209e+00]
+ [ 3.71203257e+09 -2.30552211e+09 -1.03607968e+09  3.02298872e+00
+   4.21620486e+00  1.65045338e+00]]
+  body: sun
+
+[1]
+  time_seconds: 315586800.0
+  time_iso: 2010-01-01T03:00:00.000
+  states: [[-5.60728708e+05  4.01276933e+05  1.74721979e+05 -5.17549324e-03
+  -8.83526558e-03 -3.69885342e-03]
+ [ 6.42971528e+06  4.08193048e+07  2.10403190e+07 -5.79196279e+01
+   6.03370954e+00  9.22891561e+00]
+ [ 7.79427706e+06 -9.83230055e+07 -4.47718440e+07  3.46759310e+01
+   3.12526900e+00 -7.88171509e-01]
+ [-2.72141635e+07  1.33130050e+08  5.77161363e+07 -2.97722260e+01
+  -5.06135502e+00 -2.19266831e+00]
+ [-2.73069350e+07  1.33447024e+08  5.78573207e+07 -3.08231641e+01
+  -5.29321472e+00 -2.40292837e+00]
+ [-1.09941912e+08  1.97038602e+08  9.33213513e+07 -2.07324809e+01
+  -8.23861989e+00 -3.21864673e+00]
+ [ 6.74045105e+08 -2.91362658e+08 -1.41308549e+08  5.49329118e+00
+   1.14468769e+01  4.77268541e+00]
+ [-1.41640205e+09  1.36610347e+07  6.66157582e+07 -7.82493467e-01
+  -8.95771355e+00 -3.66621754e+00]
+ [ 2.99688033e+09 -1.94123742e+08 -1.27408607e+08  4.68718831e-01
+   5.93144901e+00  2.59119882e+00]
+ [ 3.71206521e+09 -2.30547657e+09 -1.03606185e+09  3.02292990e+00
+   4.21624140e+00  1.65046980e+00]]
+  body: mercury
+
+[2]
+  time_seconds: 315597600.0
+  time_iso: 2010-01-01T06:00:00.000
+  states: [[-5.60784593e+05  4.01181508e+05  1.74682029e+05 -5.17348596e-03
+  -8.83620022e-03 -3.69929633e-03]
+ [ 5.80364484e+06  4.08812580e+07  2.11383320e+07 -5.80177997e+01
+   5.43901796e+00  8.92142389e+00]
+ [ 8.16872616e+06 -9.82886593e+07 -4.47800861e+07  3.46664260e+01
+   3.23512860e+00 -7.38142064e-01]
+ [-2.75356391e+07  1.33075067e+08  5.76923164e+07 -2.97602628e+01
+  -5.12075031e+00 -2.21841412e+00]
+ [-2.76397119e+07  1.33389377e+08  5.78311593e+07 -3.08019815e+01
+  -5.38202393e+00 -2.44172607e+00]
+ [-1.10165764e+08  1.96949520e+08  9.32865400e+07 -2.07216147e+01
+  -8.25812859e+00 -3.22788834e+00]
+ [ 6.74104420e+08 -2.91239026e+08 -1.41257001e+08  5.49098513e+00
+   1.14478740e+01  4.77316894e+00]
+ [-1.41641049e+09  1.35642913e+07  6.65761629e+07 -7.81780609e-01
+  -8.95772024e+00 -3.66625100e+00]
+ [ 2.99688540e+09 -1.94059683e+08 -1.27380622e+08  4.68560464e-01
+   5.93145924e+00  2.59120554e+00]
+ [ 3.71209786e+09 -2.30543104e+09 -1.03604403e+09  3.02287109e+00
+   4.21627794e+00  1.65048622e+00]]
+  body: venus
+
+[3]
+  time_seconds: 315608400.0
+  time_iso: 2010-01-01T09:00:00.000
+  states: [[-5.60840456e+05  4.01086072e+05  1.74642074e+05 -5.17147941e-03
+  -8.83713438e-03 -3.69973894e-03]
+ [ 5.17656416e+06  4.09367857e+07  2.12330173e+07 -5.81067082e+01
+   4.84381114e+00  8.61269647e+00]
+ [ 8.54307036e+06 -9.82531269e+07 -4.47877879e+07  3.46565047e+01
+   3.34494453e+00 -6.88105918e-01]
+ [-2.78569847e+07  1.33019442e+08  5.76682186e+07 -2.97481679e+01
+  -5.18012380e+00 -2.24415185e+00]
+ [-2.79722534e+07  1.33330773e+08  5.78045802e+07 -3.07795920e+01
+  -5.47058124e+00 -2.48030378e+00]
+ [-1.10389499e+08  1.96860227e+08  9.32516289e+07 -2.07107284e+01
+  -8.27762474e+00 -3.23712472e+00]
+ [ 6.74163710e+08 -2.91115384e+08 -1.41205448e+08  5.48867885e+00
+   1.14488707e+01  4.77365229e+00]
+ [-1.41641893e+09  1.34675479e+07  6.65365672e+07 -7.81067755e-01
+  -8.95772689e+00 -3.66628444e+00]
+ [ 2.99689045e+09 -1.93995623e+08 -1.27352637e+08  4.68402096e-01
+   5.93146948e+00  2.59121226e+00]
+ [ 3.71213051e+09 -2.30538550e+09 -1.03602620e+09  3.02281227e+00
+   4.21631448e+00  1.65050264e+00]]
+  body: earth
+
+[4]
+  time_seconds: 315619200.0
+  time_iso: 2010-01-01T12:00:00.000
+  states: [[-5.60896297e+05  4.00990625e+05  1.74602115e+05 -5.16947359e-03
+  -8.83806807e-03 -3.70018124e-03]
+ [ 4.54857334e+06  4.09858831e+07  2.13243621e+07 -5.81863422e+01
+   4.24824227e+00  8.30281404e+00]
+ [ 8.91730516e+06 -9.82164087e+07 -4.47949492e+07  3.46461671e+01
+   3.45471550e+00 -6.38063665e-01]
+ [-2.81781990e+07  1.32963176e+08  5.76438428e+07 -2.97359411e+01
+  -5.23947564e+00 -2.26988156e+00]
+ [-2.83045467e+07  1.33271214e+08  5.77775856e+07 -3.07560061e+01
+  -5.55884959e+00 -2.51864498e+00]
+ [-1.10613116e+08  1.96770723e+08  9.32166181e+07 -2.06998220e+01
+  -8.29710831e+00 -3.24635589e+00]
+ [ 6.74222975e+08 -2.90991731e+08 -1.41153890e+08  5.48637232e+00
+   1.14498669e+01  4.77413548e+00]
+ [-1.41642737e+09  1.33708044e+07  6.64969712e+07 -7.80354906e-01
+  -8.95773349e+00 -3.66631786e+00]
+ [ 2.99689551e+09 -1.93931563e+08 -1.27324652e+08  4.68243727e-01
+   5.93147971e+00  2.59121898e+00]
+ [ 3.71216315e+09 -2.30533996e+09 -1.03600838e+09  3.02275345e+00
+   4.21635101e+00  1.65051906e+00]]
+  body: moon
+Solar system bodies: ['sun' 'mercury' 'venus' 'earth' 'moon' 'mars' 'jupiter' 'saturn' 'uranus'
+ 'neptune']
+ sun (column 0):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ mercury (column 1):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ venus (column 2):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ earth (column 3):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ moon (column 4):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ mars (column 5):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ jupiter (column 6):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ saturn (column 7):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ uranus (column 8):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ neptune (column 9):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+
+Metadata keys: ['frame', 'origin', 'timescale', 'units', 'epoch', 'bodies', 'kernel_path', 'sample_source']
+Debugging de440 dataset.
+
+Dataset structure:
+  times_seconds: shape=(58441,), dtype=float64
+  times_iso: shape=(58441,), dtype=<U32
+  states: shape=(58441, 10, 6), dtype=float64
+  bodies: shape=(10,), dtype=<U16
+  metadata: <class 'dict'>
+
+Dataset preview (first 5 rows):
+
+[0]
+  time_seconds: 315576000.0
+  time_iso: 2010-01-01T00:00:00.000
+  states: [[-5.60672802e+05  4.01372349e+05  1.74761924e+05 -5.17750124e-03
+  -8.83433043e-03 -3.69841019e-03]
+ [ 7.05467551e+06  4.07509323e+07  2.09389922e+07 -5.78122079e+01
+   6.62773263e+00  9.53509135e+00]
+ [ 7.41972755e+06 -9.83561649e+07 -4.47630616e+07  3.46850196e+01
+   3.01536703e+00 -8.38193662e-01]
+ [-2.68925595e+07  1.33184392e+08  5.77396781e+07 -2.97840575e+01
+  -5.00193780e+00 -2.16691434e+00]
+ [-2.69739359e+07  1.33503710e+08  5.78830619e+07 -3.08431311e+01
+  -5.20419093e+00 -2.36392753e+00]
+ [-1.09717942e+08  1.97127474e+08  9.33560627e+07 -2.07433269e+01
+  -8.21909864e+00 -3.20939992e+00]
+ [ 6.73985765e+08 -2.91486279e+08 -1.41360091e+08  5.49559698e+00
+   1.14458794e+01  4.77220172e+00]
+ [-1.41639359e+09  1.37577779e+07  6.66553532e+07 -7.83206329e-01
+  -8.95770681e+00 -3.66618406e+00]
+ [ 2.99687527e+09 -1.94187802e+08 -1.27436592e+08  4.68877198e-01
+   5.93143877e+00  2.59119209e+00]
+ [ 3.71203257e+09 -2.30552211e+09 -1.03607968e+09  3.02298872e+00
+   4.21620486e+00  1.65045338e+00]]
+  body: sun
+
+[1]
+  time_seconds: 315586800.0
+  time_iso: 2010-01-01T03:00:00.000
+  states: [[-5.60728708e+05  4.01276933e+05  1.74721979e+05 -5.17549324e-03
+  -8.83526558e-03 -3.69885342e-03]
+ [ 6.42971528e+06  4.08193048e+07  2.10403190e+07 -5.79196279e+01
+   6.03370954e+00  9.22891561e+00]
+ [ 7.79427706e+06 -9.83230055e+07 -4.47718440e+07  3.46759310e+01
+   3.12526900e+00 -7.88171509e-01]
+ [-2.72141635e+07  1.33130050e+08  5.77161363e+07 -2.97722260e+01
+  -5.06135502e+00 -2.19266831e+00]
+ [-2.73069350e+07  1.33447024e+08  5.78573207e+07 -3.08231641e+01
+  -5.29321472e+00 -2.40292837e+00]
+ [-1.09941912e+08  1.97038602e+08  9.33213513e+07 -2.07324809e+01
+  -8.23861989e+00 -3.21864673e+00]
+ [ 6.74045105e+08 -2.91362658e+08 -1.41308549e+08  5.49329118e+00
+   1.14468769e+01  4.77268541e+00]
+ [-1.41640205e+09  1.36610347e+07  6.66157582e+07 -7.82493467e-01
+  -8.95771355e+00 -3.66621754e+00]
+ [ 2.99688033e+09 -1.94123742e+08 -1.27408607e+08  4.68718831e-01
+   5.93144901e+00  2.59119882e+00]
+ [ 3.71206521e+09 -2.30547657e+09 -1.03606185e+09  3.02292990e+00
+   4.21624140e+00  1.65046980e+00]]
+  body: mercury
+
+[2]
+  time_seconds: 315597600.0
+  time_iso: 2010-01-01T06:00:00.000
+  states: [[-5.60784593e+05  4.01181508e+05  1.74682029e+05 -5.17348596e-03
+  -8.83620022e-03 -3.69929633e-03]
+ [ 5.80364484e+06  4.08812580e+07  2.11383320e+07 -5.80177997e+01
+   5.43901796e+00  8.92142389e+00]
+ [ 8.16872616e+06 -9.82886593e+07 -4.47800861e+07  3.46664260e+01
+   3.23512860e+00 -7.38142064e-01]
+ [-2.75356391e+07  1.33075067e+08  5.76923164e+07 -2.97602628e+01
+  -5.12075031e+00 -2.21841412e+00]
+ [-2.76397119e+07  1.33389377e+08  5.78311593e+07 -3.08019815e+01
+  -5.38202393e+00 -2.44172607e+00]
+ [-1.10165764e+08  1.96949520e+08  9.32865400e+07 -2.07216147e+01
+  -8.25812859e+00 -3.22788834e+00]
+ [ 6.74104420e+08 -2.91239026e+08 -1.41257001e+08  5.49098513e+00
+   1.14478740e+01  4.77316894e+00]
+ [-1.41641049e+09  1.35642913e+07  6.65761629e+07 -7.81780609e-01
+  -8.95772024e+00 -3.66625100e+00]
+ [ 2.99688540e+09 -1.94059683e+08 -1.27380622e+08  4.68560464e-01
+   5.93145924e+00  2.59120554e+00]
+ [ 3.71209786e+09 -2.30543104e+09 -1.03604403e+09  3.02287109e+00
+   4.21627794e+00  1.65048622e+00]]
+  body: venus
+
+[3]
+  time_seconds: 315608400.0
+  time_iso: 2010-01-01T09:00:00.000
+  states: [[-5.60840456e+05  4.01086072e+05  1.74642074e+05 -5.17147941e-03
+  -8.83713438e-03 -3.69973894e-03]
+ [ 5.17656416e+06  4.09367857e+07  2.12330173e+07 -5.81067082e+01
+   4.84381114e+00  8.61269647e+00]
+ [ 8.54307036e+06 -9.82531269e+07 -4.47877879e+07  3.46565047e+01
+   3.34494453e+00 -6.88105918e-01]
+ [-2.78569847e+07  1.33019442e+08  5.76682186e+07 -2.97481679e+01
+  -5.18012380e+00 -2.24415185e+00]
+ [-2.79722534e+07  1.33330773e+08  5.78045802e+07 -3.07795920e+01
+  -5.47058124e+00 -2.48030378e+00]
+ [-1.10389499e+08  1.96860227e+08  9.32516289e+07 -2.07107284e+01
+  -8.27762474e+00 -3.23712472e+00]
+ [ 6.74163710e+08 -2.91115384e+08 -1.41205448e+08  5.48867885e+00
+   1.14488707e+01  4.77365229e+00]
+ [-1.41641893e+09  1.34675479e+07  6.65365672e+07 -7.81067755e-01
+  -8.95772689e+00 -3.66628444e+00]
+ [ 2.99689045e+09 -1.93995623e+08 -1.27352637e+08  4.68402096e-01
+   5.93146948e+00  2.59121226e+00]
+ [ 3.71213051e+09 -2.30538550e+09 -1.03602620e+09  3.02281227e+00
+   4.21631448e+00  1.65050264e+00]]
+  body: earth
+
+[4]
+  time_seconds: 315619200.0
+  time_iso: 2010-01-01T12:00:00.000
+  states: [[-5.60896297e+05  4.00990625e+05  1.74602115e+05 -5.16947359e-03
+  -8.83806807e-03 -3.70018124e-03]
+ [ 4.54857334e+06  4.09858831e+07  2.13243621e+07 -5.81863422e+01
+   4.24824227e+00  8.30281404e+00]
+ [ 8.91730516e+06 -9.82164087e+07 -4.47949492e+07  3.46461671e+01
+   3.45471550e+00 -6.38063665e-01]
+ [-2.81781990e+07  1.32963176e+08  5.76438428e+07 -2.97359411e+01
+  -5.23947564e+00 -2.26988156e+00]
+ [-2.83045467e+07  1.33271214e+08  5.77775856e+07 -3.07560061e+01
+  -5.55884959e+00 -2.51864498e+00]
+ [-1.10613116e+08  1.96770723e+08  9.32166181e+07 -2.06998220e+01
+  -8.29710831e+00 -3.24635589e+00]
+ [ 6.74222975e+08 -2.90991731e+08 -1.41153890e+08  5.48637232e+00
+   1.14498669e+01  4.77413548e+00]
+ [-1.41642737e+09  1.33708044e+07  6.64969712e+07 -7.80354906e-01
+  -8.95773349e+00 -3.66631786e+00]
+ [ 2.99689551e+09 -1.93931563e+08 -1.27324652e+08  4.68243727e-01
+   5.93147971e+00  2.59121898e+00]
+ [ 3.71216315e+09 -2.30533996e+09 -1.03600838e+09  3.02275345e+00
+   4.21635101e+00  1.65051906e+00]]
+  body: moon
+Solar system bodies: ['sun' 'mercury' 'venus' 'earth' 'moon' 'mars' 'jupiter' 'saturn' 'uranus'
+ 'neptune']
+ sun (column 0):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ mercury (column 1):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ venus (column 2):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ earth (column 3):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ moon (column 4):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ mars (column 5):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ jupiter (column 6):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ saturn (column 7):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ uranus (column 8):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+ neptune (column 9):
+   states shape: (58441, 6)
+   indices: 0 to 58440
+
+Metadata keys: ['frame', 'origin', 'timescale', 'units', 'epoch', 'bodies', 'kernel_path', 'sample_source']
+setup_ddp() on [Rank 1] with world_size 2 and device cuda:1
+================================================================================
+SOLAR SYSTEM PINN TRAINING
+================================================================================
+Project root: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN
+Python: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+Debugging de440 dataset.
+Key: times_seconds
+  Type: <class 'numpy.ndarray'>
+  Shape: (58441,)
+  Dtype: float64
+Key: times_iso
+  Type: <class 'numpy.ndarray'>
+  Shape: (58441,)
+  Dtype: <U32
+Key: states
+  Type: <class 'numpy.ndarray'>
+  Shape: (58441, 10, 6)
+  Dtype: float64
+Key: bodies
+  Type: <class 'numpy.ndarray'>
+  Shape: (10,)
+  Dtype: <U16
+Key: metadata
+  Type: <class 'dict'>
+Mercury states: (58441, 6)
+Solar system bodies: ['sun' 'mercury' 'venus' 'earth' 'moon' 'mars' 'jupiter' 'saturn' 'uranus'
+ 'neptune']
+
+================================================================================
+MULTI-STAGE TRAINING MODE (coarse → refine → physics)
+================================================================================
+
+Dataset: /u/astreo/gbillo/solar_system/PINN/data/dataset_demo.npz
+States shape: (58441, 10, 6)
+Num samples: 58441
+Device: cuda:1
+Model: 768x8 residual
+DataLoader workers: 0
+GPU Memory: 0.00 GB allocated, 0.00 GB reserved
+
+================================================================================
+STAGE 1: COARSE TRAINING (position-only data fitting)
+================================================================================
+✓ Loaded training history: /u/astreo/gbillo/solar_system/PINN/history_coarse.json
+Training coarse stage...
+setup_ddp() on [Rank 0] with world_size 2 and device cuda:0
+================================================================================
+SOLAR SYSTEM PINN TRAINING
+================================================================================
+Project root: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN
+Python: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+Debugging de440 dataset.
+Key: times_seconds
+  Type: <class 'numpy.ndarray'>
+  Shape: (58441,)
+  Dtype: float64
+Key: times_iso
+  Type: <class 'numpy.ndarray'>
+  Shape: (58441,)
+  Dtype: <U32
+Key: states
+  Type: <class 'numpy.ndarray'>
+  Shape: (58441, 10, 6)
+  Dtype: float64
+Key: bodies
+  Type: <class 'numpy.ndarray'>
+  Shape: (10,)
+  Dtype: <U16
+Key: metadata
+  Type: <class 'dict'>
+Mercury states: (58441, 6)
+Solar system bodies: ['sun' 'mercury' 'venus' 'earth' 'moon' 'mars' 'jupiter' 'saturn' 'uranus'
+ 'neptune']
+
+================================================================================
+MULTI-STAGE TRAINING MODE (coarse → refine → physics)
+================================================================================
+
+Dataset: /u/astreo/gbillo/solar_system/PINN/data/dataset_demo.npz
+States shape: (58441, 10, 6)
+Num samples: 58441
+Device: cuda:0
+Model: 768x8 residual
+DataLoader workers: 0
+GPU Memory: 0.00 GB allocated, 0.00 GB reserved
+
+================================================================================
+STAGE 1: COARSE TRAINING (position-only data fitting)
+================================================================================
+✓ Loaded training history: /u/astreo/gbillo/solar_system/PINN/history_coarse.json
+Training coarse stage...
+[Rank 0/2] Training on cuda:0
+[Rank 1] Assigned bodies: ['mars', 'jupiter', 'saturn', 'uranus', 'neptune']
+[Rank 1] y_tensor shape: torch.Size([58441, 5, 6])
+[Rank 0] Assigned bodies: ['sun', 'mercury', 'venus', 'earth', 'moon']
+[Rank 0] y_tensor shape: torch.Size([58441, 5, 6])
+SET MODEL TO cuda:1
+SET MODEL TO cuda:0
+[Rank 0] Model wrapped with DistributedDataParallel
+Training:   0%|          | 0/140 [00:00<?, ?it/s]Training:   0%|          | 0/140 [00:00<?, ?it/s]Training:   0%|          | 0/140 [00:04<?, ?it/s, angmom=0.000e+00, data=6.366e-01, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=6.366e-01, pos_rmse_km=8.098e+07, val=6.206e-01]Training:   0%|          | 0/140 [00:04<?, ?it/s, angmom=0.000e+00, data=6.366e-01, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=6.366e-01, pos_rmse_km=6.619e+08, val=4.476e-01]  → New best val_pos_rmse_km: 80984314.000000
+Training:   1%|          | 1/140 [00:04<10:52,  4.70s/it, angmom=0.000e+00, data=6.366e-01, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=6.366e-01, pos_rmse_km=8.098e+07, val=6.206e-01]Training:   1%|          | 1/140 [00:04<10:55,  4.72s/it, angmom=0.000e+00, data=6.366e-01, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=6.366e-01, pos_rmse_km=6.619e+08, val=4.476e-01]Training:   1%|          | 1/140 [00:08<10:55,  4.72s/it, angmom=0.000e+00, data=5.149e-01, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.149e-01, pos_rmse_km=6.777e+08, val=5.053e-01]Training:   1%|▏         | 2/140 [00:08<09:53,  4.30s/it, angmom=0.000e+00, data=5.149e-01, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.149e-01, pos_rmse_km=6.777e+08, val=5.053e-01]Training:   1%|          | 1/140 [00:08<10:52,  4.70s/it, angmom=0.000e+00, data=5.149e-01, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.149e-01, pos_rmse_km=7.723e+07, val=4.997e-01]  → New best val_pos_rmse_km: 77226178.000000
+Training:   1%|▏         | 2/140 [00:09<10:18,  4.48s/it, angmom=0.000e+00, data=5.149e-01, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.149e-01, pos_rmse_km=7.723e+07, val=4.997e-01]Training:   1%|▏         | 2/140 [00:12<09:53,  4.30s/it, angmom=0.000e+00, data=5.022e-01, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.022e-01, pos_rmse_km=6.796e+08, val=5.002e-01]Training:   2%|▏         | 3/140 [00:12<09:40,  4.24s/it, angmom=0.000e+00, data=5.022e-01, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.022e-01, pos_rmse_km=6.796e+08, val=5.002e-01]Training:   1%|▏         | 2/140 [00:12<10:18,  4.48s/it, angmom=0.000e+00, data=5.022e-01, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.022e-01, pos_rmse_km=7.695e+07, val=5.011e-01]  → New best val_pos_rmse_km: 76951118.000000
+Training:   2%|▏         | 3/140 [00:13<09:54,  4.34s/it, angmom=0.000e+00, data=5.022e-01, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.022e-01, pos_rmse_km=7.695e+07, val=5.011e-01]Training:   2%|▏         | 3/140 [00:17<09:54,  4.34s/it, angmom=0.000e+00, data=5.015e-01, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.015e-01, pos_rmse_km=7.695e+07, val=5.005e-01]Training:   3%|▎         | 4/140 [00:17<09:29,  4.18s/it, angmom=0.000e+00, data=5.015e-01, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.015e-01, pos_rmse_km=7.695e+07, val=5.005e-01]Training:   2%|▏         | 3/140 [00:17<09:40,  4.24s/it, angmom=0.000e+00, data=5.015e-01, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.015e-01, pos_rmse_km=6.796e+08, val=5.004e-01]Training:   3%|▎         | 4/140 [00:17<09:38,  4.25s/it, angmom=0.000e+00, data=5.015e-01, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.015e-01, pos_rmse_km=6.796e+08, val=5.004e-01]Training:   3%|▎         | 4/140 [00:21<09:38,  4.25s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.795e+08, val=5.003e-01]Training:   4%|▎         | 5/140 [00:21<09:20,  4.15s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.795e+08, val=5.003e-01]Training:   3%|▎         | 4/140 [00:21<09:29,  4.18s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.696e+07, val=5.005e-01]Training:   4%|▎         | 5/140 [00:21<09:15,  4.11s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.696e+07, val=5.005e-01]Training:   4%|▎         | 5/140 [00:25<09:15,  4.11s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.694e+07, val=5.003e-01]Training:   4%|▎         | 5/140 [00:25<09:20,  4.15s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.797e+08, val=5.005e-01]Training:   4%|▍         | 6/140 [00:25<09:05,  4.07s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.797e+08, val=5.005e-01]  → New best val_pos_rmse_km: 76944770.000000
+Training:   4%|▍         | 6/140 [00:25<09:16,  4.16s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.694e+07, val=5.003e-01]Training:   4%|▍         | 6/140 [00:29<09:16,  4.16s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.694e+07, val=5.004e-01]Training:   4%|▍         | 6/140 [00:29<09:05,  4.07s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.797e+08, val=5.004e-01]Training:   5%|▌         | 7/140 [00:29<09:11,  4.14s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.797e+08, val=5.004e-01]  → New best val_pos_rmse_km: 76941600.000000
+Training:   5%|▌         | 7/140 [00:29<09:14,  4.17s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.694e+07, val=5.004e-01]Training:   5%|▌         | 7/140 [00:33<09:11,  4.14s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.98e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.797e+08, val=5.004e-01]Training:   6%|▌         | 8/140 [00:33<09:04,  4.13s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.98e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.797e+08, val=5.004e-01]Training:   5%|▌         | 7/140 [00:33<09:14,  4.17s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.98e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.694e+07, val=5.004e-01]  → New best val_pos_rmse_km: 76939354.000000
+Training:   6%|▌         | 8/140 [00:33<09:10,  4.17s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.98e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.694e+07, val=5.004e-01]Training:   6%|▌         | 8/140 [00:37<09:10,  4.17s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.98e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.695e+07, val=5.005e-01]Training:   6%|▋         | 9/140 [00:37<09:03,  4.15s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.98e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.695e+07, val=5.005e-01]Training:   6%|▌         | 8/140 [00:37<09:04,  4.13s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.98e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.795e+08, val=5.003e-01]Training:   6%|▋         | 9/140 [00:37<09:12,  4.22s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.98e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.795e+08, val=5.003e-01]Training:   6%|▋         | 9/140 [00:41<09:03,  4.15s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.97e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.695e+07, val=5.005e-01]Training:   7%|▋         | 10/140 [00:41<08:47,  4.06s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.97e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.695e+07, val=5.005e-01]Training:   6%|▋         | 9/140 [00:41<09:12,  4.22s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.97e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.795e+08, val=5.003e-01]Training:   7%|▋         | 10/140 [00:41<08:54,  4.11s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.97e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.795e+08, val=5.003e-01]Training:   7%|▋         | 10/140 [00:45<08:47,  4.06s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.96e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.694e+07, val=5.004e-01]Training:   7%|▋         | 10/140 [00:45<08:54,  4.11s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.96e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.796e+08, val=5.004e-01]Training:   8%|▊         | 11/140 [00:45<08:49,  4.11s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.96e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.796e+08, val=5.004e-01]  → New best val_pos_rmse_km: 76937236.000000
+Training:   8%|▊         | 11/140 [00:46<08:59,  4.18s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.96e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.694e+07, val=5.004e-01]Training:   8%|▊         | 11/140 [00:49<08:49,  4.11s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.95e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.799e+08, val=5.006e-01]Training:   9%|▊         | 12/140 [00:49<08:47,  4.12s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.95e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.799e+08, val=5.006e-01]Training:   8%|▊         | 11/140 [00:49<08:59,  4.18s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.95e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.692e+07, val=5.002e-01]  → New best val_pos_rmse_km: 76917364.000000
+Training:   9%|▊         | 12/140 [00:50<08:54,  4.17s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.95e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.692e+07, val=5.002e-01]Training:   9%|▊         | 12/140 [00:54<08:47,  4.12s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.95e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.798e+08, val=5.005e-01]Training:   9%|▉         | 13/140 [00:54<08:54,  4.21s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.95e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.798e+08, val=5.005e-01]Training:   9%|▊         | 12/140 [00:54<08:54,  4.17s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.95e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.693e+07, val=5.003e-01]Training:   9%|▉         | 13/140 [00:54<08:46,  4.15s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.95e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.693e+07, val=5.003e-01]Training:   9%|▉         | 13/140 [00:58<08:46,  4.15s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.94e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.694e+07, val=5.004e-01]Training:  10%|█         | 14/140 [00:58<08:28,  4.04s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.94e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.694e+07, val=5.004e-01]Training:   9%|▉         | 13/140 [00:58<08:54,  4.21s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.94e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.798e+08, val=5.004e-01]Training:  10%|█         | 14/140 [00:58<08:35,  4.09s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.94e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.798e+08, val=5.004e-01]Training:  10%|█         | 14/140 [01:02<08:35,  4.09s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.93e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.805e+08, val=5.012e-01]Training:  11%|█         | 15/140 [01:02<08:31,  4.10s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.93e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.805e+08, val=5.012e-01]Training:  10%|█         | 14/140 [01:02<08:28,  4.04s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.93e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.686e+07, val=4.996e-01]  → New best val_pos_rmse_km: 76858596.000000
+Training:  11%|█         | 15/140 [01:02<08:41,  4.17s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.93e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.686e+07, val=4.996e-01]Training:  11%|█         | 15/140 [01:06<08:41,  4.17s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.92e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.706e+07, val=5.016e-01]Training:  11%|█▏        | 16/140 [01:06<08:26,  4.09s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.92e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.706e+07, val=5.016e-01]Training:  11%|█         | 15/140 [01:06<08:31,  4.10s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.92e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.784e+08, val=4.993e-01]Training:  11%|█▏        | 16/140 [01:06<08:33,  4.14s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.92e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.784e+08, val=4.993e-01]Training:  11%|█▏        | 16/140 [01:10<08:26,  4.09s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.90e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.691e+07, val=5.002e-01]Training:  12%|█▏        | 17/140 [01:10<08:21,  4.08s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.90e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.691e+07, val=5.002e-01]Training:  11%|█▏        | 16/140 [01:10<08:33,  4.14s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.90e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.800e+08, val=5.006e-01]Training:  12%|█▏        | 17/140 [01:10<08:26,  4.12s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.90e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.800e+08, val=5.006e-01]Training:  12%|█▏        | 17/140 [01:14<08:26,  4.12s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.89e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.797e+08, val=5.005e-01]Training:  13%|█▎        | 18/140 [01:14<08:12,  4.03s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.89e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.797e+08, val=5.005e-01]Training:  12%|█▏        | 17/140 [01:14<08:21,  4.08s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.89e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.693e+07, val=5.003e-01]Training:  13%|█▎        | 18/140 [01:14<08:09,  4.01s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.89e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.693e+07, val=5.003e-01]Training:  13%|█▎        | 18/140 [01:18<08:12,  4.03s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.88e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.801e+08, val=5.008e-01]Training:  14%|█▎        | 19/140 [01:18<08:05,  4.01s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.88e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.801e+08, val=5.008e-01]Training:  13%|█▎        | 18/140 [01:18<08:09,  4.01s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.88e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.690e+07, val=5.000e-01]Training:  14%|█▎        | 19/140 [01:18<08:03,  4.00s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.88e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.690e+07, val=5.000e-01]Training:  14%|█▎        | 19/140 [01:22<08:05,  4.01s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.87e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.813e+08, val=5.018e-01]Training:  14%|█▍        | 20/140 [01:22<08:00,  4.00s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.87e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.813e+08, val=5.018e-01]Training:  14%|█▎        | 19/140 [01:22<08:03,  4.00s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.87e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.681e+07, val=4.991e-01]  → New best val_pos_rmse_km: 76814486.000000
+Training:  14%|█▍        | 20/140 [01:22<08:09,  4.08s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.87e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.681e+07, val=4.991e-01]Training:  14%|█▍        | 20/140 [01:26<08:09,  4.08s/it, angmom=0.000e+00, data=5.015e-01, energy=0.000e+00, lr=2.85e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.015e-01, pos_rmse_km=7.693e+07, val=5.005e-01]Training:  15%|█▌        | 21/140 [01:26<08:01,  4.05s/it, angmom=0.000e+00, data=5.015e-01, energy=0.000e+00, lr=2.85e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.015e-01, pos_rmse_km=7.693e+07, val=5.005e-01]Training:  14%|█▍        | 20/140 [01:26<08:00,  4.00s/it, angmom=0.000e+00, data=5.015e-01, energy=0.000e+00, lr=2.85e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.015e-01, pos_rmse_km=6.801e+08, val=5.004e-01]Training:  15%|█▌        | 21/140 [01:26<08:06,  4.09s/it, angmom=0.000e+00, data=5.015e-01, energy=0.000e+00, lr=2.85e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.015e-01, pos_rmse_km=6.801e+08, val=5.004e-01]Training:  15%|█▌        | 21/140 [01:30<08:01,  4.05s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.84e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.690e+07, val=4.999e-01]Training:  16%|█▌        | 22/140 [01:30<07:55,  4.03s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.84e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.690e+07, val=4.999e-01]Training:  15%|█▌        | 21/140 [01:30<08:06,  4.09s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.84e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.801e+08, val=5.009e-01]Training:  16%|█▌        | 22/140 [01:30<07:59,  4.06s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.84e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.801e+08, val=5.009e-01]Training:  16%|█▌        | 22/140 [01:34<07:55,  4.03s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.82e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.694e+07, val=5.005e-01]Training:  16%|█▋        | 23/140 [01:34<07:48,  4.00s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.82e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.694e+07, val=5.005e-01]Training:  16%|█▌        | 22/140 [01:34<07:59,  4.06s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.82e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.795e+08, val=5.003e-01]Training:  16%|█▋        | 23/140 [01:34<07:50,  4.02s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.82e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.795e+08, val=5.003e-01]Training:  16%|█▋        | 23/140 [01:38<07:50,  4.02s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.80e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.800e+08, val=5.008e-01]Training:  17%|█▋        | 24/140 [01:38<07:44,  4.00s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.80e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.800e+08, val=5.008e-01]Training:  16%|█▋        | 23/140 [01:38<07:48,  4.00s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.80e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.690e+07, val=5.000e-01]Training:  17%|█▋        | 24/140 [01:38<07:43,  4.00s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.80e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.690e+07, val=5.000e-01]Training:  17%|█▋        | 24/140 [01:42<07:43,  4.00s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.79e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.681e+07, val=4.991e-01]Training:  17%|█▋        | 24/140 [01:42<07:44,  4.00s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.79e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.810e+08, val=5.018e-01]Training:  17%|█▋        | 24/140 [01:42<08:15,  4.27s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.79e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=6.810e+08, val=5.018e-01]
+  → New best val_pos_rmse_km: 76806264.000000
+Training:  18%|█▊        | 25/140 [01:42<07:41,  4.01s/it, angmom=0.000e+00, data=5.014e-01, energy=0.000e+00, lr=2.79e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.014e-01, pos_rmse_km=7.681e+07, val=4.991e-01]

@@ -1,0 +1,238 @@
+============================================================
+ Job name    : solsys_pinn
+ Job ID      : 1111032
+ Node        : gpu003
+ CPUs/task   : 8
+ Start time  : Tue Apr 14 10:38:53 AM CEST 2026
+ Run dir     : logs/runs/1111032
+============================================================
+Metadata saved to logs/runs/1111032/meta.txt
+/var/spool/slurm/d/job1111032/slurm_script: line 136: uv: command not found
+
+=== NVIDIA-SMI debug setup ===
+Tue Apr 14 10:38:53 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.105.08             Driver Version: 580.105.08     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  Tesla V100-PCIE-32GB           Off |   00000000:3B:00.0 Off |                    0 |
+| N/A   28C    P0             23W /  250W |       0MiB /  32768MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+|   1  Tesla V100-PCIE-32GB           Off |   00000000:AF:00.0 Off |                    0 |
+| N/A   29C    P0             24W /  250W |       0MiB /  32768MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+2026/04/14 10:38:53.741, 0, Tesla V100-PCIE-32GB, GPU-2b02fe7c-739f-0ee7-8cf6-daa4f686e326, 580.105.08, 32768, 0, 32495, 0, 0, 28, 23.87, 250.00
+2026/04/14 10:38:53.744, 1, Tesla V100-PCIE-32GB, GPU-87f6e4d0-8ce7-de6a-8223-009858b62e97, 580.105.08, 32768, 0, 32495, 0, 0, 28, 24.61, 250.00
+nvidia-smi sampler PID : 1119699
+GPU timeseries log     : logs/runs/1111032/nvidia-smi.csv
+Process monitor log    : logs/runs/1111032/nvidia-smi.pmon.csv
+=============================
+
+--- Python / torch ---
+Python : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+Python 3.11.14
+torch        : 2.10.0+cu128
+CUDA available: True
+GPU          : Tesla V100-PCIE-32GB
+
+--- Starting pipeline ---
+================================================================================
+PINN TRAINING ENVIRONMENT VERIFICATION
+================================================================================
+
+================================================================================
+PYTHON VERSION
+================================================================================
+Python 3.11.14
+✓ OK
+
+================================================================================
+PYTORCH
+================================================================================
+PyTorch version: 2.10.0+cu128
+CUDA available: True
+CUDA version: 12.8
+GPU count: 2
+  GPU 0: Tesla V100-PCIE-32GB (31.7 GB)
+  GPU 1: Tesla V100-PCIE-32GB (31.7 GB)
+✓ OK - CUDA ready
+
+================================================================================
+DISTRIBUTED TRAINING
+================================================================================
+torch.distributed available: True
+Available backends: nccl, gloo
+✓ OK - NCCL backend available (recommended for multi-GPU)
+
+================================================================================
+OPTIONAL DEPENDENCIES
+================================================================================
+✓ numpy           - Required
+✓ matplotlib      - Required for plotting
+✓ tqdm            - Progress bars
+✓ tensorboard     - TensorBoard logging
+⚠ wandb           - Weights & Biases logging (optional)
+
+================================================================================
+PROJECT FILES
+================================================================================
+
+Required files:
+✓ train.py                                 - Unified training script
+✗ train_ddp.py                             - DDP training script
+✓ src/solsys_emulator/train.py             - Training module
+✓ src/solsys_emulator/model.py             - Model module
+✓ data/dataset_demo.npz                    - Demo dataset
+
+Documentation:
+✓ DDP_IMPLEMENTATION.md                    - DDP guide
+✓ LOGGING_GUIDE.md                         - Logging guide
+✓ QUICK_REFERENCE.md                       - Quick reference
+✓ minimal_ddp_example.py                   - Minimal DDP example
+
+================================================================================
+GPU MEMORY
+================================================================================
+GPU 0: Tesla V100-PCIE-32GB
+  Total: 32.0 GB
+  Free:  31.7 GB
+GPU 1: Tesla V100-PCIE-32GB
+  Total: 32.0 GB
+  Free:  31.7 GB
+✓ OK
+
+================================================================================
+SUMMARY
+================================================================================
+PYTHON               ✓ PASS
+PYTORCH              ✓ PASS
+DISTRIBUTED          ✓ PASS
+DEPENDENCIES         ✓ PASS
+FILES                ✗ FAIL
+GPU_MEMORY           ✓ PASS
+
+✗ Some checks failed. Please address the issues above.
+
+Common fixes:
+  • Install PyTorch: pip install torch
+  • Install dependencies: pip install numpy matplotlib tqdm
+  • Check CUDA installation: nvidia-smi
+
+================================================================================
+Next steps:
+  1. Read README.md for overview
+  2. Try a test run: python train.py --device cuda --epochs 10
+  3. Read DDP_IMPLEMENTATION.md for multi-GPU setup
+================================================================================
+
+10:38:59 | INFO     | === Stage 0: Setup & dependency check ===
+10:38:59 | INFO     | Project root : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN
+10:38:59 | INFO     | Python       : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+10:38:59 | INFO     | Frame        : icrs | Origin: barycentric
+10:38:59 | INFO     | Time scale   : tdb
+10:38:59 | INFO     | Unit system  : UnitSystem(length='km', time='s', velocity='km/s', mu='km^3/s^2')
+10:38:59 | INFO     | Bodies       : ('sun', 'mercury', 'venus', 'earth', 'moon', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune')
+10:38:59 | INFO     | All required packages found.
+10:38:59 | INFO     | DE440 kernel : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/data/de440.bsp
+10:38:59 | INFO     | === Stage 1: Building dataset ===
+10:38:59 | INFO     | Kernel path   : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/data/de440.bsp
+10:38:59 | INFO     | Date range    : 2010-01-01T00:00:00 → 2030-01-01T00:00:00
+10:38:59 | INFO     | Step          : 3.0 h
+10:39:00 | INFO     | States shape  : (58441, 10, 6)
+10:39:00 | INFO     | Num samples   : 58441
+10:39:00 | INFO     | Frame         : icrs | Timescale: tdb
+10:39:02 | INFO     | Dataset saved : /u/astreo/gbillo/solar_system/PINN/data/dataset_demo.npz
+================================================================================
+SOLAR SYSTEM PINN TRAINING
+================================================================================
+Project root: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN
+Python: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+================================================================================
+SOLAR SYSTEM PINN TRAINING
+================================================================================
+Project root: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN
+Python: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+
+================================================================================
+UNIFIED SINGLE-STAGE TRAINING MODE
+================================================================================
+
+Dataset: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/data/dataset_demo.npz
+States shape: (58441, 10, 6)
+Num samples: 58441
+Device: cuda:0
+GPU profile: False
+Model: 384x6 plain
+Training: 600 epochs, batch=384, lr=0.0002
+GPU Memory: 0.00 GB allocated, 0.00 GB reserved
+
+Starting training...
+
+================================================================================
+UNIFIED SINGLE-STAGE TRAINING MODE
+================================================================================
+
+Dataset: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/data/dataset_demo.npz
+States shape: (58441, 10, 6)
+Num samples: 58441
+Device: cuda:1
+GPU profile: False
+Model: 384x6 plain
+Training: 600 epochs, batch=384, lr=0.0002
+GPU Memory: 0.00 GB allocated, 0.00 GB reserved
+
+Starting training...
+[Rank 0/1] Training on cuda:0
+[Rank 0/1] Training on cuda:1
+Training:   0%|          | 0/600 [00:00<?, ?it/s]Training:   0%|          | 0/600 [00:00<?, ?it/s]Training:   0%|          | 0/600 [00:11<?, ?it/s, angmom=0.000e+00, data=8.821e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.821e+00, pos_rmse_km=6.812e+08, val=8.828e+00, vel_rmse_km_s=2.492e+01]Training:   0%|          | 0/600 [00:11<?, ?it/s, angmom=0.000e+00, data=8.821e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.821e+00, pos_rmse_km=6.812e+08, val=8.828e+00, vel_rmse_km_s=2.492e+01]  → New best val_pos_rmse_km: 681165368.000000
+Training:   0%|          | 1/600 [00:11<1:52:29, 11.27s/it, angmom=0.000e+00, data=8.821e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.821e+00, pos_rmse_km=6.812e+08, val=8.828e+00, vel_rmse_km_s=2.492e+01]  → New best val_pos_rmse_km: 681165368.000000
+Training:   0%|          | 1/600 [00:11<1:53:41, 11.39s/it, angmom=0.000e+00, data=8.821e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.821e+00, pos_rmse_km=6.812e+08, val=8.828e+00, vel_rmse_km_s=2.492e+01]Training:   0%|          | 1/600 [00:21<1:52:29, 11.27s/it, angmom=0.000e+00, data=8.563e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.563e+00, pos_rmse_km=6.712e+08, val=8.264e+00, vel_rmse_km_s=2.492e+01]  → New best val_pos_rmse_km: 671198348.000000
+Training:   0%|          | 2/600 [00:21<1:47:47, 10.82s/it, angmom=0.000e+00, data=8.563e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.563e+00, pos_rmse_km=6.712e+08, val=8.264e+00, vel_rmse_km_s=2.492e+01]Training:   0%|          | 1/600 [00:22<1:53:41, 11.39s/it, angmom=0.000e+00, data=8.563e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.563e+00, pos_rmse_km=6.712e+08, val=8.264e+00, vel_rmse_km_s=2.492e+01]  → New best val_pos_rmse_km: 671198348.000000
+Training:   0%|          | 2/600 [00:22<1:50:39, 11.10s/it, angmom=0.000e+00, data=8.563e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.563e+00, pos_rmse_km=6.712e+08, val=8.264e+00, vel_rmse_km_s=2.492e+01]Training:   0%|          | 2/600 [00:31<1:47:47, 10.82s/it, angmom=0.000e+00, data=7.388e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.388e+00, pos_rmse_km=6.116e+08, val=6.718e+00, vel_rmse_km_s=2.481e+01]  → New best val_pos_rmse_km: 611561416.000000
+Training:   0%|          | 3/600 [00:31<1:44:15, 10.48s/it, angmom=0.000e+00, data=7.388e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.388e+00, pos_rmse_km=6.116e+08, val=6.718e+00, vel_rmse_km_s=2.481e+01]Training:   0%|          | 2/600 [00:32<1:50:39, 11.10s/it, angmom=0.000e+00, data=7.388e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.388e+00, pos_rmse_km=6.116e+08, val=6.718e+00, vel_rmse_km_s=2.481e+01]  → New best val_pos_rmse_km: 611561416.000000
+Training:   0%|          | 3/600 [00:32<1:48:27, 10.90s/it, angmom=0.000e+00, data=7.388e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.388e+00, pos_rmse_km=6.116e+08, val=6.718e+00, vel_rmse_km_s=2.481e+01]Training:   0%|          | 3/600 [00:42<1:44:15, 10.48s/it, angmom=0.000e+00, data=5.791e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.791e+00, pos_rmse_km=4.735e+08, val=4.648e+00, vel_rmse_km_s=2.468e+01]  → New best val_pos_rmse_km: 473469730.000000
+Training:   1%|          | 4/600 [00:42<1:46:08, 10.69s/it, angmom=0.000e+00, data=5.791e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.791e+00, pos_rmse_km=4.735e+08, val=4.648e+00, vel_rmse_km_s=2.468e+01]Training:   0%|          | 3/600 [00:43<1:48:27, 10.90s/it, angmom=0.000e+00, data=5.791e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.791e+00, pos_rmse_km=4.735e+08, val=4.648e+00, vel_rmse_km_s=2.468e+01]  → New best val_pos_rmse_km: 473469730.000000
+Training:   1%|          | 4/600 [00:43<1:48:47, 10.95s/it, angmom=0.000e+00, data=5.791e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.791e+00, pos_rmse_km=4.735e+08, val=4.648e+00, vel_rmse_km_s=2.468e+01]Training:   1%|          | 4/600 [00:53<1:46:08, 10.69s/it, angmom=0.000e+00, data=3.269e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.269e+00, pos_rmse_km=2.807e+08, val=1.701e+00, vel_rmse_km_s=2.458e+01]  → New best val_pos_rmse_km: 280691254.000000
+Training:   1%|          | 5/600 [00:54<1:47:39, 10.86s/it, angmom=0.000e+00, data=3.269e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.269e+00, pos_rmse_km=2.807e+08, val=1.701e+00, vel_rmse_km_s=2.458e+01]Training:   1%|          | 4/600 [00:54<1:48:47, 10.95s/it, angmom=0.000e+00, data=3.269e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.269e+00, pos_rmse_km=2.807e+08, val=1.701e+00, vel_rmse_km_s=2.458e+01]  → New best val_pos_rmse_km: 280691254.000000
+Training:   1%|          | 5/600 [00:54<1:48:24, 10.93s/it, angmom=0.000e+00, data=3.269e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.269e+00, pos_rmse_km=2.807e+08, val=1.701e+00, vel_rmse_km_s=2.458e+01]Training:   1%|          | 5/600 [01:03<1:47:39, 10.86s/it, angmom=0.000e+00, data=1.223e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.223e+00, pos_rmse_km=2.196e+08, val=1.130e+00, vel_rmse_km_s=2.447e+01]  → New best val_pos_rmse_km: 219637053.000000
+Training:   1%|          | 6/600 [01:04<1:44:51, 10.59s/it, angmom=0.000e+00, data=1.223e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.223e+00, pos_rmse_km=2.196e+08, val=1.130e+00, vel_rmse_km_s=2.447e+01]Training:   1%|          | 5/600 [01:05<1:48:24, 10.93s/it, angmom=0.000e+00, data=1.223e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.223e+00, pos_rmse_km=2.196e+08, val=1.130e+00, vel_rmse_km_s=2.447e+01]  → New best val_pos_rmse_km: 219637053.000000
+Training:   1%|          | 6/600 [01:05<1:45:54, 10.70s/it, angmom=0.000e+00, data=1.223e+00, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.223e+00, pos_rmse_km=2.196e+08, val=1.130e+00, vel_rmse_km_s=2.447e+01]Training:   1%|          | 6/600 [01:14<1:44:51, 10.59s/it, angmom=0.000e+00, data=9.967e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=9.967e-01, pos_rmse_km=1.624e+08, val=9.315e-01, vel_rmse_km_s=2.438e+01]  → New best val_pos_rmse_km: 162414775.000000
+Training:   1%|          | 7/600 [01:15<1:46:00, 10.73s/it, angmom=0.000e+00, data=9.967e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=9.967e-01, pos_rmse_km=1.624e+08, val=9.315e-01, vel_rmse_km_s=2.438e+01]Training:   1%|          | 6/600 [01:15<1:45:54, 10.70s/it, angmom=0.000e+00, data=9.967e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=9.967e-01, pos_rmse_km=1.624e+08, val=9.315e-01, vel_rmse_km_s=2.438e+01]  → New best val_pos_rmse_km: 162414775.000000
+Training:   1%|          | 7/600 [01:15<1:44:37, 10.59s/it, angmom=0.000e+00, data=9.967e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=9.967e-01, pos_rmse_km=1.624e+08, val=9.315e-01, vel_rmse_km_s=2.438e+01]Training:   1%|          | 7/600 [01:26<1:46:00, 10.73s/it, angmom=0.000e+00, data=8.923e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.923e-01, pos_rmse_km=1.197e+08, val=8.908e-01, vel_rmse_km_s=2.429e+01]  → New best val_pos_rmse_km: 119685803.000000
+Training:   1%|▏         | 8/600 [01:26<1:47:01, 10.85s/it, angmom=0.000e+00, data=8.923e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.923e-01, pos_rmse_km=1.197e+08, val=8.908e-01, vel_rmse_km_s=2.429e+01]Training:   1%|          | 7/600 [01:26<1:44:37, 10.59s/it, angmom=0.000e+00, data=8.923e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.923e-01, pos_rmse_km=1.197e+08, val=8.908e-01, vel_rmse_km_s=2.429e+01]  → New best val_pos_rmse_km: 119685803.000000
+Training:   1%|▏         | 8/600 [01:26<1:45:22, 10.68s/it, angmom=0.000e+00, data=8.923e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.923e-01, pos_rmse_km=1.197e+08, val=8.908e-01, vel_rmse_km_s=2.429e+01]Training:   1%|▏         | 8/600 [01:36<1:47:01, 10.85s/it, angmom=0.000e+00, data=8.544e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.544e-01, pos_rmse_km=1.103e+08, val=7.880e-01, vel_rmse_km_s=2.427e+01]  → New best val_pos_rmse_km: 110271271.500000
+Training:   2%|▏         | 9/600 [01:36<1:45:07, 10.67s/it, angmom=0.000e+00, data=8.544e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.544e-01, pos_rmse_km=1.103e+08, val=7.880e-01, vel_rmse_km_s=2.427e+01]Training:   1%|▏         | 8/600 [01:36<1:45:22, 10.68s/it, angmom=0.000e+00, data=8.544e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.544e-01, pos_rmse_km=1.103e+08, val=7.880e-01, vel_rmse_km_s=2.427e+01]  → New best val_pos_rmse_km: 110271271.500000
+Training:   2%|▏         | 9/600 [01:36<1:44:04, 10.57s/it, angmom=0.000e+00, data=8.544e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.544e-01, pos_rmse_km=1.103e+08, val=7.880e-01, vel_rmse_km_s=2.427e+01]Training:   2%|▏         | 9/600 [01:47<1:44:04, 10.57s/it, angmom=0.000e+00, data=8.202e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.202e-01, pos_rmse_km=1.080e+08, val=8.682e-01, vel_rmse_km_s=2.426e+01]  → New best val_pos_rmse_km: 108020383.500000
+Training:   2%|▏         | 10/600 [01:47<1:44:23, 10.62s/it, angmom=0.000e+00, data=8.202e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.202e-01, pos_rmse_km=1.080e+08, val=8.682e-01, vel_rmse_km_s=2.426e+01]Training:   2%|▏         | 9/600 [01:47<1:45:07, 10.67s/it, angmom=0.000e+00, data=8.202e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.202e-01, pos_rmse_km=1.080e+08, val=8.682e-01, vel_rmse_km_s=2.426e+01]  → New best val_pos_rmse_km: 108020383.500000
+Training:   2%|▏         | 10/600 [01:47<1:46:51, 10.87s/it, angmom=0.000e+00, data=8.202e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.202e-01, pos_rmse_km=1.080e+08, val=8.682e-01, vel_rmse_km_s=2.426e+01]Training:   2%|▏         | 10/600 [01:57<1:44:23, 10.62s/it, angmom=0.000e+00, data=8.234e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.234e-01, pos_rmse_km=1.075e+08, val=8.089e-01, vel_rmse_km_s=2.426e+01]  → New best val_pos_rmse_km: 107452529.000000
+Training:   2%|▏         | 11/600 [01:57<1:43:42, 10.57s/it, angmom=0.000e+00, data=8.234e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.234e-01, pos_rmse_km=1.075e+08, val=8.089e-01, vel_rmse_km_s=2.426e+01]Training:   2%|▏         | 10/600 [01:58<1:46:51, 10.87s/it, angmom=0.000e+00, data=8.234e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.234e-01, pos_rmse_km=1.075e+08, val=8.089e-01, vel_rmse_km_s=2.426e+01]  → New best val_pos_rmse_km: 107452529.000000
+Training:   2%|▏         | 11/600 [01:58<1:46:39, 10.87s/it, angmom=0.000e+00, data=8.234e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.234e-01, pos_rmse_km=1.075e+08, val=8.089e-01, vel_rmse_km_s=2.426e+01]Training:   2%|▏         | 11/600 [02:08<1:43:42, 10.57s/it, angmom=0.000e+00, data=8.123e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.123e-01, pos_rmse_km=1.069e+08, val=7.973e-01, vel_rmse_km_s=2.425e+01]  → New best val_pos_rmse_km: 106875153.500000
+Training:   2%|▏         | 12/600 [02:08<1:44:54, 10.71s/it, angmom=0.000e+00, data=8.123e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.123e-01, pos_rmse_km=1.069e+08, val=7.973e-01, vel_rmse_km_s=2.425e+01]Training:   2%|▏         | 11/600 [02:09<1:46:39, 10.87s/it, angmom=0.000e+00, data=8.123e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.123e-01, pos_rmse_km=1.069e+08, val=7.973e-01, vel_rmse_km_s=2.425e+01]  → New best val_pos_rmse_km: 106875153.500000
+Training:   2%|▏         | 12/600 [02:09<1:47:11, 10.94s/it, angmom=0.000e+00, data=8.123e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.123e-01, pos_rmse_km=1.069e+08, val=7.973e-01, vel_rmse_km_s=2.425e+01]Training:   2%|▏         | 12/600 [02:19<1:44:54, 10.71s/it, angmom=0.000e+00, data=7.998e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.998e-01, pos_rmse_km=1.065e+08, val=7.691e-01, vel_rmse_km_s=2.425e+01]  → New best val_pos_rmse_km: 106514879.000000
+Training:   2%|▏         | 13/600 [02:19<1:44:20, 10.67s/it, angmom=0.000e+00, data=7.998e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.998e-01, pos_rmse_km=1.065e+08, val=7.691e-01, vel_rmse_km_s=2.425e+01]Training:   2%|▏         | 12/600 [02:20<1:47:11, 10.94s/it, angmom=0.000e+00, data=7.998e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.998e-01, pos_rmse_km=1.065e+08, val=7.691e-01, vel_rmse_km_s=2.425e+01]  → New best val_pos_rmse_km: 106514879.000000
+Training:   2%|▏         | 13/600 [02:20<1:45:58, 10.83s/it, angmom=0.000e+00, data=7.998e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.998e-01, pos_rmse_km=1.065e+08, val=7.691e-01, vel_rmse_km_s=2.425e+01]Training:   2%|▏         | 13/600 [02:30<1:44:20, 10.67s/it, angmom=0.000e+00, data=7.991e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.991e-01, pos_rmse_km=1.061e+08, val=7.700e-01, vel_rmse_km_s=2.425e+01]  → New best val_pos_rmse_km: 106051319.500000
+Training:   2%|▏         | 14/600 [02:30<1:44:12, 10.67s/it, angmom=0.000e+00, data=7.991e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.991e-01, pos_rmse_km=1.061e+08, val=7.700e-01, vel_rmse_km_s=2.425e+01]Training:   2%|▏         | 13/600 [02:31<1:45:58, 10.83s/it, angmom=0.000e+00, data=7.991e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.991e-01, pos_rmse_km=1.061e+08, val=7.700e-01, vel_rmse_km_s=2.425e+01]  → New best val_pos_rmse_km: 106051319.500000
+Training:   2%|▏         | 14/600 [02:31<1:46:13, 10.88s/it, angmom=0.000e+00, data=7.991e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.991e-01, pos_rmse_km=1.061e+08, val=7.700e-01, vel_rmse_km_s=2.425e+01]Training:   2%|▏         | 14/600 [02:41<1:44:12, 10.67s/it, angmom=0.000e+00, data=7.821e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.821e-01, pos_rmse_km=1.059e+08, val=7.654e-01, vel_rmse_km_s=2.425e+01]  → New best val_pos_rmse_km: 105902214.500000
+Training:   2%|▎         | 15/600 [02:41<1:46:11, 10.89s/it, angmom=0.000e+00, data=7.821e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.821e-01, pos_rmse_km=1.059e+08, val=7.654e-01, vel_rmse_km_s=2.425e+01]Training:   2%|▏         | 14/600 [02:42<1:46:13, 10.88s/it, angmom=0.000e+00, data=7.821e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.821e-01, pos_rmse_km=1.059e+08, val=7.654e-01, vel_rmse_km_s=2.425e+01]  → New best val_pos_rmse_km: 105902214.500000
+Training:   2%|▎         | 15/600 [02:42<1:46:50, 10.96s/it, angmom=0.000e+00, data=7.821e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.821e-01, pos_rmse_km=1.059e+08, val=7.654e-01, vel_rmse_km_s=2.425e+01]Training:   2%|▎         | 15/600 [02:51<1:46:11, 10.89s/it, angmom=0.000e+00, data=7.822e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.822e-01, pos_rmse_km=1.057e+08, val=8.028e-01, vel_rmse_km_s=2.425e+01]  → New best val_pos_rmse_km: 105687740.000000
+Training:   3%|▎         | 16/600 [02:51<1:44:21, 10.72s/it, angmom=0.000e+00, data=7.822e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.822e-01, pos_rmse_km=1.057e+08, val=8.028e-01, vel_rmse_km_s=2.425e+01]Training:   2%|▎         | 15/600 [02:52<1:46:50, 10.96s/it, angmom=0.000e+00, data=7.822e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.822e-01, pos_rmse_km=1.057e+08, val=8.028e-01, vel_rmse_km_s=2.425e+01]  → New best val_pos_rmse_km: 105687740.000000
+Training:   3%|▎         | 16/600 [02:52<1:44:35, 10.75s/it, angmom=0.000e+00, data=7.822e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.822e-01, pos_rmse_km=1.057e+08, val=8.028e-01, vel_rmse_km_s=2.425e+01]Training:   3%|▎         | 16/600 [03:02<1:44:21, 10.72s/it, angmom=0.000e+00, data=7.678e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.678e-01, pos_rmse_km=1.054e+08, val=7.923e-01, vel_rmse_km_s=2.425e+01]  → New best val_pos_rmse_km: 105439193.500000
+Training:   3%|▎         | 17/600 [03:02<1:43:30, 10.65s/it, angmom=0.000e+00, data=7.678e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.678e-01, pos_rmse_km=1.054e+08, val=7.923e-01, vel_rmse_km_s=2.425e+01]Training:   3%|▎         | 16/600 [03:02<1:44:35, 10.75s/it, angmom=0.000e+00, data=7.678e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.678e-01, pos_rmse_km=1.054e+08, val=7.923e-01, vel_rmse_km_s=2.425e+01]  → New best val_pos_rmse_km: 105439193.500000
+Training:   3%|▎         | 17/600 [03:02<1:42:13, 10.52s/it, angmom=0.000e+00, data=7.678e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.678e-01, pos_rmse_km=1.054e+08, val=7.923e-01, vel_rmse_km_s=2.425e+01]Training:   3%|▎         | 17/600 [03:12<1:43:30, 10.65s/it, angmom=0.000e+00, data=7.698e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.698e-01, pos_rmse_km=1.057e+08, val=7.892e-01, vel_rmse_km_s=2.425e+01]Training:   3%|▎         | 18/600 [03:12<1:42:49, 10.60s/it, angmom=0.000e+00, data=7.698e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.698e-01, pos_rmse_km=1.057e+08, val=7.892e-01, vel_rmse_km_s=2.425e+01]Training:   3%|▎         | 17/600 [03:13<1:42:13, 10.52s/it, angmom=0.000e+00, data=7.698e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.698e-01, pos_rmse_km=1.057e+08, val=7.892e-01, vel_rmse_km_s=2.425e+01]Training:   3%|▎         | 18/600 [03:13<1:42:10, 10.53s/it, angmom=0.000e+00, data=7.698e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.698e-01, pos_rmse_km=1.057e+08, val=7.892e-01, vel_rmse_km_s=2.425e+01]Training:   3%|▎         | 18/600 [03:23<1:42:49, 10.60s/it, angmom=0.000e+00, data=7.713e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.713e-01, pos_rmse_km=1.052e+08, val=7.581e-01, vel_rmse_km_s=2.425e+01]Training:   3%|▎         | 18/600 [03:23<1:42:10, 10.53s/it, angmom=0.000e+00, data=7.713e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.713e-01, pos_rmse_km=1.052e+08, val=7.581e-01, vel_rmse_km_s=2.425e+01]  → New best val_pos_rmse_km: 105248769.000000
+Training:   3%|▎         | 19/600 [03:23<1:40:58, 10.43s/it, angmom=0.000e+00, data=7.713e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.713e-01, pos_rmse_km=1.052e+08, val=7.581e-01, vel_rmse_km_s=2.425e+01]  → New best val_pos_rmse_km: 105248769.000000
+Training:   3%|▎         | 19/600 [03:23<1:42:48, 10.62s/it, angmom=0.000e+00, data=7.713e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.713e-01, pos_rmse_km=1.052e+08, val=7.581e-01, vel_rmse_km_s=2.425e+01]Training:   3%|▎         | 19/600 [03:33<1:40:58, 10.43s/it, angmom=0.000e+00, data=7.630e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.630e-01, pos_rmse_km=1.052e+08, val=7.367e-01, vel_rmse_km_s=2.424e+01]  → New best val_pos_rmse_km: 105226010.000000
+Training:   3%|▎         | 20/600 [03:33<1:40:25, 10.39s/it, angmom=0.000e+00, data=7.630e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.630e-01, pos_rmse_km=1.052e+08, val=7.367e-01, vel_rmse_km_s=2.424e+01]Training:   3%|▎         | 19/600 [03:33<1:42:48, 10.62s/it, angmom=0.000e+00, data=7.630e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.630e-01, pos_rmse_km=1.052e+08, val=7.367e-01, vel_rmse_km_s=2.424e+01]  → New best val_pos_rmse_km: 105226010.000000
+Training:   3%|▎         | 20/600 [03:33<1:42:17, 10.58s/it, angmom=0.000e+00, data=7.630e-01, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.630e-01, pos_rmse_km=1.052e+08, val=7.367e-01, vel_rmse_km_s=2.424e+01]Training:   3%|▎         | 20/600 [04:21<1:42:17, 10.58s/it, angmom=1.085e-02, data=7.566e-01, energy=1.211e-01, lr=1.99e-04, nbody=3.236e-01, nbody_w=8.57e-09, obj=7.566e-01, pos_rmse_km=1.058e+08, val=7.665e-01, vel_rmse_km_s=2.425e+01]Training:   4%|▎         | 21/600 [04:21<3:29:00, 21.66s/it, angmom=1.085e-02, data=7.566e-01, energy=1.211e-01, lr=1.99e-04, nbody=3.236e-01, nbody_w=8.57e-09, obj=7.566e-01, pos_rmse_km=1.058e+08, val=7.665e-01, vel_rmse_km_s=2.425e+01]Training:   3%|▎         | 20/600 [04:23<1:40:25, 10.39s/it, angmom=1.085e-02, data=7.566e-01, energy=1.211e-01, lr=1.99e-04, nbody=3.236e-01, nbody_w=8.57e-09, obj=7.566e-01, pos_rmse_km=1.058e+08, val=7.665e-01, vel_rmse_km_s=2.425e+01]Training:   4%|▎         | 21/600 [04:23<3:34:18, 22.21s/it, angmom=1.085e-02, data=7.566e-01, energy=1.211e-01, lr=1.99e-04, nbody=3.236e-01, nbody_w=8.57e-09, obj=7.566e-01, pos_rmse_km=1.058e+08, val=7.665e-01, vel_rmse_km_s=2.425e+01]Training:   4%|▎         | 21/600 [05:10<3:29:00, 21.66s/it, angmom=1.032e-02, data=7.511e-01, energy=1.372e-01, lr=1.99e-04, nbody=2.795e-01, nbody_w=1.71e-02, obj=7.559e-01, pos_rmse_km=1.054e+08, val=7.391e-01, vel_rmse_km_s=2.424e+01]Training:   4%|▎         | 22/600 [05:10<4:48:13, 29.92s/it, angmom=1.032e-02, data=7.511e-01, energy=1.372e-01, lr=1.99e-04, nbody=2.795e-01, nbody_w=1.71e-02, obj=7.559e-01, pos_rmse_km=1.054e+08, val=7.391e-01, vel_rmse_km_s=2.424e+01]Training:   4%|▎         | 21/600 [05:11<3:34:18, 22.21s/it, angmom=1.032e-02, data=7.511e-01, energy=1.372e-01, lr=1.99e-04, nbody=2.795e-01, nbody_w=1.71e-02, obj=7.559e-01, pos_rmse_km=1.054e+08, val=7.391e-01, vel_rmse_km_s=2.424e+01]Training:   4%|▎         | 22/600 [05:11<4:49:02, 30.00s/it, angmom=1.032e-02, data=7.511e-01, energy=1.372e-01, lr=1.99e-04, nbody=2.795e-01, nbody_w=1.71e-02, obj=7.559e-01, pos_rmse_km=1.054e+08, val=7.391e-01, vel_rmse_km_s=2.424e+01]Training:   4%|▎         | 22/600 [05:59<4:48:13, 29.92s/it, angmom=9.977e-03, data=7.496e-01, energy=1.654e-01, lr=1.99e-04, nbody=1.987e-01, nbody_w=2.57e-02, obj=7.547e-01, pos_rmse_km=1.057e+08, val=7.533e-01, vel_rmse_km_s=2.424e+01]Training:   4%|▍         | 23/600 [05:59<5:42:12, 35.58s/it, angmom=9.977e-03, data=7.496e-01, energy=1.654e-01, lr=1.99e-04, nbody=1.987e-01, nbody_w=2.57e-02, obj=7.547e-01, pos_rmse_km=1.057e+08, val=7.533e-01, vel_rmse_km_s=2.424e+01]Training:   4%|▎         | 22/600 [05:59<4:49:02, 30.00s/it, angmom=9.977e-03, data=7.496e-01, energy=1.654e-01, lr=1.99e-04, nbody=1.987e-01, nbody_w=2.57e-02, obj=7.547e-01, pos_rmse_km=1.057e+08, val=7.533e-01, vel_rmse_km_s=2.424e+01]Training:   4%|▍         | 23/600 [05:59<5:40:14, 35.38s/it, angmom=9.977e-03, data=7.496e-01, energy=1.654e-01, lr=1.99e-04, nbody=1.987e-01, nbody_w=2.57e-02, obj=7.547e-01, pos_rmse_km=1.057e+08, val=7.533e-01, vel_rmse_km_s=2.424e+01]Training:   4%|▍         | 23/600 [06:46<5:42:12, 35.58s/it, angmom=1.011e-02, data=7.535e-01, energy=1.639e-01, lr=1.99e-04, nbody=1.731e-01, nbody_w=3.43e-02, obj=7.594e-01, pos_rmse_km=1.059e+08, val=7.482e-01, vel_rmse_km_s=2.424e+01]Training:   4%|▍         | 24/600 [06:46<6:16:02, 39.17s/it, angmom=1.011e-02, data=7.535e-01, energy=1.639e-01, lr=1.99e-04, nbody=1.731e-01, nbody_w=3.43e-02, obj=7.594e-01, pos_rmse_km=1.059e+08, val=7.482e-01, vel_rmse_km_s=2.424e+01]Training:   4%|▍         | 23/600 [06:48<5:40:14, 35.38s/it, angmom=1.011e-02, data=7.535e-01, energy=1.639e-01, lr=1.99e-04, nbody=1.731e-01, nbody_w=3.43e-02, obj=7.594e-01, pos_rmse_km=1.059e+08, val=7.482e-01, vel_rmse_km_s=2.424e+01]Training:   4%|▍         | 24/600 [06:48<6:18:34, 39.44s/it, angmom=1.011e-02, data=7.535e-01, energy=1.639e-01, lr=1.99e-04, nbody=1.731e-01, nbody_w=3.43e-02, obj=7.594e-01, pos_rmse_km=1.059e+08, val=7.482e-01, vel_rmse_km_s=2.424e+01]
