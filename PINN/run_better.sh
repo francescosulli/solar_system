@@ -39,6 +39,7 @@
 # Experiment parameters (edit here before submitting)
 # =============================================================================
 
+# TODO: need to clear out/reduce many of these parameters: they are actually not set here and they just confuse everyone.  
 START_YEAR=${START_YEAR:-2010}
 END_YEAR=${END_YEAR:-2030}
 STEP_HOURS=${STEP_HOURS:-3.0}
