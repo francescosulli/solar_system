@@ -362,8 +362,14 @@ def _position_only_to_full_state_norm(
 
     if need_velocity or need_acceleration:
         if _HAS_TORCH_FUNC:
-            def _single_time_pos_norm(t_scalar: Tensor) -> Tensor:
-                return model(t_scalar.reshape(1))[0]
+            # handles model being wrapped inside DDP.
+            base_model = model.module if isinstance(model, torch.nn.parallel.DistributedDataParallel) else model
+
+            def _single_time_pos_norm(t_scalar):
+                return base_model(t_scalar.reshape(1))[0]
+
+            # def _single_time_pos_norm(t_scalar: Tensor) -> Tensor:
+            #     return model(t_scalar.reshape(1))[0]
             ## TODO: this is creating some issues for GPU parallelism
             # vel_norm_time = vmap(jacrev(_single_time_pos_norm, chunk_size=1), chunk_size=1)(t_norm)
             vel_norm_time = vmap(jacrev(_single_time_pos_norm))(t_norm)
@@ -689,7 +695,7 @@ def train_emulator(
                     "initial checkpoint model config does not match current model_config "
                     f"(mismatch on key '{bad_key}')"
                 )
-        if is_distributed:
+        if is_distributed and hasattr(model, "module"):
             model.module.load_state_dict(init_payload["model_state_dict"])
         else:
             model.load_state_dict(init_payload["model_state_dict"])

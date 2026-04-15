@@ -83,7 +83,17 @@ mkdir -p logs
 RUN_ID="${SLURM_JOB_ID:-$(date +%Y%m%d_%H%M%S)}"
 RUN_DIR="logs/runs/${RUN_ID}"
 mkdir -p "${RUN_DIR}"
-NGPUS=$(echo "$SLURM_JOB_GPUS" | tr ',' '\n' | wc -l)
+
+if [[ -n "${SLURM_STEP_GPUS:-}" ]]; then
+    NGPUS=$(echo "$SLURM_STEP_GPUS" | tr ',' '\n' | grep -c .)
+elif [[ -n "${SLURM_GPUS_ON_NODE:-}" ]]; then
+    NGPUS="$SLURM_GPUS_ON_NODE"
+else
+    NGPUS=1
+fi
+
+echo "NGPUS=$NGPUS"
+
 # Mirror all stdout/stderr into the run folder as well
 exec > >(tee -a "${RUN_DIR}/run.log") 2>&1
 
@@ -245,6 +255,8 @@ echo "--- Starting pipeline ---"
 #
 
 .venv/bin/torchrun --nproc_per_node=$NGPUS train.py --training-mode=multi --dataset-path $(pwd)/data/dataset_demo.npz --checkpoint-path $(pwd)/checkpoints --plots-dir $(pwd)/plots/ 
+
+# .venv/bin/torchrun --nproc_per_node=2 train.py --training-mode=multi --dataset-path $(pwd)/data/dataset_demo.npz --checkpoint-path $(pwd)/checkpoints --plots-dir $(pwd)/plots/ 
 
 EXIT_CODE=$?
 

@@ -19,6 +19,7 @@ dependencies = [
   "plotly>=5.20",
   "tensorboard>=2.20.0",
   "torch-tb-profiler>=0.4.3",
+  "wandb>=0.26.0",
 ]
 
 [project.optional-dependencies]
