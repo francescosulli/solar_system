@@ -34,9 +34,10 @@ from .preprocessing import StateScaler, fit_scaler
 from .utils import set_seed
 
 # EXTRA LOGGING
+import logging
 from torch.utils.tensorboard import SummaryWriter
 import wandb
-from .logging import DistributedLogger
+from .logging.distributed_logger import DistributedLogger
 from torch.profiler import profile, record_function, ProfilerActivity
 ##
 
@@ -446,8 +447,8 @@ def train_emulator(
     initial_checkpoint_path: str | Path | None = None,
     enable_tensorboard: bool = True,
     use_wandb: bool = True,
-    wandb_project: str = pinn-solar-system,
-    enable_profiling: bool = True
+    wandb_project: str = "pinn-solar-system",
+    enable_profiling: bool = True,
     log_dir="logs/runs"
 ) -> dict[str, Any]:
     """Train emulator on a dataset and store checkpoint.
@@ -747,15 +748,17 @@ def train_emulator(
         hparams = {
             'batch_size': cfg.batch_size,
             'lr': cfg.lr,
+            'train_config': cfg,  
+            'model_config': mcfg,
             'hidden_dim': mcfg.hidden_dim,
             'num_layers': mcfg.num_layers,
             'world_size': world_size,
         }
         writer.add_hparams(hparams, {})
         
-        # Log model graph
-        dummy_input = torch.randn(1, ..., device=device)
-        writer.add_graph(model, dummy_input)
+        # Log model graph --> probably not doable/necessary ATM.
+        # dummy_input = torch.randn(1, ..., device=device)
+        # writer.add_graph(model, dummy_input)
 
     # TENSORBOARD
 
@@ -788,7 +791,7 @@ def train_emulator(
             project=wandb_project,
             config=config,
             name=f"ddp_gpu{world_size}_{datetime.now().strftime('%m%d_%H%M')}",
-            tags=['ddp', f'{world_size}gpu', cfg.training_mode],
+            tags=['ddp', f'{world_size}gpu'],
         )
         
         # Watch model (logs gradients and parameters)
@@ -1054,19 +1057,17 @@ def train_emulator(
             if batch_idx % 100 == 0:
                 logger.log_gpu_memory(batch_idx)
 
-        logger.info(
-            f"Epoch {epoch_idx + 1} complete | "
-            f"train_loss={train_loss:.6f}, "
-            f"val_loss={epoch_val_loss:.6f}"
 
-            running_train += float(data_loss.detach().cpu().item())
-            running_objective += float(loss.detach().cpu().item())
-            running_phys += float(phys_loss.detach().cpu().item())
-            running_smooth += float(smooth_loss.detach().cpu().item())
-            running_nbody += float(nbody_loss.detach().cpu().item())
-            running_energy += float(energy_loss.detach().cpu().item())
-            running_angular += float(angular_loss.detach().cpu().item())
-            n_batches += 1
+
+        running_train += float(data_loss.detach().cpu().item())
+        running_objective += float(loss.detach().cpu().item())
+        running_phys += float(phys_loss.detach().cpu().item())
+        running_smooth += float(smooth_loss.detach().cpu().item())
+        running_nbody += float(nbody_loss.detach().cpu().item())
+        running_energy += float(energy_loss.detach().cpu().item())
+        running_angular += float(angular_loss.detach().cpu().item())
+        n_batches += 1
+
         # === ADD METRIC AGGREGATION ===
         if is_distributed:
             # Stack all metrics that need aggregation
@@ -1109,6 +1110,7 @@ def train_emulator(
         nbody_loss = running_nbody / max(1, n_batches)
         energy_loss = running_energy / max(1, n_batches)
         angular_loss = running_angular / max(1, n_batches)
+        
         if cfg.adaptive_nbody_balance and cfg.nbody_target_fraction > 0.0:
             beta = float(cfg.nbody_balance_beta)
             if ema_train_loss is None:
@@ -1210,10 +1212,16 @@ def train_emulator(
         else:
             val_vel_rmse = running_val_vel_rmse / max(1, n_val_batches)
 
+        logger.info(
+            f"Epoch {epoch_idx + 1} complete | "
+            f"train_loss={train_loss:.6f}, "
+            f"val_loss={epoch_val_loss:.6f}"
+            )
+
         ## TENSORBOARD
         if rank == 0 and writer is not None:
             # Scalars
-            writer.add_scalar('Loss/train', epoch_train_loss, epoch_idx)
+            writer.add_scalar('Loss/train', train_loss, epoch_idx)
             writer.add_scalar('Loss/val', epoch_val_loss, epoch_idx)
             writer.add_scalar('RMSE/position', val_pos_rmse, epoch_idx)
             writer.add_scalar('RMSE/velocity', val_vel_rmse, epoch_idx)
@@ -1463,7 +1471,10 @@ def train_emulator(
         
         wandb.finish()
     # WANDB
-
+    
+    # DISTRIBUTED LOGGER
+    logger.sync_and_log("Training complete!")
+    ## 
     return {
         "model": model,
         "scaler": scaler_obj,

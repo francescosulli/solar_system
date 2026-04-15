@@ -17,6 +17,8 @@ dependencies = [
   "tqdm>=4.66",
   "matplotlib>=3.7",
   "plotly>=5.20",
+  "tensorboard>=2.20.0",
+  "wandb>=0.26.0",
 ]
 
 [project.optional-dependencies]
