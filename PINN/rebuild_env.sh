@@ -22,9 +22,12 @@ echo "=== 4. Install PyTorch pinned to CUDA 12.1 ==="
 echo "=== 5. Install common project deps ==="
 "$UV_BIN" pip install \
   --python "$VENV_DIR/bin/python" \
-  numpy matplotlib tqdm tensorboard wandb
+  numpy matplotlib tqdm tensorboard wandb astropy
 
-echo "=== 6. Verify torch + CUDA ==="
+echo "=== 6. Writing uv lock file ==="
+"$UV_BIN" lock
+
+echo "=== 7. Verify torch + CUDA ==="
 "$VENV_DIR/bin/python" - <<'PY'
 import torch
 print("=" * 60)

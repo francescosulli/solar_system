@@ -242,7 +242,8 @@ echo "--- Starting pipeline ---"
 # 	--plots-dir $(pwd)/plots/ 
 
 # "$VENV_DIR"/bin/python train.py --device cpu --epochs 10 --training-mode=multi 
-"$VENV_DIR/bin/torchrun" --nproc_per_node=2 train.py \
+## when training on a single GPU, don't spawn multiple processes: it will crash
+"$VENV_DIR/bin/torchrun" --nproc_per_node=1 train.py \
   --training-mode multi \
   --dataset-path "$(pwd)/data/dataset_demo.npz" \
   --checkpoint-path "$(pwd)/checkpoints" \

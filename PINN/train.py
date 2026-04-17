@@ -127,6 +127,7 @@ import torch.distributed as dist
 def resolve_device(device_arg: str) -> torch.device:
     if "LOCAL_RANK" in os.environ and torch.cuda.is_available():
         local_rank = int(os.environ["LOCAL_RANK"])
+        print(f"Setting cuda to: {local_rank}")
         torch.cuda.set_device(local_rank)
         return torch.device(f"cuda:{local_rank}")
 

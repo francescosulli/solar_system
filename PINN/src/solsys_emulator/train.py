@@ -12,6 +12,7 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch.utils.data import DataLoader, TensorDataset
 import torch.profiler as profiler
+import matplotlib.pyplot as plt
 
 try:  # pragma: no cover - available on modern torch, optional fallback.
     from torch.func import jacrev, vmap
@@ -38,7 +39,9 @@ import logging
 from torch.utils.tensorboard import SummaryWriter
 import wandb
 from .logging.distributed_logger import DistributedLogger
+from .logging.logging_utils import log_config_to_tensorboard 
 from torch.profiler import profile, record_function, ProfilerActivity
+from datetime import datetime
 ##
 
 @dataclass
@@ -445,10 +448,10 @@ def train_emulator(
     scaler: StateScaler | None = None,
     checkpoint_path: str | Path = DEFAULT_CHECKPOINT_PATH,
     initial_checkpoint_path: str | Path | None = None,
-    enable_tensorboard: bool = True,
+    enable_tensorboard: bool = False,
     use_wandb: bool = True,
     wandb_project: str = "pinn-solar-system",
-    enable_profiling: bool = True,
+    enable_profiling: bool = False,
     log_dir="logs/runs"
 ) -> dict[str, Any]:
     """Train emulator on a dataset and store checkpoint.
@@ -459,7 +462,16 @@ def train_emulator(
     set_seed(cfg.seed)
 
     raw_states = np.asarray(dataset["states"], dtype=float)
-    bodies = [str(b) for b in np.asarray(dataset["bodies"]).tolist()]
+        
+    ## HALVING
+    # keep only first 5 bodies
+    raw_states = raw_states[:, :5, :]
+
+    # keep bodies list consistent
+    bodies = [str(b) for b in np.asarray(dataset["bodies"]).tolist()[:5]]
+    ## HALVING
+
+    # bodies = [str(b) for b in np.asarray(dataset["bodies"]).tolist()]
     times_seconds = np.asarray(dataset["times_seconds"], dtype=float)
     use_derivative_losses = (
         (cfg.physics_loss_weight > 0.0)
@@ -740,21 +752,29 @@ def train_emulator(
     # TENSORBOARD
     writer = None
     if rank == 0 and enable_tensorboard:
-        from datetime import datetime
         run_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_gpu{world_size}"
         writer = SummaryWriter(log_dir=f"{log_dir}/{run_name}")
-        
+
+        log_config_to_tensorboard(
+            writer,
+            cfg=cfg,
+            model_cfg=mcfg,
+            world_size=world_size,
+            rank=rank,
+            device=str(device),
+        )
+
         # Log hyperparameters
-        hparams = {
-            'batch_size': cfg.batch_size,
-            'lr': cfg.lr,
-            'train_config': cfg,  
-            'model_config': mcfg,
-            'hidden_dim': mcfg.hidden_dim,
-            'num_layers': mcfg.num_layers,
-            'world_size': world_size,
-        }
-        writer.add_hparams(hparams, {})
+        # hparams = {
+        #     'batch_size': cfg.batch_size,
+        #     'lr': cfg.lr,
+        #     'train_config': cfg,  
+        #     'model_config': mcfg,
+        #     'hidden_dim': mcfg.hidden_dim,
+        #     'num_layers': mcfg.num_layers,
+        #     'world_size': world_size,
+        # }
+        # writer.add_hparams(hparams, {})
         
         # Log model graph --> probably not doable/necessary ATM.
         # dummy_input = torch.randn(1, ..., device=device)
@@ -920,7 +940,7 @@ def train_emulator(
                 phys_loss = torch.zeros((), device=device)
                 smooth_loss = torch.zeros((), device=device)
                 energy_loss = torch.zeros((), device=device)
-                angular_loss = torch.zeros((), device=device)
+                angular_momentum_loss = torch.zeros((), device=device)
                 if use_collocation:
                     collocation_size = int(cfg.nbody_collocation_points)
                     coll_t = torch.empty(collocation_size, device=device, dtype=batch_t.dtype).uniform_(
@@ -956,7 +976,7 @@ def train_emulator(
                             softening_km=cfg.nbody_softening_km,
                         )
                     if need_angular:
-                        angular_loss = _angular_momentum_conservation_loss(
+                        angular_momentum_loss = _angular_momentum_conservation_loss(
                             positions=pos_phys_coll,
                             velocities=vel_phys_coll,
                             mu_values=mu_t,
@@ -1002,7 +1022,7 @@ def train_emulator(
                             softening_km=cfg.nbody_softening_km,
                         )
                     if need_angular and vel_phys is not None:
-                        angular_loss = _angular_momentum_conservation_loss(
+                        angular_momentum_loss = _angular_momentum_conservation_loss(
                             positions=pos_phys,
                             velocities=vel_phys,
                             mu_values=mu_t,
@@ -1032,14 +1052,14 @@ def train_emulator(
                     smooth_loss = torch.zeros((), device=device)
                     nbody_loss = torch.zeros((), device=device)
                 energy_loss = torch.zeros((), device=device)
-                angular_loss = torch.zeros((), device=device)
+                angular_momentum_loss = torch.zeros((), device=device)
             loss = (
                 data_loss
                 + physics_weight_eff * phys_loss
                 + smooth_weight_eff * smooth_loss
                 + nbody_weight_eff * nbody_loss
                 + energy_weight_eff * energy_loss
-                + angular_weight_eff * angular_loss
+                + angular_weight_eff * angular_momentum_loss
             )
             scaled_loss = loss / float(accum_steps)
             scaled_loss.backward()
@@ -1057,7 +1077,23 @@ def train_emulator(
             if batch_idx % 100 == 0:
                 logger.log_gpu_memory(batch_idx)
 
-
+            ## WANDB
+            if rank == 0 and use_wandb:
+                # Save history dictionary as artifact
+                artifact = wandb.Artifact(
+                    name=f'training_history_epoch_{epoch_idx}',
+                    type='training_history'
+                )
+                
+                # Save as JSON
+                import json
+                history_path = f'history_epoch_{epoch_idx}.json'
+                with open(history_path, 'w') as f:
+                    json.dump(history, f, indent=2)
+                artifact.add_file(history_path)
+                
+                wandb.log_artifact(artifact)
+            ## WANDB
 
         running_train += float(data_loss.detach().cpu().item())
         running_objective += float(loss.detach().cpu().item())
@@ -1065,7 +1101,7 @@ def train_emulator(
         running_smooth += float(smooth_loss.detach().cpu().item())
         running_nbody += float(nbody_loss.detach().cpu().item())
         running_energy += float(energy_loss.detach().cpu().item())
-        running_angular += float(angular_loss.detach().cpu().item())
+        running_angular += float(angular_momentum_loss.detach().cpu().item())
         n_batches += 1
 
         # === ADD METRIC AGGREGATION ===
@@ -1109,7 +1145,7 @@ def train_emulator(
         smoothness_loss = running_smooth / max(1, n_batches)
         nbody_loss = running_nbody / max(1, n_batches)
         energy_loss = running_energy / max(1, n_batches)
-        angular_loss = running_angular / max(1, n_batches)
+        angular_momentum_loss = running_angular / max(1, n_batches)
         
         if cfg.adaptive_nbody_balance and cfg.nbody_target_fraction > 0.0:
             beta = float(cfg.nbody_balance_beta)
@@ -1228,9 +1264,8 @@ def train_emulator(
             writer.add_scalar('LR', optimizer.param_groups[0]['lr'], epoch_idx)
             
             # Physics losses
-            writer.add_scalar('Physics/nbody_raw', nbody_loss_raw, epoch_idx)
+            writer.add_scalar('Physics/nbody_raw', nbody_loss, epoch_idx)
             writer.add_scalar('Physics/nbody_weight', nbody_weight_eff, epoch_idx)
-            writer.add_scalar('Physics/nbody_weighted', nbody_loss_weighted, epoch_idx)
             
             # Gradients
             total_norm = 0.0
@@ -1263,20 +1298,29 @@ def train_emulator(
 
         ## WANDB
         if rank == 0 and use_wandb:
-            # Log metrics
             metrics = {
                 'epoch': epoch_idx,
-                'train/loss': epoch_train_loss,
-                'train/objective_loss': epoch_objective_loss,
+                'train/loss': train_loss,
+                'train/objective_loss': train_objective_loss,
                 'val/loss': epoch_val_loss,
                 'val/pos_rmse_km': val_pos_rmse,
                 'val/vel_rmse_km_s': val_vel_rmse,
-                'physics/nbody_loss': nbody_loss_raw,
+                
+                # Add the missing physics metrics
+                'physics/total_loss': physics_loss,
+                'physics/smoothness_loss': smoothness_loss,
+                'physics/nbody_loss': nbody_loss,
                 'physics/nbody_weight': nbody_weight_eff,
                 'physics/energy_loss': energy_loss,
                 'physics/angular_momentum_loss': angular_momentum_loss,
+                
+                # Add the missing weights
+                'weights/physics': physics_weight_eff,
+                'weights/smoothness': smooth_weight_eff,
+                'weights/energy': energy_weight_eff,
+                'weights/angular_momentum': angular_weight_eff,
+                
                 'optim/lr': optimizer.param_groups[0]['lr'],
-                'optim/grad_norm': total_grad_norm,
             }
             
             # GPU metrics (all devices)
@@ -1328,7 +1372,7 @@ def train_emulator(
         history["smoothness_loss"].append(smoothness_loss)
         history["nbody_loss"].append(nbody_loss)
         history["energy_loss"].append(energy_loss)
-        history["angular_momentum_loss"].append(angular_loss)
+        history["angular_momentum_loss"].append(angular_momentum_loss)
         history["physics_weight"].append(float(physics_weight_eff))
         history["smoothness_weight"].append(float(smooth_weight_eff))
         history["energy_weight"].append(float(energy_weight_eff))
@@ -1347,7 +1391,7 @@ def train_emulator(
                     "nbody": f"{nbody_loss:.3e}",
                     "nbody_w": f"{nbody_weight_eff:.2e}",
                     "energy": f"{energy_loss:.3e}",
-                    "angmom": f"{angular_loss:.3e}",
+                    "angmom": f"{angular_momentum_loss:.3e}",
                     "lr": f"{optimizer.param_groups[0]['lr']:.2e}",
                 }
                 if np.isfinite(val_vel_rmse):
@@ -1372,7 +1416,7 @@ def train_emulator(
                     f"epoch {epoch_idx + 1:04d}/{cfg.epochs} "
                     f"obj={train_objective_loss:.3e} data={train_loss:.3e} val={val_loss:.3e} "
                     f"val_pos_rmse_km={val_pos_rmse:.3e} nbody={nbody_loss:.3e} "
-                    f"energy={energy_loss:.3e} angmom={angular_loss:.3e} "
+                    f"energy={energy_loss:.3e} angmom={angular_momentum_loss:.3e} "
                     f"nbody_w={nbody_weight_eff:.2e} lr={optimizer.param_groups[0]['lr']:.2e}"
                 )
                 if np.isfinite(val_vel_rmse):
