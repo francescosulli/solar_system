@@ -136,7 +136,7 @@ VENV_DIR=".venv"
 
 source "$VENV_DIR"/bin/activate
 
-"$UV_BIN" sync --active
+"$UV_BIN" sync 
 
 # Limit NumPy/OpenBLAS threads to the reserved CPU count
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
@@ -242,12 +242,11 @@ echo "--- Starting pipeline ---"
 # 	--plots-dir $(pwd)/plots/ 
 
 # "$VENV_DIR"/bin/python train.py --device cpu --epochs 10 --training-mode=multi 
-"$VENV_DIR"/bin/torchrun --nproc_per_node=2 train.py 
-	--training-mode=multi 
-	--dataset-path $(pwd)/data/dataset_demo.npz \
-	--checkpoint-path $(pwd)/checkpoints \
-	--plots-dir $(pwd)/plots/ 
-
+"$VENV_DIR/bin/torchrun" --nproc_per_node=2 train.py \
+  --training-mode multi \
+  --dataset-path "$(pwd)/data/dataset_demo.npz" \
+  --checkpoint-path "$(pwd)/checkpoints" \
+  --plots-dir "$(pwd)/plots"
 EXIT_CODE=$?
 
 echo ""
