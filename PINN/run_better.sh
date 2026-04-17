@@ -29,7 +29,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64GB
 #SBATCH --time=02:00:00
-#SBATCH --gres=gpu:V100:1
+#SBATCH --gres=gpu:V100:2
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -128,12 +128,15 @@ echo "Metadata saved to ${RUN_DIR}/meta.txt"
 # Environment setup
 # =============================================================================
 
-module purge
-module load cuda/12.8
+# module purge
+# module load cuda/12.8
 
-source .venv/bin/activate
+UV_BIN="$HOME/dlprojenv/bin/uv"
+VENV_DIR=".venv"
 
-uv sync --active
+source "$VENV_DIR"/bin/activate
+
+"$UV_BIN" sync --active
 
 # Limit NumPy/OpenBLAS threads to the reserved CPU count
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
@@ -210,7 +213,6 @@ echo "============================="
 # =============================================================================
 # Sanity checks
 # =============================================================================
-
 echo ""
 echo "--- Python / torch ---"
 echo "Python : $(which python)"
@@ -229,9 +231,9 @@ print('GPU          :', torch.cuda.get_device_name(0) if torch.cuda.is_available
 echo ""
 echo "--- Starting pipeline ---"
 
-.venv/bin/python verify_setup.py 
+"$VENV_DIR"/bin/python verify_setup.py 
 
-.venv/bin/python solsys_setup.py \
+"$VENV_DIR"/bin/python solsys_setup.py \
 	--dataset-path $(pwd)/data/dataset_demo.npz \
 
 # python PINN_train.py \
@@ -239,12 +241,12 @@ echo "--- Starting pipeline ---"
 # 	--checkpoint-path $(pwd)/checkpoints \
 # 	--plots-dir $(pwd)/plots/ 
 
-.venv/bin/python train.py --device cpu --epochs 10 --training-mode=multi 
-# .venv/bin/torchrun --nproc_per_node=$SLURM_JOB_GPUS train.py 
-# 	--training-mode=multi 
-# 	--dataset-path $(pwd)/data/dataset_demo.npz \
-# 	--checkpoint-path $(pwd)/checkpoints \
-# 	--plots-dir $(pwd)/plots/ 
+# "$VENV_DIR"/bin/python train.py --device cpu --epochs 10 --training-mode=multi 
+"$VENV_DIR"/bin/torchrun --nproc_per_node=2 train.py 
+	--training-mode=multi 
+	--dataset-path $(pwd)/data/dataset_demo.npz \
+	--checkpoint-path $(pwd)/checkpoints \
+	--plots-dir $(pwd)/plots/ 
 
 EXIT_CODE=$?
 
