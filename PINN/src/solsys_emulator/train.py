@@ -815,7 +815,7 @@ def train_emulator(
         )
         
         # Watch model (logs gradients and parameters)
-        wandb.watch(model, log='all', log_freq=100)
+        # wandb.watch(model, log='all', log_freq=100)
     # 
 
     logger = DistributedLogger(

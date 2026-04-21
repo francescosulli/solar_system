@@ -108,6 +108,7 @@ def _parse_args() -> argparse.Namespace:
         help="Path to DE440/DE441 BSP kernel. Auto-detected from data/ if omitted.",
     )
     p.add_argument("--dataset-path", default=str(DEFAULT_DATASET_PATH), help="Output .npz path")
+    p.add_argument("--dataset-type", default="jpl", choices=["jpl","tle"],help="Output .npz path")
     p.add_argument(
         "--skip-dataset", action="store_true",
         help="Skip dataset generation and load an existing .npz",
@@ -187,6 +188,7 @@ def stage_setup(args: argparse.Namespace) -> None:
 # ===========================================================================
 def stage_build_dataset(args: argparse.Namespace) -> dict:
     dataset_path = Path(args.dataset_path)
+    dataset_type = args.dataset_type
 
     if args.skip_dataset:
         log.info("=== Stage 1: Loading existing dataset from %s ===", dataset_path)
@@ -195,38 +197,43 @@ def stage_build_dataset(args: argparse.Namespace) -> dict:
         log.info("Num samples   : %d", len(dataset["times_seconds"]))
         log.info("Source        : %s", dataset["metadata"].get("sample_source"))
         return dataset
+    if dataset_type == "jpl":
+        log.info("=== Stage 1: Building dataset ===")
+        step_seconds = args.step_hours * 3600.0
 
-    log.info("=== Stage 1: Building dataset ===")
-    step_seconds = args.step_hours * 3600.0
+        kernel_candidates = [args.kernel] if args.kernel else [DEFAULT_KERNEL_PATH]
+        kernel_path = find_local_kernel(kernel_candidates)
+        if kernel_path is None:
+            sys.exit(
+                "ERROR: wasn't able to download DE440/DE441 kernel. "
+                "ERROR: No DE440/DE441 kernel found. "
+                "Place de440.bsp in data/ or pass --kernel <path>."
+            )
 
-    kernel_candidates = [args.kernel] if args.kernel else [DEFAULT_KERNEL_PATH]
-    kernel_path = find_local_kernel(kernel_candidates)
-    if kernel_path is None:
-        sys.exit(
-            "ERROR: wasn't able to download DE440/DE441 kernel. "
-            "ERROR: No DE440/DE441 kernel found. "
-            "Place de440.bsp in data/ or pass --kernel <path>."
+        log.info("Kernel path   : %s", kernel_path)
+        log.info("Date range    : %s → %s", args.start, args.end)
+        log.info("Step          : %.1f h", args.step_hours)
+
+        dataset = build_dataset(
+            start_time=args.start,
+            end_time=args.end,
+            step=step_seconds,
+            bodies=DEFAULT_BODIES,
+            kernel_path=kernel_path,
         )
 
-    log.info("Kernel path   : %s", kernel_path)
-    log.info("Date range    : %s → %s", args.start, args.end)
-    log.info("Step          : %.1f h", args.step_hours)
+        log.info("States shape  : %s", dataset["states"].shape)
+        log.info("Num samples   : %d", len(dataset["times_seconds"]))
+        log.info("Frame         : %s | Timescale: %s", dataset["metadata"]["frame"], dataset["metadata"]["timescale"])
 
-    dataset = build_dataset(
-        start_time=args.start,
-        end_time=args.end,
-        step=step_seconds,
-        bodies=DEFAULT_BODIES,
-        kernel_path=kernel_path,
-    )
+        save_path = save_dataset(dataset_path, dataset)
+        log.info("Dataset saved : %s", save_path)
+        return dataset
 
-    log.info("States shape  : %s", dataset["states"].shape)
-    log.info("Num samples   : %d", len(dataset["times_seconds"]))
-    log.info("Frame         : %s | Timescale: %s", dataset["metadata"]["frame"], dataset["metadata"]["timescale"])
+    elif dataset_type == "tle":
+        log.info("TLE dataset type: skipping jpl specfiic dataset building...")
+        return
 
-    save_path = save_dataset(dataset_path, dataset)
-    log.info("Dataset saved : %s", save_path)
-    return dataset
 def main():
     args = _parse_args()
     stage_setup(args)

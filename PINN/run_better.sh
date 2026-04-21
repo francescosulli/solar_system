@@ -234,7 +234,8 @@ echo "--- Starting pipeline ---"
 "$VENV_DIR"/bin/python verify_setup.py 
 
 "$VENV_DIR"/bin/python solsys_setup.py \
-	--dataset-path $(pwd)/data/dataset_demo.npz \
+	--dataset-path "$(pwd)/data/leopardd_dataset.npz" \
+	--dataset-type "tle" 
 
 # python PINN_train.py \
 # 	--dataset-path $(pwd)/data/dataset_demo.npz \
@@ -244,10 +245,10 @@ echo "--- Starting pipeline ---"
 # "$VENV_DIR"/bin/python train.py --device cpu --epochs 10 --training-mode=multi 
 ## when training on a single GPU, don't spawn multiple processes: it will crash
 "$VENV_DIR/bin/torchrun" --nproc_per_node=1 train.py \
-  --training-mode multi \
-  --dataset-path "$(pwd)/data/dataset_demo.npz" \
-  --checkpoint-path "$(pwd)/checkpoints" \
-  --plots-dir "$(pwd)/plots"
+  --training-mode unified \
+  --dataset-path "$(pwd)/data/leopardd_dataset.npz" \
+  --checkpoint-path "$(pwd)/checkpoints/leopardd" \
+  --plots-dir "$(pwd)/plots/leopardd"
 EXIT_CODE=$?
 
 echo ""
