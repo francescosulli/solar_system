@@ -1,0 +1,1349 @@
+============================================================
+ Job name    : bash
+ Job ID      : 1152812
+ Node        : epyc008
+ CPUs/task   : 
+ Start time  : Tue Apr 21 04:58:35 PM CEST 2026
+ Run dir     : logs/runs/1152812
+============================================================
+Metadata saved to logs/runs/1152812/meta.txt
+Resolved 171 packages in 2ms
+   Building solsys-emulator @ file:///orfeo/cephfs/home/astreo/gbillo/solar_system/PINN
+      Built solsys-emulator @ file:///orfeo/cephfs/home/astreo/gbillo/solar_system/PINN
+Prepared 1 package in 2.29s
+Uninstalled 1 package in 6ms
+Installed 1 package in 6ms
+ ~ solsys-emulator==0.1.0 (from file:///orfeo/cephfs/home/astreo/gbillo/solar_system/PINN)
+
+=== NVIDIA-SMI debug setup ===
+./run_leopardd.sh: line 162: nvidia-smi: command not found
+./run_leopardd.sh: line 165: nvidia-smi: command not found
+./run_leopardd.sh: line 170: nvidia-smi: command not found
+nvidia-smi sampler PID : 2841508
+GPU timeseries log     : logs/runs/1152812/nvidia-smi.csv
+Process monitor log    : logs/runs/1152812/nvidia-smi.pmon.csv
+=============================
+
+--- Python / torch ---
+./run_leopardd.sh: line 195: nvidia-smi: command not found
+Python : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+Python 3.11.14
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+torch        : 2.5.1+cu121
+CUDA available: False
+GPU          : N/A
+
+--- Starting pipeline ---
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+================================================================================
+PINN TRAINING ENVIRONMENT VERIFICATION
+================================================================================
+
+================================================================================
+PYTHON VERSION
+================================================================================
+Python 3.11.14
+✓ OK
+
+================================================================================
+PYTORCH
+================================================================================
+PyTorch version: 2.5.1+cu121
+PyTorch CUDA build: 12.1
+CUDA available: False
+✗ WARNING: CUDA is NOT available
+
+Likely causes:
+  • Could not query NVIDIA driver
+  • No GPUs visible to PyTorch
+
+Suggested fixes:
+  • Use a node with a newer NVIDIA driver
+  • Install a PyTorch build matching the node CUDA version
+  • Check SLURM GPU allocation (are GPUs actually assigned?)
+  • Verify LD_LIBRARY_PATH is not broken
+
+================================================================================
+CUDA COMPATIBILITY
+================================================================================
+PyTorch version: 2.5.1+cu121
+PyTorch CUDA build: 12.1
+✗ ERROR: Could not query driver version: [Errno 2] No such file or directory: 'nvidia-smi'
+
+================================================================================
+DISTRIBUTED TRAINING
+================================================================================
+torch.distributed available: True
+Available backends: nccl, gloo
+✓ OK - NCCL backend available (recommended for multi-GPU)
+
+================================================================================
+OPTIONAL DEPENDENCIES
+================================================================================
+✓ numpy           - Required
+✓ matplotlib      - Required for plotting
+✓ tqdm            - Progress bars
+✓ tensorboard     - TensorBoard logging
+✓ wandb           - Weights & Biases logging
+
+================================================================================
+PROJECT FILES
+================================================================================
+
+Required files:
+✓ train.py                                 - Unified training script
+✗ train_ddp.py                             - DDP training script
+✓ src/solsys_emulator/train.py             - Training module
+✓ src/solsys_emulator/model.py             - Model module
+✓ data/dataset_demo.npz                    - Demo dataset
+
+Documentation:
+✓ DDP_IMPLEMENTATION.md                    - DDP guide
+✓ LOGGING_GUIDE.md                         - Logging guide
+✓ QUICK_REFERENCE.md                       - Quick reference
+⚠ minimal_ddp_example.py                   - Minimal DDP example
+
+================================================================================
+GPU MEMORY
+================================================================================
+⚠ WARNING: Could not query GPU memory: [Errno 2] No such file or directory: 'nvidia-smi'
+
+================================================================================
+SUMMARY
+================================================================================
+PYTHON               ✓ PASS
+PYTORCH              ✗ FAIL
+CUDA_COMPATIBILITY   ✗ FAIL
+DISTRIBUTED          ✓ PASS
+DEPENDENCIES         ✓ PASS
+FILES                ✗ FAIL
+GPU_MEMORY           ✓ PASS
+
+✗ Some checks failed. Please address the issues above.
+
+Common fixes:
+  • Install PyTorch: pip install torch
+  • Install dependencies: pip install numpy matplotlib tqdm
+  • Check CUDA installation: nvidia-smi
+  • Use a node with a newer NVIDIA driver if your torch build targets newer CUDA
+  • Use a torch build that supports your GPU architecture
+
+================================================================================
+Next steps:
+  1. Read README.md for overview
+  2. Try a test run: python train.py --device cuda --epochs 10
+  3. Read DDP_IMPLEMENTATION.md for multi-GPU setup
+================================================================================
+
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/solsys_setup.py", line 111
+    p.add_argument("--dataset-type", default="jpl", choices=["jpl", "tle"] help="Type of dataset to feed to PINN.")
+                                                            ^^^^^^^^^^^^^^^^^^^
+SyntaxError: invalid syntax. Perhaps you forgot a comma?
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+============================================================
+ Job name    : bash
+ Job ID      : 1152812
+ Node        : epyc008
+ CPUs/task   : 
+ Start time  : Tue Apr 21 04:59:07 PM CEST 2026
+ Run dir     : logs/runs/1152812
+============================================================
+Metadata saved to logs/runs/1152812/meta.txt
+Resolved 171 packages in 1ms
+Audited 69 packages in 2ms
+
+=== NVIDIA-SMI debug setup ===
+./run_leopardd.sh: line 162: nvidia-smi: command not found
+./run_leopardd.sh: line 165: nvidia-smi: command not found
+./run_leopardd.sh: line 170: nvidia-smi: command not found
+nvidia-smi sampler PID : 2841614
+GPU timeseries log     : logs/runs/1152812/nvidia-smi.csv
+Process monitor log    : logs/runs/1152812/nvidia-smi.pmon.csv
+=============================
+
+--- Python / torch ---
+Python : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+./run_leopardd.sh: line 195: nvidia-smi: command not found
+Python 3.11.14
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+torch        : 2.5.1+cu121
+CUDA available: False
+GPU          : N/A
+
+--- Starting pipeline ---
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+================================================================================
+PINN TRAINING ENVIRONMENT VERIFICATION
+================================================================================
+
+================================================================================
+PYTHON VERSION
+================================================================================
+Python 3.11.14
+✓ OK
+
+================================================================================
+PYTORCH
+================================================================================
+PyTorch version: 2.5.1+cu121
+PyTorch CUDA build: 12.1
+CUDA available: False
+✗ WARNING: CUDA is NOT available
+
+Likely causes:
+  • Could not query NVIDIA driver
+  • No GPUs visible to PyTorch
+
+Suggested fixes:
+  • Use a node with a newer NVIDIA driver
+  • Install a PyTorch build matching the node CUDA version
+  • Check SLURM GPU allocation (are GPUs actually assigned?)
+  • Verify LD_LIBRARY_PATH is not broken
+
+================================================================================
+CUDA COMPATIBILITY
+================================================================================
+PyTorch version: 2.5.1+cu121
+PyTorch CUDA build: 12.1
+✗ ERROR: Could not query driver version: [Errno 2] No such file or directory: 'nvidia-smi'
+
+================================================================================
+DISTRIBUTED TRAINING
+================================================================================
+torch.distributed available: True
+Available backends: nccl, gloo
+✓ OK - NCCL backend available (recommended for multi-GPU)
+
+================================================================================
+OPTIONAL DEPENDENCIES
+================================================================================
+✓ numpy           - Required
+✓ matplotlib      - Required for plotting
+✓ tqdm            - Progress bars
+✓ tensorboard     - TensorBoard logging
+✓ wandb           - Weights & Biases logging
+
+================================================================================
+PROJECT FILES
+================================================================================
+
+Required files:
+✓ train.py                                 - Unified training script
+✗ train_ddp.py                             - DDP training script
+✓ src/solsys_emulator/train.py             - Training module
+✓ src/solsys_emulator/model.py             - Model module
+✓ data/dataset_demo.npz                    - Demo dataset
+
+Documentation:
+✓ DDP_IMPLEMENTATION.md                    - DDP guide
+✓ LOGGING_GUIDE.md                         - Logging guide
+✓ QUICK_REFERENCE.md                       - Quick reference
+⚠ minimal_ddp_example.py                   - Minimal DDP example
+
+================================================================================
+GPU MEMORY
+================================================================================
+⚠ WARNING: Could not query GPU memory: [Errno 2] No such file or directory: 'nvidia-smi'
+
+================================================================================
+SUMMARY
+================================================================================
+PYTHON               ✓ PASS
+PYTORCH              ✗ FAIL
+CUDA_COMPATIBILITY   ✗ FAIL
+DISTRIBUTED          ✓ PASS
+DEPENDENCIES         ✓ PASS
+FILES                ✗ FAIL
+GPU_MEMORY           ✓ PASS
+
+✗ Some checks failed. Please address the issues above.
+
+Common fixes:
+  • Install PyTorch: pip install torch
+  • Install dependencies: pip install numpy matplotlib tqdm
+  • Check CUDA installation: nvidia-smi
+  • Use a node with a newer NVIDIA driver if your torch build targets newer CUDA
+  • Use a torch build that supports your GPU architecture
+
+================================================================================
+Next steps:
+  1. Read README.md for overview
+  2. Try a test run: python train.py --device cuda --epochs 10
+  3. Read DDP_IMPLEMENTATION.md for multi-GPU setup
+================================================================================
+
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+Traceback (most recent call last):
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/solsys_setup.py", line 56, in <module>
+    from solsys_emulator.config import (
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/__init__.py", line 11, in <module>
+    from .inference import EphemerisEmulator
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/inference.py", line 26, in <module>
+    from .train import load_checkpoint
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/train.py", line 41, in <module>
+    from .logging.distributed_logger import DistributedLogger
+ModuleNotFoundError: No module named 'solsys_emulator.logging.distributed_logger'
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+Traceback (most recent call last):
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/train.py", line 35, in <module>
+    from solsys_emulator.config import DEFAULT_CHECKPOINT_PATH, DEFAULT_DATASET_PATH, ensure_project_dirs
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/__init__.py", line 11, in <module>
+    from .inference import EphemerisEmulator
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/inference.py", line 26, in <module>
+    from .train import load_checkpoint
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/train.py", line 41, in <module>
+    from .logging.distributed_logger import DistributedLogger
+ModuleNotFoundError: No module named 'solsys_emulator.logging.distributed_logger'
+E0421 16:59:19.897000 2841637 torch/distributed/elastic/multiprocessing/api.py:869] failed (exitcode: 1) local_rank: 0 (pid: 2841643) of binary: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+Traceback (most recent call last):
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/torchrun", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 355, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/run.py", line 919, in main
+    run(args)
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/run.py", line 910, in run
+    elastic_launch(
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 138, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 269, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+train.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-04-21_16:59:19
+  host      : epyc008.hpc.rd.areasciencepark.it
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 2841643)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
+
+============================================================
+ End time    : Tue Apr 21 04:59:20 PM CEST 2026
+ Exit code   : 1
+ Run dir     : logs/runs/1152812
+============================================================
+
+=== Cleanup ===
+./run_leopardd.sh: line 185: nvidia-smi: command not found
+./run_leopardd.sh: line 186: nvidia-smi: command not found
+============================================================
+ Job name    : bash
+ Job ID      : 1152812
+ Node        : epyc008
+ CPUs/task   : 
+ Start time  : Tue Apr 21 05:01:58 PM CEST 2026
+ Run dir     : logs/runs/1152812
+============================================================
+Metadata saved to logs/runs/1152812/meta.txt
+Resolved 171 packages in 1ms
+Audited 69 packages in 1ms
+
+=== NVIDIA-SMI debug setup ===
+./run_leopardd.sh: line 162: nvidia-smi: command not found
+./run_leopardd.sh: line 165: nvidia-smi: command not found
+./run_leopardd.sh: line 170: nvidia-smi: command not found
+nvidia-smi sampler PID : 2842018
+GPU timeseries log     : logs/runs/1152812/nvidia-smi.csv
+Process monitor log    : logs/runs/1152812/nvidia-smi.pmon.csv
+=============================
+
+--- Python / torch ---
+Python : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+./run_leopardd.sh: line 195: nvidia-smi: command not found
+Python 3.11.14
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+torch        : 2.5.1+cu121
+CUDA available: False
+GPU          : N/A
+
+--- Starting pipeline ---
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+================================================================================
+PINN TRAINING ENVIRONMENT VERIFICATION
+================================================================================
+
+================================================================================
+PYTHON VERSION
+================================================================================
+Python 3.11.14
+✓ OK
+
+================================================================================
+PYTORCH
+================================================================================
+PyTorch version: 2.5.1+cu121
+PyTorch CUDA build: 12.1
+CUDA available: False
+✗ WARNING: CUDA is NOT available
+
+Likely causes:
+  • Could not query NVIDIA driver
+  • No GPUs visible to PyTorch
+
+Suggested fixes:
+  • Use a node with a newer NVIDIA driver
+  • Install a PyTorch build matching the node CUDA version
+  • Check SLURM GPU allocation (are GPUs actually assigned?)
+  • Verify LD_LIBRARY_PATH is not broken
+
+================================================================================
+CUDA COMPATIBILITY
+================================================================================
+PyTorch version: 2.5.1+cu121
+PyTorch CUDA build: 12.1
+✗ ERROR: Could not query driver version: [Errno 2] No such file or directory: 'nvidia-smi'
+
+================================================================================
+DISTRIBUTED TRAINING
+================================================================================
+torch.distributed available: True
+Available backends: nccl, gloo
+✓ OK - NCCL backend available (recommended for multi-GPU)
+
+================================================================================
+OPTIONAL DEPENDENCIES
+================================================================================
+✓ numpy           - Required
+✓ matplotlib      - Required for plotting
+✓ tqdm            - Progress bars
+✓ tensorboard     - TensorBoard logging
+✓ wandb           - Weights & Biases logging
+
+================================================================================
+PROJECT FILES
+================================================================================
+
+Required files:
+✓ train.py                                 - Unified training script
+✗ train_ddp.py                             - DDP training script
+✓ src/solsys_emulator/train.py             - Training module
+✓ src/solsys_emulator/model.py             - Model module
+✓ data/dataset_demo.npz                    - Demo dataset
+
+Documentation:
+✓ DDP_IMPLEMENTATION.md                    - DDP guide
+✓ LOGGING_GUIDE.md                         - Logging guide
+✓ QUICK_REFERENCE.md                       - Quick reference
+⚠ minimal_ddp_example.py                   - Minimal DDP example
+
+================================================================================
+GPU MEMORY
+================================================================================
+⚠ WARNING: Could not query GPU memory: [Errno 2] No such file or directory: 'nvidia-smi'
+
+================================================================================
+SUMMARY
+================================================================================
+PYTHON               ✓ PASS
+PYTORCH              ✗ FAIL
+CUDA_COMPATIBILITY   ✗ FAIL
+DISTRIBUTED          ✓ PASS
+DEPENDENCIES         ✓ PASS
+FILES                ✗ FAIL
+GPU_MEMORY           ✓ PASS
+
+✗ Some checks failed. Please address the issues above.
+
+Common fixes:
+  • Install PyTorch: pip install torch
+  • Install dependencies: pip install numpy matplotlib tqdm
+  • Check CUDA installation: nvidia-smi
+  • Use a node with a newer NVIDIA driver if your torch build targets newer CUDA
+  • Use a torch build that supports your GPU architecture
+
+================================================================================
+Next steps:
+  1. Read README.md for overview
+  2. Try a test run: python train.py --device cuda --epochs 10
+  3. Read DDP_IMPLEMENTATION.md for multi-GPU setup
+================================================================================
+
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+Traceback (most recent call last):
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/solsys_setup.py", line 56, in <module>
+    from solsys_emulator.config import (
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/__init__.py", line 11, in <module>
+    from .inference import EphemerisEmulator
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/inference.py", line 26, in <module>
+    from .train import load_checkpoint
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/train.py", line 41, in <module>
+    from .logging.distributed_logger import DistributedLogger
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/logging/distributed_logger.py", line 144
+    def train_emulator(...):
+                       ^^^
+SyntaxError: invalid syntax
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+Traceback (most recent call last):
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/train.py", line 35, in <module>
+    from solsys_emulator.config import DEFAULT_CHECKPOINT_PATH, DEFAULT_DATASET_PATH, ensure_project_dirs
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/__init__.py", line 11, in <module>
+    from .inference import EphemerisEmulator
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/inference.py", line 26, in <module>
+    from .train import load_checkpoint
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/train.py", line 41, in <module>
+    from .logging.distributed_logger import DistributedLogger
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/logging/distributed_logger.py", line 144
+    def train_emulator(...):
+                       ^^^
+SyntaxError: invalid syntax
+E0421 17:02:10.696000 2842058 torch/distributed/elastic/multiprocessing/api.py:869] failed (exitcode: 1) local_rank: 0 (pid: 2842060) of binary: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+Traceback (most recent call last):
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/torchrun", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 355, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/run.py", line 919, in main
+    run(args)
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/run.py", line 910, in run
+    elastic_launch(
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 138, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 269, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+train.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-04-21_17:02:10
+  host      : epyc008.hpc.rd.areasciencepark.it
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 2842060)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
+
+============================================================
+ End time    : Tue Apr 21 05:02:11 PM CEST 2026
+ Exit code   : 1
+ Run dir     : logs/runs/1152812
+============================================================
+
+=== Cleanup ===
+./run_leopardd.sh: line 185: nvidia-smi: command not found
+./run_leopardd.sh: line 186: nvidia-smi: command not found
+============================================================
+ Job name    : bash
+ Job ID      : 1152812
+ Node        : epyc008
+ CPUs/task   : 
+ Start time  : Tue Apr 21 05:03:10 PM CEST 2026
+ Run dir     : logs/runs/1152812
+============================================================
+Metadata saved to logs/runs/1152812/meta.txt
+Resolved 171 packages in 1ms
+Audited 69 packages in 1ms
+
+=== NVIDIA-SMI debug setup ===
+./run_leopardd.sh: line 162: nvidia-smi: command not found
+./run_leopardd.sh: line 165: nvidia-smi: command not found
+./run_leopardd.sh: line 170: nvidia-smi: command not found
+nvidia-smi sampler PID : 2842224
+GPU timeseries log     : logs/runs/1152812/nvidia-smi.csv
+Process monitor log    : logs/runs/1152812/nvidia-smi.pmon.csv
+=============================
+
+--- Python / torch ---
+Python : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+./run_leopardd.sh: line 195: nvidia-smi: command not found
+Python 3.11.14
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+torch        : 2.5.1+cu121
+CUDA available: False
+GPU          : N/A
+
+--- Starting pipeline ---
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+================================================================================
+PINN TRAINING ENVIRONMENT VERIFICATION
+================================================================================
+
+================================================================================
+PYTHON VERSION
+================================================================================
+Python 3.11.14
+✓ OK
+
+================================================================================
+PYTORCH
+================================================================================
+PyTorch version: 2.5.1+cu121
+PyTorch CUDA build: 12.1
+CUDA available: False
+✗ WARNING: CUDA is NOT available
+
+Likely causes:
+  • Could not query NVIDIA driver
+  • No GPUs visible to PyTorch
+
+Suggested fixes:
+  • Use a node with a newer NVIDIA driver
+  • Install a PyTorch build matching the node CUDA version
+  • Check SLURM GPU allocation (are GPUs actually assigned?)
+  • Verify LD_LIBRARY_PATH is not broken
+
+================================================================================
+CUDA COMPATIBILITY
+================================================================================
+PyTorch version: 2.5.1+cu121
+PyTorch CUDA build: 12.1
+✗ ERROR: Could not query driver version: [Errno 2] No such file or directory: 'nvidia-smi'
+
+================================================================================
+DISTRIBUTED TRAINING
+================================================================================
+torch.distributed available: True
+Available backends: nccl, gloo
+✓ OK - NCCL backend available (recommended for multi-GPU)
+
+================================================================================
+OPTIONAL DEPENDENCIES
+================================================================================
+✓ numpy           - Required
+✓ matplotlib      - Required for plotting
+✓ tqdm            - Progress bars
+✓ tensorboard     - TensorBoard logging
+✓ wandb           - Weights & Biases logging
+
+================================================================================
+PROJECT FILES
+================================================================================
+
+Required files:
+✓ train.py                                 - Unified training script
+✗ train_ddp.py                             - DDP training script
+✓ src/solsys_emulator/train.py             - Training module
+✓ src/solsys_emulator/model.py             - Model module
+✓ data/dataset_demo.npz                    - Demo dataset
+
+Documentation:
+✓ DDP_IMPLEMENTATION.md                    - DDP guide
+✓ LOGGING_GUIDE.md                         - Logging guide
+✓ QUICK_REFERENCE.md                       - Quick reference
+⚠ minimal_ddp_example.py                   - Minimal DDP example
+
+================================================================================
+GPU MEMORY
+================================================================================
+⚠ WARNING: Could not query GPU memory: [Errno 2] No such file or directory: 'nvidia-smi'
+
+================================================================================
+SUMMARY
+================================================================================
+PYTHON               ✓ PASS
+PYTORCH              ✗ FAIL
+CUDA_COMPATIBILITY   ✗ FAIL
+DISTRIBUTED          ✓ PASS
+DEPENDENCIES         ✓ PASS
+FILES                ✗ FAIL
+GPU_MEMORY           ✓ PASS
+
+✗ Some checks failed. Please address the issues above.
+
+Common fixes:
+  • Install PyTorch: pip install torch
+  • Install dependencies: pip install numpy matplotlib tqdm
+  • Check CUDA installation: nvidia-smi
+  • Use a node with a newer NVIDIA driver if your torch build targets newer CUDA
+  • Use a torch build that supports your GPU architecture
+
+================================================================================
+Next steps:
+  1. Read README.md for overview
+  2. Try a test run: python train.py --device cuda --epochs 10
+  3. Read DDP_IMPLEMENTATION.md for multi-GPU setup
+================================================================================
+
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+Traceback (most recent call last):
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/solsys_setup.py", line 56, in <module>
+    from solsys_emulator.config import (
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/__init__.py", line 11, in <module>
+    from .inference import EphemerisEmulator
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/inference.py", line 26, in <module>
+    from .train import load_checkpoint
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/train.py", line 42, in <module>
+    from .logging.logging_utils import log_config_to_tensorboard 
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'solsys_emulator.logging.logging_utils'
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+Traceback (most recent call last):
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/train.py", line 35, in <module>
+    from solsys_emulator.config import DEFAULT_CHECKPOINT_PATH, DEFAULT_DATASET_PATH, ensure_project_dirs
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/__init__.py", line 11, in <module>
+    from .inference import EphemerisEmulator
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/inference.py", line 26, in <module>
+    from .train import load_checkpoint
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/train.py", line 42, in <module>
+    from .logging.logging_utils import log_config_to_tensorboard 
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'solsys_emulator.logging.logging_utils'
+E0421 17:03:22.233000 2842240 torch/distributed/elastic/multiprocessing/api.py:869] failed (exitcode: 1) local_rank: 0 (pid: 2842242) of binary: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+Traceback (most recent call last):
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/torchrun", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 355, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/run.py", line 919, in main
+    run(args)
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/run.py", line 910, in run
+    elastic_launch(
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 138, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 269, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+train.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-04-21_17:03:22
+  host      : epyc008.hpc.rd.areasciencepark.it
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 2842242)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
+
+============================================================
+ End time    : Tue Apr 21 05:03:22 PM CEST 2026
+ Exit code   : 1
+ Run dir     : logs/runs/1152812
+============================================================
+
+=== Cleanup ===
+./run_leopardd.sh: line 185: nvidia-smi: command not found
+./run_leopardd.sh: line 186: nvidia-smi: command not found
+============================================================
+ Job name    : bash
+ Job ID      : 1152812
+ Node        : epyc008
+ CPUs/task   : 
+ Start time  : Tue Apr 21 05:04:21 PM CEST 2026
+ Run dir     : logs/runs/1152812
+============================================================
+Metadata saved to logs/runs/1152812/meta.txt
+Resolved 171 packages in 1ms
+Audited 69 packages in 2ms
+
+=== NVIDIA-SMI debug setup ===
+./run_leopardd.sh: line 162: nvidia-smi: command not found
+./run_leopardd.sh: line 165: nvidia-smi: command not found
+./run_leopardd.sh: line 170: nvidia-smi: command not found
+nvidia-smi sampler PID : 2842436
+GPU timeseries log     : logs/runs/1152812/nvidia-smi.csv
+Process monitor log    : logs/runs/1152812/nvidia-smi.pmon.csv
+=============================
+
+--- Python / torch ---
+Python : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+./run_leopardd.sh: line 195: nvidia-smi: command not found
+Python 3.11.14
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+torch        : 2.5.1+cu121
+CUDA available: False
+GPU          : N/A
+
+--- Starting pipeline ---
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+================================================================================
+PINN TRAINING ENVIRONMENT VERIFICATION
+================================================================================
+
+================================================================================
+PYTHON VERSION
+================================================================================
+Python 3.11.14
+✓ OK
+
+================================================================================
+PYTORCH
+================================================================================
+PyTorch version: 2.5.1+cu121
+PyTorch CUDA build: 12.1
+CUDA available: False
+✗ WARNING: CUDA is NOT available
+
+Likely causes:
+  • Could not query NVIDIA driver
+  • No GPUs visible to PyTorch
+
+Suggested fixes:
+  • Use a node with a newer NVIDIA driver
+  • Install a PyTorch build matching the node CUDA version
+  • Check SLURM GPU allocation (are GPUs actually assigned?)
+  • Verify LD_LIBRARY_PATH is not broken
+
+================================================================================
+CUDA COMPATIBILITY
+================================================================================
+PyTorch version: 2.5.1+cu121
+PyTorch CUDA build: 12.1
+✗ ERROR: Could not query driver version: [Errno 2] No such file or directory: 'nvidia-smi'
+
+================================================================================
+DISTRIBUTED TRAINING
+================================================================================
+torch.distributed available: True
+Available backends: nccl, gloo
+✓ OK - NCCL backend available (recommended for multi-GPU)
+
+================================================================================
+OPTIONAL DEPENDENCIES
+================================================================================
+✓ numpy           - Required
+✓ matplotlib      - Required for plotting
+✓ tqdm            - Progress bars
+✓ tensorboard     - TensorBoard logging
+✓ wandb           - Weights & Biases logging
+
+================================================================================
+PROJECT FILES
+================================================================================
+
+Required files:
+✓ train.py                                 - Unified training script
+✗ train_ddp.py                             - DDP training script
+✓ src/solsys_emulator/train.py             - Training module
+✓ src/solsys_emulator/model.py             - Model module
+✓ data/dataset_demo.npz                    - Demo dataset
+
+Documentation:
+✓ DDP_IMPLEMENTATION.md                    - DDP guide
+✓ LOGGING_GUIDE.md                         - Logging guide
+✓ QUICK_REFERENCE.md                       - Quick reference
+⚠ minimal_ddp_example.py                   - Minimal DDP example
+
+================================================================================
+GPU MEMORY
+================================================================================
+⚠ WARNING: Could not query GPU memory: [Errno 2] No such file or directory: 'nvidia-smi'
+
+================================================================================
+SUMMARY
+================================================================================
+PYTHON               ✓ PASS
+PYTORCH              ✗ FAIL
+CUDA_COMPATIBILITY   ✗ FAIL
+DISTRIBUTED          ✓ PASS
+DEPENDENCIES         ✓ PASS
+FILES                ✗ FAIL
+GPU_MEMORY           ✓ PASS
+
+✗ Some checks failed. Please address the issues above.
+
+Common fixes:
+  • Install PyTorch: pip install torch
+  • Install dependencies: pip install numpy matplotlib tqdm
+  • Check CUDA installation: nvidia-smi
+  • Use a node with a newer NVIDIA driver if your torch build targets newer CUDA
+  • Use a torch build that supports your GPU architecture
+
+================================================================================
+Next steps:
+  1. Read README.md for overview
+  2. Try a test run: python train.py --device cuda --epochs 10
+  3. Read DDP_IMPLEMENTATION.md for multi-GPU setup
+================================================================================
+
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+Traceback (most recent call last):
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/solsys_setup.py", line 56, in <module>
+    from solsys_emulator.config import (
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/__init__.py", line 11, in <module>
+    from .inference import EphemerisEmulator
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/inference.py", line 26, in <module>
+    from .train import load_checkpoint
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/train.py", line 42, in <module>
+    from .logging.logging_utils import log_config_to_tensorboard 
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'solsys_emulator.logging.logging_utils'
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+Traceback (most recent call last):
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/train.py", line 35, in <module>
+    from solsys_emulator.config import DEFAULT_CHECKPOINT_PATH, DEFAULT_DATASET_PATH, ensure_project_dirs
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/__init__.py", line 11, in <module>
+    from .inference import EphemerisEmulator
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/inference.py", line 26, in <module>
+    from .train import load_checkpoint
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/train.py", line 42, in <module>
+    from .logging.logging_utils import log_config_to_tensorboard 
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'solsys_emulator.logging.logging_utils'
+E0421 17:04:33.527000 2842452 torch/distributed/elastic/multiprocessing/api.py:869] failed (exitcode: 1) local_rank: 0 (pid: 2842454) of binary: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+Traceback (most recent call last):
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/torchrun", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 355, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/run.py", line 919, in main
+    run(args)
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/run.py", line 910, in run
+    elastic_launch(
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 138, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 269, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+train.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-04-21_17:04:33
+  host      : epyc008.hpc.rd.areasciencepark.it
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 2842454)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
+
+============================================================
+ End time    : Tue Apr 21 05:04:33 PM CEST 2026
+ Exit code   : 1
+ Run dir     : logs/runs/1152812
+============================================================
+
+=== Cleanup ===
+./run_leopardd.sh: line 185: nvidia-smi: command not found
+./run_leopardd.sh: line 186: nvidia-smi: command not found
+============================================================
+ Job name    : bash
+ Job ID      : 1152812
+ Node        : epyc008
+ CPUs/task   : 
+ Start time  : Tue Apr 21 05:06:16 PM CEST 2026
+ Run dir     : logs/runs/1152812
+============================================================
+Metadata saved to logs/runs/1152812/meta.txt
+Resolved 171 packages in 1ms
+Audited 69 packages in 1ms
+
+=== NVIDIA-SMI debug setup ===
+./run_leopardd.sh: line 162: nvidia-smi: command not found
+./run_leopardd.sh: line 165: nvidia-smi: command not found
+./run_leopardd.sh: line 170: nvidia-smi: command not found
+nvidia-smi sampler PID : 2842678
+GPU timeseries log     : logs/runs/1152812/nvidia-smi.csv
+Process monitor log    : logs/runs/1152812/nvidia-smi.pmon.csv
+=============================
+
+--- Python / torch ---
+Python : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+./run_leopardd.sh: line 195: nvidia-smi: command not found
+Python 3.11.14
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+torch        : 2.5.1+cu121
+CUDA available: False
+GPU          : N/A
+
+--- Starting pipeline ---
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+================================================================================
+PINN TRAINING ENVIRONMENT VERIFICATION
+================================================================================
+
+================================================================================
+PYTHON VERSION
+================================================================================
+Python 3.11.14
+✓ OK
+
+================================================================================
+PYTORCH
+================================================================================
+PyTorch version: 2.5.1+cu121
+PyTorch CUDA build: 12.1
+CUDA available: False
+✗ WARNING: CUDA is NOT available
+
+Likely causes:
+  • Could not query NVIDIA driver
+  • No GPUs visible to PyTorch
+
+Suggested fixes:
+  • Use a node with a newer NVIDIA driver
+  • Install a PyTorch build matching the node CUDA version
+  • Check SLURM GPU allocation (are GPUs actually assigned?)
+  • Verify LD_LIBRARY_PATH is not broken
+
+================================================================================
+CUDA COMPATIBILITY
+================================================================================
+PyTorch version: 2.5.1+cu121
+PyTorch CUDA build: 12.1
+✗ ERROR: Could not query driver version: [Errno 2] No such file or directory: 'nvidia-smi'
+
+================================================================================
+DISTRIBUTED TRAINING
+================================================================================
+torch.distributed available: True
+Available backends: nccl, gloo
+✓ OK - NCCL backend available (recommended for multi-GPU)
+
+================================================================================
+OPTIONAL DEPENDENCIES
+================================================================================
+✓ numpy           - Required
+✓ matplotlib      - Required for plotting
+✓ tqdm            - Progress bars
+✓ tensorboard     - TensorBoard logging
+✓ wandb           - Weights & Biases logging
+
+================================================================================
+PROJECT FILES
+================================================================================
+
+Required files:
+✓ train.py                                 - Unified training script
+✗ train_ddp.py                             - DDP training script
+✓ src/solsys_emulator/train.py             - Training module
+✓ src/solsys_emulator/model.py             - Model module
+✓ data/dataset_demo.npz                    - Demo dataset
+
+Documentation:
+✓ DDP_IMPLEMENTATION.md                    - DDP guide
+✓ LOGGING_GUIDE.md                         - Logging guide
+✓ QUICK_REFERENCE.md                       - Quick reference
+⚠ minimal_ddp_example.py                   - Minimal DDP example
+
+================================================================================
+GPU MEMORY
+================================================================================
+⚠ WARNING: Could not query GPU memory: [Errno 2] No such file or directory: 'nvidia-smi'
+
+================================================================================
+SUMMARY
+================================================================================
+PYTHON               ✓ PASS
+PYTORCH              ✗ FAIL
+CUDA_COMPATIBILITY   ✗ FAIL
+DISTRIBUTED          ✓ PASS
+DEPENDENCIES         ✓ PASS
+FILES                ✗ FAIL
+GPU_MEMORY           ✓ PASS
+
+✗ Some checks failed. Please address the issues above.
+
+Common fixes:
+  • Install PyTorch: pip install torch
+  • Install dependencies: pip install numpy matplotlib tqdm
+  • Check CUDA installation: nvidia-smi
+  • Use a node with a newer NVIDIA driver if your torch build targets newer CUDA
+  • Use a torch build that supports your GPU architecture
+
+================================================================================
+Next steps:
+  1. Read README.md for overview
+  2. Try a test run: python train.py --device cuda --epochs 10
+  3. Read DDP_IMPLEMENTATION.md for multi-GPU setup
+================================================================================
+
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+Traceback (most recent call last):
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/solsys_setup.py", line 56, in <module>
+    from solsys_emulator.config import (
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/__init__.py", line 11, in <module>
+    from .inference import EphemerisEmulator
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/inference.py", line 26, in <module>
+    from .train import load_checkpoint
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/train.py", line 42, in <module>
+    from .logging.logging_utils import log_config_to_tensorboard 
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'solsys_emulator.logging.logging_utils'
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+============================================================
+ Job name    : bash
+ Job ID      : 1152812
+ Node        : epyc008
+ CPUs/task   : 
+ Start time  : Tue Apr 21 05:06:51 PM CEST 2026
+ Run dir     : logs/runs/1152812
+============================================================
+Metadata saved to logs/runs/1152812/meta.txt
+Resolved 171 packages in 1ms
+Audited 69 packages in 1ms
+
+=== NVIDIA-SMI debug setup ===
+./run_leopardd.sh: line 162: nvidia-smi: command not found
+./run_leopardd.sh: line 165: nvidia-smi: command not found
+./run_leopardd.sh: line 170: nvidia-smi: command not found
+nvidia-smi sampler PID : 2842807
+GPU timeseries log     : logs/runs/1152812/nvidia-smi.csv
+Process monitor log    : logs/runs/1152812/nvidia-smi.pmon.csv
+=============================
+
+--- Python / torch ---
+Python : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+./run_leopardd.sh: line 195: nvidia-smi: command not found
+Python 3.11.14
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+torch        : 2.5.1+cu121
+CUDA available: False
+GPU          : N/A
+
+--- Starting pipeline ---
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+================================================================================
+PINN TRAINING ENVIRONMENT VERIFICATION
+================================================================================
+
+================================================================================
+PYTHON VERSION
+================================================================================
+Python 3.11.14
+✓ OK
+
+================================================================================
+PYTORCH
+================================================================================
+PyTorch version: 2.5.1+cu121
+PyTorch CUDA build: 12.1
+CUDA available: False
+✗ WARNING: CUDA is NOT available
+
+Likely causes:
+  • Could not query NVIDIA driver
+  • No GPUs visible to PyTorch
+
+Suggested fixes:
+  • Use a node with a newer NVIDIA driver
+  • Install a PyTorch build matching the node CUDA version
+  • Check SLURM GPU allocation (are GPUs actually assigned?)
+  • Verify LD_LIBRARY_PATH is not broken
+
+================================================================================
+CUDA COMPATIBILITY
+================================================================================
+PyTorch version: 2.5.1+cu121
+PyTorch CUDA build: 12.1
+✗ ERROR: Could not query driver version: [Errno 2] No such file or directory: 'nvidia-smi'
+
+================================================================================
+DISTRIBUTED TRAINING
+================================================================================
+torch.distributed available: True
+Available backends: nccl, gloo
+✓ OK - NCCL backend available (recommended for multi-GPU)
+
+================================================================================
+OPTIONAL DEPENDENCIES
+================================================================================
+✓ numpy           - Required
+✓ matplotlib      - Required for plotting
+✓ tqdm            - Progress bars
+✓ tensorboard     - TensorBoard logging
+✓ wandb           - Weights & Biases logging
+
+================================================================================
+PROJECT FILES
+================================================================================
+
+Required files:
+✓ train.py                                 - Unified training script
+✗ train_ddp.py                             - DDP training script
+✓ src/solsys_emulator/train.py             - Training module
+✓ src/solsys_emulator/model.py             - Model module
+✓ data/dataset_demo.npz                    - Demo dataset
+
+Documentation:
+✓ DDP_IMPLEMENTATION.md                    - DDP guide
+✓ LOGGING_GUIDE.md                         - Logging guide
+✓ QUICK_REFERENCE.md                       - Quick reference
+⚠ minimal_ddp_example.py                   - Minimal DDP example
+
+================================================================================
+GPU MEMORY
+================================================================================
+⚠ WARNING: Could not query GPU memory: [Errno 2] No such file or directory: 'nvidia-smi'
+
+================================================================================
+SUMMARY
+================================================================================
+PYTHON               ✓ PASS
+PYTORCH              ✗ FAIL
+CUDA_COMPATIBILITY   ✗ FAIL
+DISTRIBUTED          ✓ PASS
+DEPENDENCIES         ✓ PASS
+FILES                ✗ FAIL
+GPU_MEMORY           ✓ PASS
+
+✗ Some checks failed. Please address the issues above.
+
+Common fixes:
+  • Install PyTorch: pip install torch
+  • Install dependencies: pip install numpy matplotlib tqdm
+  • Check CUDA installation: nvidia-smi
+  • Use a node with a newer NVIDIA driver if your torch build targets newer CUDA
+  • Use a torch build that supports your GPU architecture
+
+================================================================================
+Next steps:
+  1. Read README.md for overview
+  2. Try a test run: python train.py --device cuda --epochs 10
+  3. Read DDP_IMPLEMENTATION.md for multi-GPU setup
+================================================================================
+
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+usage: solsys_setup.py [-h] [--start START] [--end END]
+                       [--step-hours STEP_HOURS] [--kernel KERNEL]
+                       [--dataset-path DATASET_PATH] [--skip-dataset]
+solsys_setup.py: error: unrecognized arguments: --dataset-type tle
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+
+libgomp: Invalid value for environment variable OMP_NUM_THREADS
+================================================================================
+SOLAR SYSTEM PINN TRAINING
+================================================================================
+Project root: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN
+Python: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+
+================================================================================
+MULTI-STAGE TRAINING MODE (coarse → refine → physics)
+================================================================================
+
+Dataset: /u/astreo/gbillo/solar_system/PINN/data/leopardd_dataset.npz
+States shape: (11239, 1, 6)
+Num samples: 11239
+Device: cpu
+Model: 768x8 residual
+DataLoader workers: 0
+
+================================================================================
+STAGE 1: COARSE TRAINING (position-only data fitting)
+================================================================================
+Training coarse stage...
+[Rank 0/1] Training on cpu
+Traceback (most recent call last):
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/train.py", line 974, in <module>
+    main()
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/train.py", line 968, in main
+    run_multi_stage_training(args, dataset, device)
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/train.py", line 787, in run_multi_stage_training
+    coarse_result = train_emulator(
+                    ^^^^^^^^^^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/train.py", line 700, in train_emulator
+    mu_t = torch.as_tensor(mu_array(bodies), dtype=torch.float32, device=device)
+                           ^^^^^^^^^^^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/constants.py", line 39, in mu_array
+    return np.asarray([get_mu(body) for body in bodies], dtype=float)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/constants.py", line 39, in <listcomp>
+    return np.asarray([get_mu(body) for body in bodies], dtype=float)
+                       ^^^^^^^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/constants.py", line 33, in get_mu
+    raise KeyError(f"Unknown body {body!r}")
+KeyError: "Unknown body '29734'"
+E0421 17:07:05.404000 2842821 torch/distributed/elastic/multiprocessing/api.py:869] failed (exitcode: 1) local_rank: 0 (pid: 2842823) of binary: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
+Traceback (most recent call last):
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/torchrun", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 355, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/run.py", line 919, in main
+    run(args)
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/run.py", line 910, in run
+    elastic_launch(
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 138, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 269, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+train.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-04-21_17:07:05
+  host      : epyc008.hpc.rd.areasciencepark.it
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 2842823)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
+
+============================================================
+ End time    : Tue Apr 21 05:07:05 PM CEST 2026
+ Exit code   : 1
+ Run dir     : logs/runs/1152812
+============================================================
+
+=== Cleanup ===
+./run_leopardd.sh: line 185: nvidia-smi: command not found
+./run_leopardd.sh: line 186: nvidia-smi: command not found

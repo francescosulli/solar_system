@@ -16,16 +16,16 @@ TIME_SCALE = "tdb"
 MODEL_EPOCH_ISO = "2000-01-01T12:00:00"
 
 DEFAULT_BODIES = (
-    "sun",
-    "mercury",
-    "venus",
+    # "sun",
+    # "mercury",
+    # "venus",
     "earth",
-    "moon",
-    "mars",
-    "jupiter",
-    "saturn",
-    "uranus",
-    "neptune",
+    # "moon",
+    # "mars",
+    # "jupiter",
+    # "saturn",
+    # "uranus",
+    # "neptune",
 )
 
 DEFAULT_DE440_URL = "https://ssd.jpl.nasa.gov/ftp/eph/planets/bsp/de440.bsp"

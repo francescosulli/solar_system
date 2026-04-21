@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.class
+.venv/
+.ipynb_checkpoints/
+
+# Project Data (Large Files)
+data/*.txt
+data/*.npz
+data/TLEs/
+outputs/
+checkpoints/
+
+# OS specific
+.DS_Store
+
+lib/

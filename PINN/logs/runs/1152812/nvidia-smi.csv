@@ -1,0 +1,1 @@
+timestamp,index,memory.used(MiB),util.gpu(%),util.mem(%),temp(C),power(W)
