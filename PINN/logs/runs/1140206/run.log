@@ -1,1016 +1,0 @@
-============================================================
- Job name    : solsys_pinn
- Job ID      : 1140206
- Node        : gpu001
- CPUs/task   : 8
- Start time  : Sun Apr 19 04:51:06 PM CEST 2026
- Run dir     : logs/runs/1140206
-============================================================
-Metadata saved to logs/runs/1140206/meta.txt
-Resolved 171 packages in 0.95ms
-Audited 69 packages in 1ms
-
-=== NVIDIA-SMI debug setup ===
-Sun Apr 19 16:51:06 2026       
-+-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 580.105.08             Driver Version: 580.105.08     CUDA Version: 13.0     |
-+-----------------------------------------+------------------------+----------------------+
-| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
-| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
-|                                         |                        |               MIG M. |
-|=========================================+========================+======================|
-|   0  Tesla V100-PCIE-32GB           Off |   00000000:3B:00.0 Off |                    0 |
-| N/A   31C    P0             25W /  250W |       0MiB /  32768MiB |      0%      Default |
-|                                         |                        |                  N/A |
-+-----------------------------------------+------------------------+----------------------+
-
-+-----------------------------------------------------------------------------------------+
-| Processes:                                                                              |
-|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
-|        ID   ID                                                               Usage      |
-|=========================================================================================|
-|  No running processes found                                                             |
-+-----------------------------------------------------------------------------------------+
-2026/04/19 16:51:06.291, 0, Tesla V100-PCIE-32GB, GPU-370b03e4-0b9e-6819-963b-7d4e77fcbd8c, 580.105.08, 32768, 0, 32495, 0, 0, 31, 25.73, 250.00
-nvidia-smi sampler PID : 2163610
-GPU timeseries log     : logs/runs/1140206/nvidia-smi.csv
-Process monitor log    : logs/runs/1140206/nvidia-smi.pmon.csv
-=============================
-
---- Python / torch ---
-Python : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
-Python 3.11.14
-torch        : 2.5.1+cu121
-CUDA available: True
-GPU          : Tesla V100-PCIE-32GB
-
---- Starting pipeline ---
-================================================================================
-PINN TRAINING ENVIRONMENT VERIFICATION
-================================================================================
-
-================================================================================
-PYTHON VERSION
-================================================================================
-Python 3.11.14
-✓ OK
-
-================================================================================
-PYTORCH
-================================================================================
-PyTorch version: 2.5.1+cu121
-PyTorch CUDA build: 12.1
-CUDA available: True
-GPU count: 1
-  GPU 0: Tesla V100-PCIE-32GB (31.7 GB) | CC 7.0
-✓ OK - CUDA ready
-
-================================================================================
-CUDA COMPATIBILITY
-================================================================================
-PyTorch version: 2.5.1+cu121
-PyTorch CUDA build: 12.1
-NVIDIA driver version: 580.105.08
-torch.cuda.is_available(): True
-Wheel architecture list: ['sm_50', 'sm_60', 'sm_70', 'sm_75', 'sm_80', 'sm_86', 'sm_90']
-Visible GPU count: 1
-  GPU 0: Tesla V100-PCIE-32GB | CC 7.0 -> sm_70 | ✓ OK
-✓ OK - CUDA compatibility check passed
-
-================================================================================
-DISTRIBUTED TRAINING
-================================================================================
-torch.distributed available: True
-Available backends: nccl, gloo
-✓ OK - NCCL backend available (recommended for multi-GPU)
-
-================================================================================
-OPTIONAL DEPENDENCIES
-================================================================================
-✓ numpy           - Required
-✓ matplotlib      - Required for plotting
-✓ tqdm            - Progress bars
-✓ tensorboard     - TensorBoard logging
-✓ wandb           - Weights & Biases logging
-
-================================================================================
-PROJECT FILES
-================================================================================
-
-Required files:
-✓ train.py                                 - Unified training script
-✗ train_ddp.py                             - DDP training script
-✓ src/solsys_emulator/train.py             - Training module
-✓ src/solsys_emulator/model.py             - Model module
-✓ data/dataset_demo.npz                    - Demo dataset
-
-Documentation:
-✓ DDP_IMPLEMENTATION.md                    - DDP guide
-✓ LOGGING_GUIDE.md                         - Logging guide
-✓ QUICK_REFERENCE.md                       - Quick reference
-✓ minimal_ddp_example.py                   - Minimal DDP example
-
-================================================================================
-GPU MEMORY
-================================================================================
-GPU 0: Tesla V100-PCIE-32GB
-  Total: 32.0 GB
-  Free:  31.7 GB
-✓ OK
-
-================================================================================
-SUMMARY
-================================================================================
-PYTHON               ✓ PASS
-PYTORCH              ✓ PASS
-CUDA_COMPATIBILITY   ✓ PASS
-DISTRIBUTED          ✓ PASS
-DEPENDENCIES         ✓ PASS
-FILES                ✗ FAIL
-GPU_MEMORY           ✓ PASS
-
-✗ Some checks failed. Please address the issues above.
-
-Common fixes:
-  • Install PyTorch: pip install torch
-  • Install dependencies: pip install numpy matplotlib tqdm
-  • Check CUDA installation: nvidia-smi
-  • Use a node with a newer NVIDIA driver if your torch build targets newer CUDA
-  • Use a torch build that supports your GPU architecture
-
-================================================================================
-Next steps:
-  1. Read README.md for overview
-  2. Try a test run: python train.py --device cuda --epochs 10
-  3. Read DDP_IMPLEMENTATION.md for multi-GPU setup
-================================================================================
-
-16:51:13 | INFO     | === Stage 0: Setup & dependency check ===
-16:51:13 | INFO     | Project root : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN
-16:51:13 | INFO     | Python       : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
-16:51:13 | INFO     | Frame        : icrs | Origin: barycentric
-16:51:13 | INFO     | Time scale   : tdb
-16:51:13 | INFO     | Unit system  : UnitSystem(length='km', time='s', velocity='km/s', mu='km^3/s^2')
-16:51:13 | INFO     | Bodies       : ('earth', 'moon')
-16:51:13 | INFO     | All required packages found.
-16:51:13 | INFO     | DE440 kernel : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/data/de440.bsp
-16:51:13 | INFO     | === Stage 1: Building dataset ===
-16:51:13 | INFO     | Kernel path   : /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/data/de440.bsp
-16:51:13 | INFO     | Date range    : 2010-01-01T00:00:00 → 2030-01-01T00:00:00
-16:51:13 | INFO     | Step          : 3.0 h
-16:51:13 | INFO     | States shape  : (58441, 2, 6)
-16:51:13 | INFO     | Num samples   : 58441
-16:51:13 | INFO     | Frame         : icrs | Timescale: tdb
-16:51:14 | INFO     | Dataset saved : /u/astreo/gbillo/solar_system/PINN/data/dataset_demo.npz
-================================================================================
-SOLAR SYSTEM PINN TRAINING
-================================================================================
-Project root: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN
-Python: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/.venv/bin/python
-Setting cuda to: 0
-
-================================================================================
-MULTI-STAGE TRAINING MODE (coarse → refine → physics)
-================================================================================
-
-Dataset: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/data/dataset_demo.npz
-States shape: (58441, 2, 6)
-Num samples: 58441
-Device: cuda:0
-Model: 768x8 residual
-DataLoader workers: 0
-GPU Memory: 0.00 GB allocated, 0.00 GB reserved
-
-================================================================================
-STAGE 1: COARSE TRAINING (position-only data fitting)
-================================================================================
-✓ Loaded training history: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/history_coarse.json
-Training coarse stage...
-[Rank 0/1] Training on cuda:0
-Training:   0%|          | 0/140 [00:00<?, ?it/s][16:51:19][INFO] Starting training...
-[16:51:19][INFO] World size: 1
-[16:51:19][INFO] Batch size per GPU: 1536
-[16:51:19][INFO] Effective batch size: 1536
-[16:51:19][INFO] Epoch 1/140
-[16:51:20][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.016105, std=1.012735, min=-1.731191, max=1.731725
-[16:51:20][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:20][INFO] Step 0 | GPU Memory: allocated=0.18GB, reserved=0.52GB, peak=0.47GB
-[16:51:21][INFO] Epoch 1 complete | train_loss=0.008443, val_loss=0.006039
-Training:   0%|          | 0/140 [00:02<?, ?it/s, angmom=0.000e+00, data=8.443e-03, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.443e-03, pos_rmse_km=1.185e+07, val=6.039e-03]  → New best val_pos_rmse_km: 11852612.000000
-Training:   1%|          | 1/140 [00:02<05:34,  2.41s/it, angmom=0.000e+00, data=8.443e-03, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.443e-03, pos_rmse_km=1.185e+07, val=6.039e-03][16:51:22][INFO] Epoch 2/140
-[16:51:22][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.000642, std=0.992738, min=-1.729235, max=1.731843
-[16:51:22][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:22][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=0.99GB, peak=0.93GB
-[16:51:24][INFO] Epoch 2 complete | train_loss=0.000444, val_loss=0.000435
-Training:   1%|          | 1/140 [00:04<05:34,  2.41s/it, angmom=0.000e+00, data=4.439e-04, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.439e-04, pos_rmse_km=3.225e+06, val=4.347e-04]  → New best val_pos_rmse_km: 3225150.562500
-Training:   1%|▏         | 2/140 [00:04<04:34,  1.99s/it, angmom=0.000e+00, data=4.439e-04, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.439e-04, pos_rmse_km=3.225e+06, val=4.347e-04][16:51:24][INFO] Epoch 3/140
-[16:51:24][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.009101, std=0.994348, min=-1.731073, max=1.729354
-[16:51:24][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:24][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.01GB, peak=0.93GB
-[16:51:25][INFO] Epoch 3 complete | train_loss=0.000108, val_loss=0.000108
-Training:   1%|▏         | 2/140 [00:05<04:34,  1.99s/it, angmom=0.000e+00, data=1.081e-04, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.081e-04, pos_rmse_km=1.599e+06, val=1.076e-04]  → New best val_pos_rmse_km: 1599418.437500
-Training:   2%|▏         | 3/140 [00:05<04:12,  1.84s/it, angmom=0.000e+00, data=1.081e-04, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.081e-04, pos_rmse_km=1.599e+06, val=1.076e-04][16:51:25][INFO] Epoch 4/140
-[16:51:25][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.026960, std=0.980350, min=-1.730895, max=1.728998
-[16:51:25][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:25][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.01GB, peak=0.93GB
-[16:51:27][INFO] Epoch 4 complete | train_loss=0.000063, val_loss=0.000061
-Training:   2%|▏         | 3/140 [00:07<04:12,  1.84s/it, angmom=0.000e+00, data=6.272e-05, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=6.272e-05, pos_rmse_km=1.191e+06, val=6.090e-05]  → New best val_pos_rmse_km: 1191435.750000
-Training:   3%|▎         | 4/140 [00:07<04:01,  1.78s/it, angmom=0.000e+00, data=6.272e-05, energy=0.000e+00, lr=3.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=6.272e-05, pos_rmse_km=1.191e+06, val=6.090e-05][16:51:27][INFO] Epoch 5/140
-[16:51:27][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.027563, std=1.007463, min=-1.730717, max=1.731073
-[16:51:27][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:27][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.01GB, peak=0.93GB
-[16:51:29][INFO] Epoch 5 complete | train_loss=0.000044, val_loss=0.000046
-Training:   3%|▎         | 4/140 [00:09<04:01,  1.78s/it, angmom=0.000e+00, data=4.449e-05, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.449e-05, pos_rmse_km=1.031e+06, val=4.591e-05]  → New best val_pos_rmse_km: 1030739.046875
-Training:   4%|▎         | 5/140 [00:09<03:54,  1.74s/it, angmom=0.000e+00, data=4.449e-05, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.449e-05, pos_rmse_km=1.031e+06, val=4.591e-05][16:51:29][INFO] Epoch 6/140
-[16:51:29][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.002114, std=0.996682, min=-1.725204, max=1.729650
-[16:51:29][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:29][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.03GB, peak=0.93GB
-[16:51:30][INFO] Epoch 6 complete | train_loss=0.000034, val_loss=0.000035
-Training:   4%|▎         | 5/140 [00:10<03:54,  1.74s/it, angmom=0.000e+00, data=3.405e-05, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.405e-05, pos_rmse_km=8.899e+05, val=3.457e-05]  → New best val_pos_rmse_km: 889906.156250
-Training:   4%|▍         | 6/140 [00:10<03:50,  1.72s/it, angmom=0.000e+00, data=3.405e-05, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.405e-05, pos_rmse_km=8.899e+05, val=3.457e-05][16:51:30][INFO] Epoch 7/140
-[16:51:30][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.020183, std=0.997819, min=-1.731310, max=1.731903
-[16:51:30][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:30][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.03GB, peak=0.93GB
-[16:51:32][INFO] Epoch 7 complete | train_loss=0.000030, val_loss=0.000031
-Training:   4%|▍         | 6/140 [00:12<03:50,  1.72s/it, angmom=0.000e+00, data=2.952e-05, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.952e-05, pos_rmse_km=8.694e+05, val=3.105e-05]  → New best val_pos_rmse_km: 869385.812500
-Training:   5%|▌         | 7/140 [00:12<03:46,  1.70s/it, angmom=0.000e+00, data=2.952e-05, energy=0.000e+00, lr=2.99e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.952e-05, pos_rmse_km=8.694e+05, val=3.105e-05][16:51:32][INFO] Epoch 8/140
-[16:51:32][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.003947, std=0.992639, min=-1.729946, max=1.730302
-[16:51:32][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:32][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.03GB, peak=0.93GB
-[16:51:33][INFO] Epoch 8 complete | train_loss=0.000064, val_loss=0.000044
-Training:   5%|▌         | 7/140 [00:13<03:46,  1.70s/it, angmom=0.000e+00, data=6.392e-05, energy=0.000e+00, lr=2.98e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=6.392e-05, pos_rmse_km=9.970e+05, val=4.443e-05]Training:   6%|▌         | 8/140 [00:13<03:36,  1.64s/it, angmom=0.000e+00, data=6.392e-05, energy=0.000e+00, lr=2.98e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=6.392e-05, pos_rmse_km=9.970e+05, val=4.443e-05][16:51:33][INFO] Epoch 9/140
-[16:51:33][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.013297, std=1.008191, min=-1.729057, max=1.731191
-[16:51:34][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:34][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.03GB, peak=0.93GB
-[16:51:35][INFO] Epoch 9 complete | train_loss=0.000192, val_loss=0.000125
-Training:   6%|▌         | 8/140 [00:15<03:36,  1.64s/it, angmom=0.000e+00, data=1.916e-04, energy=0.000e+00, lr=2.98e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.916e-04, pos_rmse_km=1.720e+06, val=1.252e-04]Training:   6%|▋         | 9/140 [00:15<03:34,  1.64s/it, angmom=0.000e+00, data=1.916e-04, energy=0.000e+00, lr=2.98e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.916e-04, pos_rmse_km=1.720e+06, val=1.252e-04][16:51:35][INFO] Epoch 10/140
-[16:51:35][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.009172, std=0.979599, min=-1.731369, max=1.732021
-[16:51:35][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:35][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:51:37][INFO] Epoch 10 complete | train_loss=0.000043, val_loss=0.000049
-Training:   6%|▋         | 9/140 [00:17<03:34,  1.64s/it, angmom=0.000e+00, data=4.265e-05, energy=0.000e+00, lr=2.97e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.265e-05, pos_rmse_km=1.042e+06, val=4.854e-05]Training:   7%|▋         | 10/140 [00:17<03:32,  1.64s/it, angmom=0.000e+00, data=4.265e-05, energy=0.000e+00, lr=2.97e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.265e-05, pos_rmse_km=1.042e+06, val=4.854e-05][16:51:37][INFO] Epoch 11/140
-[16:51:37][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.011751, std=0.996696, min=-1.731547, max=1.729887
-[16:51:37][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:37][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:51:38][INFO] Epoch 11 complete | train_loss=0.000356, val_loss=0.000422
-Training:   7%|▋         | 10/140 [00:19<03:32,  1.64s/it, angmom=0.000e+00, data=3.560e-04, energy=0.000e+00, lr=2.96e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.560e-04, pos_rmse_km=3.298e+06, val=4.216e-04]Training:   8%|▊         | 11/140 [00:19<03:49,  1.78s/it, angmom=0.000e+00, data=3.560e-04, energy=0.000e+00, lr=2.96e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.560e-04, pos_rmse_km=3.298e+06, val=4.216e-04][16:51:39][INFO] Epoch 12/140
-[16:51:39][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.034931, std=0.997269, min=-1.731014, max=1.729828
-[16:51:39][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:39][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:51:41][INFO] Epoch 12 complete | train_loss=0.000060, val_loss=0.000085
-Training:   8%|▊         | 11/140 [00:21<03:49,  1.78s/it, angmom=0.000e+00, data=6.023e-05, energy=0.000e+00, lr=2.95e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=6.023e-05, pos_rmse_km=1.386e+06, val=8.535e-05]Training:   9%|▊         | 12/140 [00:21<03:44,  1.75s/it, angmom=0.000e+00, data=6.023e-05, energy=0.000e+00, lr=2.95e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=6.023e-05, pos_rmse_km=1.386e+06, val=8.535e-05][16:51:41][INFO] Epoch 13/140
-[16:51:41][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.043061, std=1.009284, min=-1.728524, max=1.732021
-[16:51:41][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:41][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:51:42][INFO] Epoch 13 complete | train_loss=0.000020, val_loss=0.000019
-Training:   9%|▊         | 12/140 [00:22<03:44,  1.75s/it, angmom=0.000e+00, data=1.971e-05, energy=0.000e+00, lr=2.95e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.971e-05, pos_rmse_km=6.506e+05, val=1.865e-05]  → New best val_pos_rmse_km: 650578.843750
-Training:   9%|▉         | 13/140 [00:22<03:34,  1.69s/it, angmom=0.000e+00, data=1.971e-05, energy=0.000e+00, lr=2.95e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.971e-05, pos_rmse_km=6.506e+05, val=1.865e-05][16:51:42][INFO] Epoch 14/140
-[16:51:42][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.001724, std=0.988872, min=-1.730421, max=1.728820
-[16:51:42][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:42][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:51:44][INFO] Epoch 14 complete | train_loss=0.000026, val_loss=0.000025
-Training:   9%|▉         | 13/140 [00:24<03:34,  1.69s/it, angmom=0.000e+00, data=2.601e-05, energy=0.000e+00, lr=2.94e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.601e-05, pos_rmse_km=7.661e+05, val=2.512e-05]Training:  10%|█         | 14/140 [00:24<03:31,  1.68s/it, angmom=0.000e+00, data=2.601e-05, energy=0.000e+00, lr=2.94e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.601e-05, pos_rmse_km=7.661e+05, val=2.512e-05][16:51:44][INFO] Epoch 15/140
-[16:51:44][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.038560, std=0.994239, min=-1.731843, max=1.729946
-[16:51:44][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:44][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:51:45][INFO] Epoch 15 complete | train_loss=0.000225, val_loss=0.000136
-Training:  10%|█         | 14/140 [00:25<03:31,  1.68s/it, angmom=0.000e+00, data=2.247e-04, energy=0.000e+00, lr=2.93e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.247e-04, pos_rmse_km=1.665e+06, val=1.357e-04]Training:  11%|█         | 15/140 [00:25<03:28,  1.67s/it, angmom=0.000e+00, data=2.247e-04, energy=0.000e+00, lr=2.93e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.247e-04, pos_rmse_km=1.665e+06, val=1.357e-04][16:51:45][INFO] Epoch 16/140
-[16:51:45][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.033648, std=1.008961, min=-1.730124, max=1.727279
-[16:51:45][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:45][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:51:47][INFO] Epoch 16 complete | train_loss=0.000306, val_loss=0.000288
-Training:  11%|█         | 15/140 [00:27<03:28,  1.67s/it, angmom=0.000e+00, data=3.055e-04, energy=0.000e+00, lr=2.92e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.055e-04, pos_rmse_km=2.885e+06, val=2.880e-04]Training:  11%|█▏        | 16/140 [00:27<03:25,  1.66s/it, angmom=0.000e+00, data=3.055e-04, energy=0.000e+00, lr=2.92e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.055e-04, pos_rmse_km=2.885e+06, val=2.880e-04][16:51:47][INFO] Epoch 17/140
-[16:51:47][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.018557, std=1.009995, min=-1.729176, max=1.727931
-[16:51:47][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:47][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:51:49][INFO] Epoch 17 complete | train_loss=0.000107, val_loss=0.000105
-Training:  11%|█▏        | 16/140 [00:29<03:25,  1.66s/it, angmom=0.000e+00, data=1.065e-04, energy=0.000e+00, lr=2.90e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.065e-04, pos_rmse_km=1.539e+06, val=1.054e-04]Training:  12%|█▏        | 17/140 [00:29<03:23,  1.65s/it, angmom=0.000e+00, data=1.065e-04, energy=0.000e+00, lr=2.90e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.065e-04, pos_rmse_km=1.539e+06, val=1.054e-04][16:51:49][INFO] Epoch 18/140
-[16:51:49][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.013422, std=1.003814, min=-1.731843, max=1.729413
-[16:51:49][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:49][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:51:50][INFO] Epoch 18 complete | train_loss=0.000178, val_loss=0.000185
-Training:  12%|█▏        | 17/140 [00:30<03:23,  1.65s/it, angmom=0.000e+00, data=1.781e-04, energy=0.000e+00, lr=2.89e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.781e-04, pos_rmse_km=2.078e+06, val=1.854e-04]Training:  13%|█▎        | 18/140 [00:30<03:21,  1.65s/it, angmom=0.000e+00, data=1.781e-04, energy=0.000e+00, lr=2.89e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.781e-04, pos_rmse_km=2.078e+06, val=1.854e-04][16:51:50][INFO] Epoch 19/140
-[16:51:50][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.009939, std=0.990167, min=-1.731784, max=1.730776
-[16:51:50][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:50][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:51:52][INFO] Epoch 19 complete | train_loss=0.000233, val_loss=0.000267
-Training:  13%|█▎        | 18/140 [00:32<03:21,  1.65s/it, angmom=0.000e+00, data=2.334e-04, energy=0.000e+00, lr=2.88e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.334e-04, pos_rmse_km=2.466e+06, val=2.673e-04]Training:  14%|█▎        | 19/140 [00:32<03:19,  1.65s/it, angmom=0.000e+00, data=2.334e-04, energy=0.000e+00, lr=2.88e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.334e-04, pos_rmse_km=2.466e+06, val=2.673e-04][16:51:52][INFO] Epoch 20/140
-[16:51:52][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.024788, std=1.014544, min=-1.727101, max=1.731665
-[16:51:52][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:52][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:51:54][INFO] Epoch 20 complete | train_loss=0.000174, val_loss=0.000121
-Training:  14%|█▎        | 19/140 [00:34<03:19,  1.65s/it, angmom=0.000e+00, data=1.736e-04, energy=0.000e+00, lr=2.87e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.736e-04, pos_rmse_km=1.761e+06, val=1.215e-04]Training:  14%|█▍        | 20/140 [00:34<03:17,  1.65s/it, angmom=0.000e+00, data=1.736e-04, energy=0.000e+00, lr=2.87e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.736e-04, pos_rmse_km=1.761e+06, val=1.215e-04][16:51:54][INFO] Epoch 21/140
-[16:51:54][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.004060, std=1.006261, min=-1.728346, max=1.731488
-[16:51:54][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:54][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:51:55][INFO] Epoch 21 complete | train_loss=0.000101, val_loss=0.000084
-Training:  14%|█▍        | 20/140 [00:36<03:17,  1.65s/it, angmom=0.000e+00, data=1.014e-04, energy=0.000e+00, lr=2.85e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.014e-04, pos_rmse_km=1.547e+06, val=8.377e-05]Training:  15%|█▌        | 21/140 [00:36<03:27,  1.74s/it, angmom=0.000e+00, data=1.014e-04, energy=0.000e+00, lr=2.85e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.014e-04, pos_rmse_km=1.547e+06, val=8.377e-05][16:51:56][INFO] Epoch 22/140
-[16:51:56][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.033589, std=1.012210, min=-1.731014, max=1.728465
-[16:51:56][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:56][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:51:57][INFO] Epoch 22 complete | train_loss=0.000225, val_loss=0.000327
-Training:  15%|█▌        | 21/140 [00:37<03:27,  1.74s/it, angmom=0.000e+00, data=2.248e-04, energy=0.000e+00, lr=2.84e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.248e-04, pos_rmse_km=2.806e+06, val=3.273e-04]Training:  16%|█▌        | 22/140 [00:37<03:22,  1.72s/it, angmom=0.000e+00, data=2.248e-04, energy=0.000e+00, lr=2.84e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.248e-04, pos_rmse_km=2.806e+06, val=3.273e-04][16:51:57][INFO] Epoch 23/140
-[16:51:57][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.025831, std=1.002656, min=-1.730421, max=1.728998
-[16:51:57][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:57][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:51:59][INFO] Epoch 23 complete | train_loss=0.000691, val_loss=0.000678
-Training:  16%|█▌        | 22/140 [00:39<03:22,  1.72s/it, angmom=0.000e+00, data=6.906e-04, energy=0.000e+00, lr=2.82e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=6.906e-04, pos_rmse_km=3.788e+06, val=6.784e-04]Training:  16%|█▋        | 23/140 [00:39<03:18,  1.69s/it, angmom=0.000e+00, data=6.906e-04, energy=0.000e+00, lr=2.82e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=6.906e-04, pos_rmse_km=3.788e+06, val=6.784e-04][16:51:59][INFO] Epoch 24/140
-[16:51:59][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.012523, std=1.010151, min=-1.730124, max=1.710326
-[16:51:59][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:51:59][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:00][INFO] Epoch 24 complete | train_loss=0.000146, val_loss=0.000138
-Training:  16%|█▋        | 23/140 [00:40<03:18,  1.69s/it, angmom=0.000e+00, data=1.456e-04, energy=0.000e+00, lr=2.80e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.456e-04, pos_rmse_km=1.858e+06, val=1.376e-04]Training:  17%|█▋        | 24/140 [00:40<03:14,  1.68s/it, angmom=0.000e+00, data=1.456e-04, energy=0.000e+00, lr=2.80e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.456e-04, pos_rmse_km=1.858e+06, val=1.376e-04][16:52:00][INFO] Epoch 25/140
-[16:52:00][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.018628, std=0.996943, min=-1.726331, max=1.730421
-[16:52:01][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:01][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:02][INFO] Epoch 25 complete | train_loss=0.000031, val_loss=0.000029
-Training:  17%|█▋        | 24/140 [00:42<03:14,  1.68s/it, angmom=0.000e+00, data=3.130e-05, energy=0.000e+00, lr=2.79e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.130e-05, pos_rmse_km=8.218e+05, val=2.925e-05]Training:  18%|█▊        | 25/140 [00:42<03:11,  1.66s/it, angmom=0.000e+00, data=3.130e-05, energy=0.000e+00, lr=2.79e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.130e-05, pos_rmse_km=8.218e+05, val=2.925e-05][16:52:02][INFO] Epoch 26/140
-[16:52:02][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.034676, std=1.001775, min=-1.731369, max=1.722359
-[16:52:02][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:02][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:04][INFO] Epoch 26 complete | train_loss=0.000017, val_loss=0.000015
-Training:  18%|█▊        | 25/140 [00:44<03:11,  1.66s/it, angmom=0.000e+00, data=1.710e-05, energy=0.000e+00, lr=2.77e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.710e-05, pos_rmse_km=5.958e+05, val=1.451e-05]  → New best val_pos_rmse_km: 595762.015625
-Training:  19%|█▊        | 26/140 [00:44<03:05,  1.63s/it, angmom=0.000e+00, data=1.710e-05, energy=0.000e+00, lr=2.77e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.710e-05, pos_rmse_km=5.958e+05, val=1.451e-05][16:52:04][INFO] Epoch 27/140
-[16:52:04][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.005531, std=0.996394, min=-1.724612, max=1.731725
-[16:52:04][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:04][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:05][INFO] Epoch 27 complete | train_loss=0.000011, val_loss=0.000009
-Training:  19%|█▊        | 26/140 [00:45<03:05,  1.63s/it, angmom=0.000e+00, data=1.131e-05, energy=0.000e+00, lr=2.75e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.131e-05, pos_rmse_km=4.450e+05, val=8.508e-06]  → New best val_pos_rmse_km: 444986.039062
-Training:  19%|█▉        | 27/140 [00:45<03:09,  1.68s/it, angmom=0.000e+00, data=1.131e-05, energy=0.000e+00, lr=2.75e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.131e-05, pos_rmse_km=4.450e+05, val=8.508e-06][16:52:05][INFO] Epoch 28/140
-[16:52:05][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.006127, std=1.012277, min=-1.731251, max=1.730302
-[16:52:05][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:05][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:07][INFO] Epoch 28 complete | train_loss=0.000009, val_loss=0.000014
-Training:  19%|█▉        | 27/140 [00:47<03:09,  1.68s/it, angmom=0.000e+00, data=9.065e-06, energy=0.000e+00, lr=2.73e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=9.065e-06, pos_rmse_km=5.512e+05, val=1.428e-05]Training:  20%|██        | 28/140 [00:47<03:02,  1.63s/it, angmom=0.000e+00, data=9.065e-06, energy=0.000e+00, lr=2.73e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=9.065e-06, pos_rmse_km=5.512e+05, val=1.428e-05][16:52:07][INFO] Epoch 29/140
-[16:52:07][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.008371, std=0.995800, min=-1.730065, max=1.731665
-[16:52:07][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:07][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:09][INFO] Epoch 29 complete | train_loss=0.000014, val_loss=0.000013
-Training:  20%|██        | 28/140 [00:49<03:02,  1.63s/it, angmom=0.000e+00, data=1.415e-05, energy=0.000e+00, lr=2.71e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.415e-05, pos_rmse_km=5.475e+05, val=1.273e-05]Training:  21%|██        | 29/140 [00:49<03:01,  1.64s/it, angmom=0.000e+00, data=1.415e-05, energy=0.000e+00, lr=2.71e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.415e-05, pos_rmse_km=5.475e+05, val=1.273e-05][16:52:09][INFO] Epoch 30/140
-[16:52:09][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.001440, std=0.993121, min=-1.725027, max=1.731014
-[16:52:09][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:09][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:10][INFO] Epoch 30 complete | train_loss=0.000079, val_loss=0.000093
-Training:  21%|██        | 29/140 [00:50<03:01,  1.64s/it, angmom=0.000e+00, data=7.911e-05, energy=0.000e+00, lr=2.69e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.911e-05, pos_rmse_km=1.443e+06, val=9.276e-05]Training:  21%|██▏       | 30/140 [00:50<02:59,  1.64s/it, angmom=0.000e+00, data=7.911e-05, energy=0.000e+00, lr=2.69e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.911e-05, pos_rmse_km=1.443e+06, val=9.276e-05][16:52:10][INFO] Epoch 31/140
-[16:52:10][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.014105, std=0.956375, min=-1.730895, max=1.731073
-[16:52:10][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:10][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:12][INFO] Epoch 31 complete | train_loss=0.000945, val_loss=0.001050
-Training:  21%|██▏       | 30/140 [00:52<02:59,  1.64s/it, angmom=0.000e+00, data=9.452e-04, energy=0.000e+00, lr=2.67e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=9.452e-04, pos_rmse_km=5.245e+06, val=1.050e-03]Training:  22%|██▏       | 31/140 [00:52<03:13,  1.78s/it, angmom=0.000e+00, data=9.452e-04, energy=0.000e+00, lr=2.67e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=9.452e-04, pos_rmse_km=5.245e+06, val=1.050e-03][16:52:12][INFO] Epoch 32/140
-[16:52:12][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.034087, std=1.029317, min=-1.729532, max=1.728465
-[16:52:12][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:12][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:14][INFO] Epoch 32 complete | train_loss=0.000312, val_loss=0.000504
-Training:  22%|██▏       | 31/140 [00:54<03:13,  1.78s/it, angmom=0.000e+00, data=3.118e-04, energy=0.000e+00, lr=2.65e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.118e-04, pos_rmse_km=3.642e+06, val=5.038e-04]Training:  23%|██▎       | 32/140 [00:54<03:07,  1.74s/it, angmom=0.000e+00, data=3.118e-04, energy=0.000e+00, lr=2.65e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.118e-04, pos_rmse_km=3.642e+06, val=5.038e-04][16:52:14][INFO] Epoch 33/140
-[16:52:14][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.003180, std=1.006562, min=-1.730361, max=1.731547
-[16:52:14][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:14][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:16][INFO] Epoch 33 complete | train_loss=0.000083, val_loss=0.000085
-Training:  23%|██▎       | 32/140 [00:56<03:07,  1.74s/it, angmom=0.000e+00, data=8.320e-05, energy=0.000e+00, lr=2.63e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.320e-05, pos_rmse_km=1.371e+06, val=8.452e-05]Training:  24%|██▎       | 33/140 [00:56<03:03,  1.71s/it, angmom=0.000e+00, data=8.320e-05, energy=0.000e+00, lr=2.63e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.320e-05, pos_rmse_km=1.371e+06, val=8.452e-05][16:52:16][INFO] Epoch 34/140
-[16:52:16][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.010599, std=0.993817, min=-1.727398, max=1.731725
-[16:52:16][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:16][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:17][INFO] Epoch 34 complete | train_loss=0.000026, val_loss=0.000020
-Training:  24%|██▎       | 33/140 [00:57<03:03,  1.71s/it, angmom=0.000e+00, data=2.647e-05, energy=0.000e+00, lr=2.61e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.647e-05, pos_rmse_km=7.274e+05, val=2.004e-05]Training:  24%|██▍       | 34/140 [00:57<02:59,  1.69s/it, angmom=0.000e+00, data=2.647e-05, energy=0.000e+00, lr=2.61e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.647e-05, pos_rmse_km=7.274e+05, val=2.004e-05][16:52:17][INFO] Epoch 35/140
-[16:52:17][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.022731, std=1.009228, min=-1.728168, max=1.731962
-[16:52:17][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:17][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:19][INFO] Epoch 35 complete | train_loss=0.000008, val_loss=0.000008
-Training:  24%|██▍       | 34/140 [00:59<02:59,  1.69s/it, angmom=0.000e+00, data=8.250e-06, energy=0.000e+00, lr=2.58e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.250e-06, pos_rmse_km=4.398e+05, val=8.315e-06]  → New best val_pos_rmse_km: 439774.406250
-Training:  25%|██▌       | 35/140 [00:59<02:56,  1.68s/it, angmom=0.000e+00, data=8.250e-06, energy=0.000e+00, lr=2.58e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=8.250e-06, pos_rmse_km=4.398e+05, val=8.315e-06][16:52:19][INFO] Epoch 36/140
-[16:52:19][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.036241, std=0.963986, min=-1.728761, max=1.722774
-[16:52:19][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:19][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:20][INFO] Epoch 36 complete | train_loss=0.000003, val_loss=0.000003
-Training:  25%|██▌       | 35/140 [01:00<02:56,  1.68s/it, angmom=0.000e+00, data=3.436e-06, energy=0.000e+00, lr=2.56e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.436e-06, pos_rmse_km=2.678e+05, val=3.035e-06]  → New best val_pos_rmse_km: 267754.687500
-Training:  26%|██▌       | 36/140 [01:01<02:50,  1.64s/it, angmom=0.000e+00, data=3.436e-06, energy=0.000e+00, lr=2.56e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.436e-06, pos_rmse_km=2.678e+05, val=3.035e-06][16:52:20][INFO] Epoch 37/140
-[16:52:21][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.005581, std=0.983925, min=-1.729709, max=1.729650
-[16:52:21][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:21][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:22][INFO] Epoch 37 complete | train_loss=0.000002, val_loss=0.000003
-Training:  26%|██▌       | 36/140 [01:02<02:50,  1.64s/it, angmom=0.000e+00, data=2.497e-06, energy=0.000e+00, lr=2.54e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.497e-06, pos_rmse_km=2.684e+05, val=3.150e-06]Training:  26%|██▋       | 37/140 [01:02<02:48,  1.64s/it, angmom=0.000e+00, data=2.497e-06, energy=0.000e+00, lr=2.54e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.497e-06, pos_rmse_km=2.684e+05, val=3.150e-06][16:52:22][INFO] Epoch 38/140
-[16:52:22][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.029885, std=0.982789, min=-1.728939, max=1.729176
-[16:52:22][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:22][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:24][INFO] Epoch 38 complete | train_loss=0.000003, val_loss=0.000003
-Training:  26%|██▋       | 37/140 [01:04<02:48,  1.64s/it, angmom=0.000e+00, data=3.049e-06, energy=0.000e+00, lr=2.51e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.049e-06, pos_rmse_km=2.777e+05, val=3.011e-06]Training:  27%|██▋       | 38/140 [01:04<02:47,  1.64s/it, angmom=0.000e+00, data=3.049e-06, energy=0.000e+00, lr=2.51e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.049e-06, pos_rmse_km=2.777e+05, val=3.011e-06][16:52:24][INFO] Epoch 39/140
-[16:52:24][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.026186, std=1.007106, min=-1.731547, max=1.731310
-[16:52:24][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:24][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:25][INFO] Epoch 39 complete | train_loss=0.000003, val_loss=0.000003
-Training:  27%|██▋       | 38/140 [01:05<02:47,  1.64s/it, angmom=0.000e+00, data=2.970e-06, energy=0.000e+00, lr=2.49e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.970e-06, pos_rmse_km=2.888e+05, val=3.189e-06]Training:  28%|██▊       | 39/140 [01:05<02:45,  1.64s/it, angmom=0.000e+00, data=2.970e-06, energy=0.000e+00, lr=2.49e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.970e-06, pos_rmse_km=2.888e+05, val=3.189e-06][16:52:25][INFO] Epoch 40/140
-[16:52:25][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.004000, std=0.994402, min=-1.727991, max=1.729354
-[16:52:25][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:25][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:27][INFO] Epoch 40 complete | train_loss=0.000003, val_loss=0.000003
-Training:  28%|██▊       | 39/140 [01:07<02:45,  1.64s/it, angmom=0.000e+00, data=2.973e-06, energy=0.000e+00, lr=2.46e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.973e-06, pos_rmse_km=2.449e+05, val=2.597e-06]  → New best val_pos_rmse_km: 244908.285156
-Training:  29%|██▊       | 40/140 [01:07<02:45,  1.65s/it, angmom=0.000e+00, data=2.973e-06, energy=0.000e+00, lr=2.46e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.973e-06, pos_rmse_km=2.449e+05, val=2.597e-06][16:52:27][INFO] Epoch 41/140
-[16:52:27][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.018193, std=0.996425, min=-1.730658, max=1.730243
-[16:52:27][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:27][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:29][INFO] Epoch 41 complete | train_loss=0.000004, val_loss=0.000003
-Training:  29%|██▊       | 40/140 [01:09<02:45,  1.65s/it, angmom=0.000e+00, data=3.845e-06, energy=0.000e+00, lr=2.44e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.845e-06, pos_rmse_km=2.859e+05, val=3.203e-06]Training:  29%|██▉       | 41/140 [01:09<02:53,  1.75s/it, angmom=0.000e+00, data=3.845e-06, energy=0.000e+00, lr=2.44e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.845e-06, pos_rmse_km=2.859e+05, val=3.203e-06][16:52:29][INFO] Epoch 42/140
-[16:52:29][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.029820, std=1.014925, min=-1.729591, max=1.730658
-[16:52:29][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:29][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:31][INFO] Epoch 42 complete | train_loss=0.000011, val_loss=0.000009
-Training:  29%|██▉       | 41/140 [01:11<02:53,  1.75s/it, angmom=0.000e+00, data=1.054e-05, energy=0.000e+00, lr=2.41e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.054e-05, pos_rmse_km=4.392e+05, val=8.658e-06]Training:  30%|███       | 42/140 [01:11<02:49,  1.73s/it, angmom=0.000e+00, data=1.054e-05, energy=0.000e+00, lr=2.41e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.054e-05, pos_rmse_km=4.392e+05, val=8.658e-06][16:52:31][INFO] Epoch 43/140
-[16:52:31][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.032707, std=1.008568, min=-1.732021, max=1.729591
-[16:52:31][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:31][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:32][INFO] Epoch 43 complete | train_loss=0.000011, val_loss=0.000010
-Training:  30%|███       | 42/140 [01:12<02:49,  1.73s/it, angmom=0.000e+00, data=1.062e-05, energy=0.000e+00, lr=2.38e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.062e-05, pos_rmse_km=5.038e+05, val=1.030e-05]Training:  31%|███       | 43/140 [01:12<02:44,  1.70s/it, angmom=0.000e+00, data=1.062e-05, energy=0.000e+00, lr=2.38e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.062e-05, pos_rmse_km=5.038e+05, val=1.030e-05][16:52:32][INFO] Epoch 44/140
-[16:52:32][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.009134, std=1.002343, min=-1.725323, max=1.731784
-[16:52:32][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:32][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:34][INFO] Epoch 44 complete | train_loss=0.000223, val_loss=0.000187
-Training:  31%|███       | 43/140 [01:14<02:44,  1.70s/it, angmom=0.000e+00, data=2.229e-04, energy=0.000e+00, lr=2.36e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.229e-04, pos_rmse_km=2.027e+06, val=1.866e-04]Training:  31%|███▏      | 44/140 [01:14<02:41,  1.68s/it, angmom=0.000e+00, data=2.229e-04, energy=0.000e+00, lr=2.36e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.229e-04, pos_rmse_km=2.027e+06, val=1.866e-04][16:52:34][INFO] Epoch 45/140
-[16:52:34][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.036916, std=1.000741, min=-1.729769, max=1.728702
-[16:52:34][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:34][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:36][INFO] Epoch 45 complete | train_loss=0.000071, val_loss=0.000093
-Training:  31%|███▏      | 44/140 [01:16<02:41,  1.68s/it, angmom=0.000e+00, data=7.115e-05, energy=0.000e+00, lr=2.33e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.115e-05, pos_rmse_km=1.478e+06, val=9.312e-05]Training:  32%|███▏      | 45/140 [01:16<02:38,  1.67s/it, angmom=0.000e+00, data=7.115e-05, energy=0.000e+00, lr=2.33e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.115e-05, pos_rmse_km=1.478e+06, val=9.312e-05][16:52:36][INFO] Epoch 46/140
-[16:52:36][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.001558, std=0.982975, min=-1.730954, max=1.730954
-[16:52:36][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:36][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:37][INFO] Epoch 46 complete | train_loss=0.000038, val_loss=0.000033
-Training:  32%|███▏      | 45/140 [01:17<02:38,  1.67s/it, angmom=0.000e+00, data=3.799e-05, energy=0.000e+00, lr=2.30e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.799e-05, pos_rmse_km=8.277e+05, val=3.286e-05]Training:  33%|███▎      | 46/140 [01:17<02:35,  1.66s/it, angmom=0.000e+00, data=3.799e-05, energy=0.000e+00, lr=2.30e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.799e-05, pos_rmse_km=8.277e+05, val=3.286e-05][16:52:37][INFO] Epoch 47/140
-[16:52:37][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.024071, std=0.988845, min=-1.729887, max=1.731903
-[16:52:37][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:37][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:39][INFO] Epoch 47 complete | train_loss=0.000028, val_loss=0.000025
-Training:  33%|███▎      | 46/140 [01:19<02:35,  1.66s/it, angmom=0.000e+00, data=2.790e-05, energy=0.000e+00, lr=2.27e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.790e-05, pos_rmse_km=7.502e+05, val=2.511e-05]Training:  34%|███▎      | 47/140 [01:19<02:33,  1.65s/it, angmom=0.000e+00, data=2.790e-05, energy=0.000e+00, lr=2.27e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.790e-05, pos_rmse_km=7.502e+05, val=2.511e-05][16:52:39][INFO] Epoch 48/140
-[16:52:39][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.003504, std=0.998930, min=-1.726923, max=1.728109
-[16:52:39][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:39][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:41][INFO] Epoch 48 complete | train_loss=0.000032, val_loss=0.000020
-Training:  34%|███▎      | 47/140 [01:21<02:33,  1.65s/it, angmom=0.000e+00, data=3.190e-05, energy=0.000e+00, lr=2.24e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.190e-05, pos_rmse_km=6.757e+05, val=1.986e-05]Training:  34%|███▍      | 48/140 [01:21<02:31,  1.65s/it, angmom=0.000e+00, data=3.190e-05, energy=0.000e+00, lr=2.24e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.190e-05, pos_rmse_km=6.757e+05, val=1.986e-05][16:52:41][INFO] Epoch 49/140
-[16:52:41][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.004988, std=1.006063, min=-1.726686, max=1.731251
-[16:52:41][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:41][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:42][INFO] Epoch 49 complete | train_loss=0.000013, val_loss=0.000012
-Training:  34%|███▍      | 48/140 [01:22<02:31,  1.65s/it, angmom=0.000e+00, data=1.266e-05, energy=0.000e+00, lr=2.21e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.266e-05, pos_rmse_km=5.545e+05, val=1.240e-05]Training:  35%|███▌      | 49/140 [01:22<02:26,  1.61s/it, angmom=0.000e+00, data=1.266e-05, energy=0.000e+00, lr=2.21e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.266e-05, pos_rmse_km=5.545e+05, val=1.240e-05][16:52:42][INFO] Epoch 50/140
-[16:52:42][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.045529, std=1.000094, min=-1.729295, max=1.731665
-[16:52:42][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:42][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:44][INFO] Epoch 50 complete | train_loss=0.000010, val_loss=0.000009
-Training:  35%|███▌      | 49/140 [01:24<02:26,  1.61s/it, angmom=0.000e+00, data=9.700e-06, energy=0.000e+00, lr=2.18e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=9.700e-06, pos_rmse_km=4.857e+05, val=9.015e-06]Training:  36%|███▌      | 50/140 [01:24<02:25,  1.62s/it, angmom=0.000e+00, data=9.700e-06, energy=0.000e+00, lr=2.18e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=9.700e-06, pos_rmse_km=4.857e+05, val=9.015e-06][16:52:44][INFO] Epoch 51/140
-[16:52:44][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.048651, std=0.998880, min=-1.729235, max=1.730302
-[16:52:44][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:44][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:45][INFO] Epoch 51 complete | train_loss=0.000005, val_loss=0.000004
-Training:  36%|███▌      | 50/140 [01:26<02:25,  1.62s/it, angmom=0.000e+00, data=4.864e-06, energy=0.000e+00, lr=2.15e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.864e-06, pos_rmse_km=3.477e+05, val=4.420e-06]Training:  36%|███▋      | 51/140 [01:26<02:37,  1.77s/it, angmom=0.000e+00, data=4.864e-06, energy=0.000e+00, lr=2.15e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.864e-06, pos_rmse_km=3.477e+05, val=4.420e-06][16:52:46][INFO] Epoch 52/140
-[16:52:46][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.024177, std=1.003866, min=-1.730243, max=1.731962
-[16:52:46][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:46][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:48][INFO] Epoch 52 complete | train_loss=0.000007, val_loss=0.000005
-Training:  36%|███▋      | 51/140 [01:28<02:37,  1.77s/it, angmom=0.000e+00, data=6.884e-06, energy=0.000e+00, lr=2.12e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=6.884e-06, pos_rmse_km=3.737e+05, val=5.275e-06]Training:  37%|███▋      | 52/140 [01:28<02:33,  1.74s/it, angmom=0.000e+00, data=6.884e-06, energy=0.000e+00, lr=2.12e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=6.884e-06, pos_rmse_km=3.737e+05, val=5.275e-06][16:52:48][INFO] Epoch 53/140
-[16:52:48][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.036378, std=0.990469, min=-1.727931, max=1.731665
-[16:52:48][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:48][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:49][INFO] Epoch 53 complete | train_loss=0.000021, val_loss=0.000021
-Training:  37%|███▋      | 52/140 [01:29<02:33,  1.74s/it, angmom=0.000e+00, data=2.081e-05, energy=0.000e+00, lr=2.09e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.081e-05, pos_rmse_km=7.113e+05, val=2.133e-05]Training:  38%|███▊      | 53/140 [01:29<02:28,  1.71s/it, angmom=0.000e+00, data=2.081e-05, energy=0.000e+00, lr=2.09e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.081e-05, pos_rmse_km=7.113e+05, val=2.133e-05][16:52:49][INFO] Epoch 54/140
-[16:52:49][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.013799, std=1.024889, min=-1.730006, max=1.728346
-[16:52:49][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:49][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:51][INFO] Epoch 54 complete | train_loss=0.000012, val_loss=0.000015
-Training:  38%|███▊      | 53/140 [01:31<02:28,  1.71s/it, angmom=0.000e+00, data=1.237e-05, energy=0.000e+00, lr=2.06e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.237e-05, pos_rmse_km=6.068e+05, val=1.548e-05]Training:  39%|███▊      | 54/140 [01:31<02:21,  1.65s/it, angmom=0.000e+00, data=1.237e-05, energy=0.000e+00, lr=2.06e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.237e-05, pos_rmse_km=6.068e+05, val=1.548e-05][16:52:51][INFO] Epoch 55/140
-[16:52:51][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.000437, std=1.003516, min=-1.720640, max=1.730184
-[16:52:51][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:51][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:52][INFO] Epoch 55 complete | train_loss=0.000020, val_loss=0.000023
-Training:  39%|███▊      | 54/140 [01:32<02:21,  1.65s/it, angmom=0.000e+00, data=2.029e-05, energy=0.000e+00, lr=2.03e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.029e-05, pos_rmse_km=7.749e+05, val=2.301e-05]Training:  39%|███▉      | 55/140 [01:32<02:23,  1.68s/it, angmom=0.000e+00, data=2.029e-05, energy=0.000e+00, lr=2.03e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.029e-05, pos_rmse_km=7.749e+05, val=2.301e-05][16:52:52][INFO] Epoch 56/140
-[16:52:52][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.015610, std=0.992521, min=-1.731665, max=1.728346
-[16:52:52][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:52][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:54][INFO] Epoch 56 complete | train_loss=0.000053, val_loss=0.000069
-Training:  39%|███▉      | 55/140 [01:34<02:23,  1.68s/it, angmom=0.000e+00, data=5.260e-05, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.260e-05, pos_rmse_km=1.373e+06, val=6.888e-05]Training:  40%|████      | 56/140 [01:34<02:17,  1.63s/it, angmom=0.000e+00, data=5.260e-05, energy=0.000e+00, lr=2.00e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=5.260e-05, pos_rmse_km=1.373e+06, val=6.888e-05][16:52:54][INFO] Epoch 57/140
-[16:52:54][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.000945, std=0.964539, min=-1.729117, max=1.729709
-[16:52:54][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:54][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:56][INFO] Epoch 57 complete | train_loss=0.000016, val_loss=0.000016
-Training:  40%|████      | 56/140 [01:36<02:17,  1.63s/it, angmom=0.000e+00, data=1.626e-05, energy=0.000e+00, lr=1.97e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.626e-05, pos_rmse_km=6.212e+05, val=1.645e-05]Training:  41%|████      | 57/140 [01:36<02:15,  1.63s/it, angmom=0.000e+00, data=1.626e-05, energy=0.000e+00, lr=1.97e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.626e-05, pos_rmse_km=6.212e+05, val=1.645e-05][16:52:56][INFO] Epoch 58/140
-[16:52:56][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.029680, std=0.993114, min=-1.729946, max=1.731665
-[16:52:56][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:56][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:57][INFO] Epoch 58 complete | train_loss=0.000032, val_loss=0.000027
-Training:  41%|████      | 57/140 [01:37<02:15,  1.63s/it, angmom=0.000e+00, data=3.223e-05, energy=0.000e+00, lr=1.93e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.223e-05, pos_rmse_km=7.892e+05, val=2.720e-05]Training:  41%|████▏     | 58/140 [01:37<02:14,  1.63s/it, angmom=0.000e+00, data=3.223e-05, energy=0.000e+00, lr=1.93e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.223e-05, pos_rmse_km=7.892e+05, val=2.720e-05][16:52:57][INFO] Epoch 59/140
-[16:52:57][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.008224, std=1.007492, min=-1.731310, max=1.725857
-[16:52:57][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:57][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:52:59][INFO] Epoch 59 complete | train_loss=0.000035, val_loss=0.000039
-Training:  41%|████▏     | 58/140 [01:39<02:14,  1.63s/it, angmom=0.000e+00, data=3.492e-05, energy=0.000e+00, lr=1.90e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.492e-05, pos_rmse_km=9.845e+05, val=3.856e-05]Training:  42%|████▏     | 59/140 [01:39<02:12,  1.64s/it, angmom=0.000e+00, data=3.492e-05, energy=0.000e+00, lr=1.90e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.492e-05, pos_rmse_km=9.845e+05, val=3.856e-05][16:52:59][INFO] Epoch 60/140
-[16:52:59][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.040056, std=0.993548, min=-1.727161, max=1.729413
-[16:52:59][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:52:59][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:53:00][INFO] Epoch 60 complete | train_loss=0.000022, val_loss=0.000023
-Training:  42%|████▏     | 59/140 [01:40<02:12,  1.64s/it, angmom=0.000e+00, data=2.240e-05, energy=0.000e+00, lr=1.87e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.240e-05, pos_rmse_km=7.243e+05, val=2.252e-05]Training:  43%|████▎     | 60/140 [01:40<02:10,  1.64s/it, angmom=0.000e+00, data=2.240e-05, energy=0.000e+00, lr=1.87e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.240e-05, pos_rmse_km=7.243e+05, val=2.252e-05][16:53:00][INFO] Epoch 61/140
-[16:53:00][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.065523, std=0.981515, min=-1.728761, max=1.728287
-[16:53:01][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:53:01][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:53:02][INFO] Epoch 61 complete | train_loss=0.000011, val_loss=0.000007
-Training:  43%|████▎     | 60/140 [01:43<02:10,  1.64s/it, angmom=0.000e+00, data=1.140e-05, energy=0.000e+00, lr=1.84e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.140e-05, pos_rmse_km=4.142e+05, val=7.208e-06]Training:  44%|████▎     | 61/140 [01:43<02:20,  1.78s/it, angmom=0.000e+00, data=1.140e-05, energy=0.000e+00, lr=1.84e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.140e-05, pos_rmse_km=4.142e+05, val=7.208e-06][16:53:03][INFO] Epoch 62/140
-[16:53:03][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.010483, std=1.000337, min=-1.730124, max=1.728702
-[16:53:03][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:53:03][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:53:04][INFO] Epoch 62 complete | train_loss=0.000011, val_loss=0.000009
-Training:  44%|████▎     | 61/140 [01:44<02:20,  1.78s/it, angmom=0.000e+00, data=1.078e-05, energy=0.000e+00, lr=1.80e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.078e-05, pos_rmse_km=4.651e+05, val=8.982e-06]Training:  44%|████▍     | 62/140 [01:44<02:16,  1.75s/it, angmom=0.000e+00, data=1.078e-05, energy=0.000e+00, lr=1.80e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.078e-05, pos_rmse_km=4.651e+05, val=8.982e-06][16:53:04][INFO] Epoch 63/140
-[16:53:04][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.014376, std=0.999449, min=-1.727338, max=1.731725
-[16:53:04][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:53:04][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:53:06][INFO] Epoch 63 complete | train_loss=0.000007, val_loss=0.000006
-Training:  44%|████▍     | 62/140 [01:46<02:16,  1.75s/it, angmom=0.000e+00, data=6.759e-06, energy=0.000e+00, lr=1.77e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=6.759e-06, pos_rmse_km=3.787e+05, val=6.052e-06]Training:  45%|████▌     | 63/140 [01:46<02:11,  1.71s/it, angmom=0.000e+00, data=6.759e-06, energy=0.000e+00, lr=1.77e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=6.759e-06, pos_rmse_km=3.787e+05, val=6.052e-06][16:53:06][INFO] Epoch 64/140
-[16:53:06][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.005716, std=0.995710, min=-1.730776, max=1.730124
-[16:53:06][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:53:06][INFO] Step 0 | GPU Memory: allocated=0.46GB, reserved=1.05GB, peak=0.93GB
-[16:53:07][INFO] Epoch 64 complete | train_loss=0.000005, val_loss=0.000003
-Training:  45%|████▌     | 63/140 [01:47<02:11,  1.71s/it, angmom=0.000e+00, data=4.569e-06, energy=0.000e+00, lr=1.74e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.569e-06, pos_rmse_km=2.868e+05, val=3.302e-06]Training:  45%|████▌     | 63/140 [01:47<02:11,  1.71s/it, angmom=0.000e+00, data=4.569e-06, energy=0.000e+00, lr=1.74e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.569e-06, pos_rmse_km=2.868e+05, val=3.302e-06]
-✓ Checkpoint saved: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/checkpoint_coarse.pt
-[16:53:08][INFO] Training complete!
-✓ Saved training history: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/history_coarse.json
-✓ Checkpoint saved: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/checkpoint_coarse.pt
-  Best epoch: 40
-  Best val RMSE: 244,908.29 km
-GPU Memory: 0.02 GB allocated, 0.08 GB reserved
-
-================================================================================
-STAGE 2: REFINE TRAINING (add velocity supervision)
-================================================================================
-✓ Loaded training history: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/history_refine.json
-Training refine stage (starting from coarse checkpoint)...
-[Rank 0/1] Training on cuda:0
-/orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/src/solsys_emulator/train.py:1535: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
-  return torch.load(Path(path), map_location=map_location)
-Training:   0%|          | 0/240 [00:00<?, ?it/s][16:53:08][INFO] Starting training...
-[16:53:08][INFO] World size: 1
-[16:53:08][INFO] Batch size per GPU: 1536
-[16:53:08][INFO] Effective batch size: 1536
-[16:53:08][INFO] Epoch 1/240
-[16:53:08][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.016105, std=1.012735, min=-1.731191, max=1.731725
-[16:53:08][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:53:08][INFO] Step 0 | GPU Memory: allocated=0.23GB, reserved=4.13GB, peak=3.92GB
-[16:53:17][INFO] Epoch 1 complete | train_loss=0.001908, val_loss=0.001695
-Training:   0%|          | 0/240 [00:09<?, ?it/s, angmom=0.000e+00, data=1.908e-03, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.908e-03, pos_rmse_km=2.307e+06, val=1.695e-03, vel_rmse_km_s=1.659e+00]  → New best val_pos_rmse_km: 2307377.750000
-Training:   0%|          | 1/240 [00:09<39:28,  9.91s/it, angmom=0.000e+00, data=1.908e-03, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.908e-03, pos_rmse_km=2.307e+06, val=1.695e-03, vel_rmse_km_s=1.659e+00][16:53:18][INFO] Epoch 2/240
-[16:53:18][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.000642, std=0.992738, min=-1.729235, max=1.731843
-[16:53:18][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:53:18][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=7.83GB, peak=7.75GB
-[16:53:27][INFO] Epoch 2 complete | train_loss=0.000231, val_loss=0.000212
-Training:   0%|          | 1/240 [00:19<39:28,  9.91s/it, angmom=0.000e+00, data=2.308e-04, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.308e-04, pos_rmse_km=6.908e+05, val=2.125e-04, vel_rmse_km_s=5.963e-01]  → New best val_pos_rmse_km: 690769.640625
-Training:   1%|          | 2/240 [00:19<37:57,  9.57s/it, angmom=0.000e+00, data=2.308e-04, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.308e-04, pos_rmse_km=6.908e+05, val=2.125e-04, vel_rmse_km_s=5.963e-01][16:53:27][INFO] Epoch 3/240
-[16:53:27][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.009101, std=0.994348, min=-1.731073, max=1.729354
-[16:53:27][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:53:27][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=7.83GB, peak=7.75GB
-[16:53:36][INFO] Epoch 3 complete | train_loss=0.000071, val_loss=0.000065
-Training:   1%|          | 2/240 [00:28<37:57,  9.57s/it, angmom=0.000e+00, data=7.074e-05, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.074e-05, pos_rmse_km=2.679e+05, val=6.544e-05, vel_rmse_km_s=3.378e-01]  → New best val_pos_rmse_km: 267874.015625
-Training:   1%|▏         | 3/240 [00:28<37:05,  9.39s/it, angmom=0.000e+00, data=7.074e-05, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.074e-05, pos_rmse_km=2.679e+05, val=6.544e-05, vel_rmse_km_s=3.378e-01][16:53:36][INFO] Epoch 4/240
-[16:53:36][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.026960, std=0.980350, min=-1.730895, max=1.728998
-[16:53:37][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:53:37][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=7.83GB, peak=7.75GB
-[16:53:46][INFO] Epoch 4 complete | train_loss=0.000042, val_loss=0.000040
-Training:   1%|▏         | 3/240 [00:37<37:05,  9.39s/it, angmom=0.000e+00, data=4.162e-05, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.162e-05, pos_rmse_km=2.009e+05, val=3.954e-05, vel_rmse_km_s=2.633e-01]  → New best val_pos_rmse_km: 200879.449219
-Training:   2%|▏         | 4/240 [00:37<36:58,  9.40s/it, angmom=0.000e+00, data=4.162e-05, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.162e-05, pos_rmse_km=2.009e+05, val=3.954e-05, vel_rmse_km_s=2.633e-01][16:53:46][INFO] Epoch 5/240
-[16:53:46][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.027563, std=1.007463, min=-1.730717, max=1.731073
-[16:53:46][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:53:46][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=7.87GB, peak=7.75GB
-[16:53:55][INFO] Epoch 5 complete | train_loss=0.000030, val_loss=0.000033
-Training:   2%|▏         | 4/240 [00:46<36:58,  9.40s/it, angmom=0.000e+00, data=3.026e-05, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.026e-05, pos_rmse_km=1.945e+05, val=3.306e-05, vel_rmse_km_s=2.399e-01]  → New best val_pos_rmse_km: 194548.902344
-Training:   2%|▏         | 5/240 [00:46<36:28,  9.31s/it, angmom=0.000e+00, data=3.026e-05, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.026e-05, pos_rmse_km=1.945e+05, val=3.306e-05, vel_rmse_km_s=2.399e-01][16:53:55][INFO] Epoch 6/240
-[16:53:55][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.002114, std=0.996682, min=-1.725204, max=1.729650
-[16:53:55][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:53:55][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=7.87GB, peak=7.75GB
-[16:54:04][INFO] Epoch 6 complete | train_loss=0.000026, val_loss=0.000027
-Training:   2%|▏         | 5/240 [00:56<36:28,  9.31s/it, angmom=0.000e+00, data=2.636e-05, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.636e-05, pos_rmse_km=1.866e+05, val=2.697e-05, vel_rmse_km_s=2.143e-01]  → New best val_pos_rmse_km: 186570.644531
-Training:   2%|▎         | 6/240 [00:56<36:17,  9.31s/it, angmom=0.000e+00, data=2.636e-05, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.636e-05, pos_rmse_km=1.866e+05, val=2.697e-05, vel_rmse_km_s=2.143e-01][16:54:04][INFO] Epoch 7/240
-[16:54:04][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.020183, std=0.997819, min=-1.731310, max=1.731903
-[16:54:04][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:54:04][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=7.87GB, peak=7.75GB
-[16:54:13][INFO] Epoch 7 complete | train_loss=0.000021, val_loss=0.000023
-Training:   2%|▎         | 6/240 [01:05<36:17,  9.31s/it, angmom=0.000e+00, data=2.121e-05, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.121e-05, pos_rmse_km=1.721e+05, val=2.286e-05, vel_rmse_km_s=1.960e-01]  → New best val_pos_rmse_km: 172086.816406
-Training:   3%|▎         | 7/240 [01:05<36:07,  9.30s/it, angmom=0.000e+00, data=2.121e-05, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.121e-05, pos_rmse_km=1.721e+05, val=2.286e-05, vel_rmse_km_s=1.960e-01][16:54:13][INFO] Epoch 8/240
-[16:54:13][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.003947, std=0.992639, min=-1.729946, max=1.730302
-[16:54:14][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:54:14][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=7.87GB, peak=7.75GB
-[16:54:23][INFO] Epoch 8 complete | train_loss=0.000025, val_loss=0.000025
-Training:   3%|▎         | 7/240 [01:14<36:07,  9.30s/it, angmom=0.000e+00, data=2.486e-05, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.486e-05, pos_rmse_km=2.148e+05, val=2.479e-05, vel_rmse_km_s=1.997e-01]Training:   3%|▎         | 8/240 [01:14<35:57,  9.30s/it, angmom=0.000e+00, data=2.486e-05, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.486e-05, pos_rmse_km=2.148e+05, val=2.479e-05, vel_rmse_km_s=1.997e-01][16:54:23][INFO] Epoch 9/240
-[16:54:23][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.013297, std=1.008191, min=-1.729057, max=1.731191
-[16:54:23][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:54:23][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=7.87GB, peak=7.75GB
-[16:54:32][INFO] Epoch 9 complete | train_loss=0.000030, val_loss=0.000029
-Training:   3%|▎         | 8/240 [01:24<35:57,  9.30s/it, angmom=0.000e+00, data=2.993e-05, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.993e-05, pos_rmse_km=2.602e+05, val=2.890e-05, vel_rmse_km_s=2.108e-01]Training:   4%|▍         | 9/240 [01:24<35:47,  9.30s/it, angmom=0.000e+00, data=2.993e-05, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.993e-05, pos_rmse_km=2.602e+05, val=2.890e-05, vel_rmse_km_s=2.108e-01][16:54:32][INFO] Epoch 10/240
-[16:54:32][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.009172, std=0.979599, min=-1.731369, max=1.732021
-[16:54:32][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:54:32][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=7.87GB, peak=7.75GB
-[16:54:41][INFO] Epoch 10 complete | train_loss=0.000034, val_loss=0.000029
-Training:   4%|▍         | 9/240 [01:33<35:47,  9.30s/it, angmom=0.000e+00, data=3.369e-05, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.369e-05, pos_rmse_km=2.197e+05, val=2.941e-05, vel_rmse_km_s=2.202e-01]Training:   4%|▍         | 10/240 [01:33<35:28,  9.25s/it, angmom=0.000e+00, data=3.369e-05, energy=0.000e+00, lr=1.20e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.369e-05, pos_rmse_km=2.197e+05, val=2.941e-05, vel_rmse_km_s=2.202e-01][16:54:41][INFO] Epoch 11/240
-[16:54:41][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.011751, std=0.996696, min=-1.731547, max=1.729887
-[16:54:41][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:54:41][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=7.89GB, peak=7.75GB
-[16:54:51][INFO] Epoch 11 complete | train_loss=0.000043, val_loss=0.000045
-Training:   4%|▍         | 10/240 [01:43<35:28,  9.25s/it, angmom=0.000e+00, data=4.269e-05, energy=0.000e+00, lr=1.19e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.269e-05, pos_rmse_km=3.744e+05, val=4.490e-05, vel_rmse_km_s=2.651e-01]Training:   5%|▍         | 11/240 [01:43<36:02,  9.44s/it, angmom=0.000e+00, data=4.269e-05, energy=0.000e+00, lr=1.19e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.269e-05, pos_rmse_km=3.744e+05, val=4.490e-05, vel_rmse_km_s=2.651e-01][16:54:51][INFO] Epoch 12/240
-[16:54:51][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.034931, std=0.997269, min=-1.731014, max=1.729828
-[16:54:51][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:54:51][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=7.95GB, peak=7.75GB
-[16:55:00][INFO] Epoch 12 complete | train_loss=0.000078, val_loss=0.000089
-Training:   5%|▍         | 11/240 [01:52<36:02,  9.44s/it, angmom=0.000e+00, data=7.759e-05, energy=0.000e+00, lr=1.19e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.759e-05, pos_rmse_km=6.370e+05, val=8.888e-05, vel_rmse_km_s=3.495e-01]Training:   5%|▌         | 12/240 [01:52<35:34,  9.36s/it, angmom=0.000e+00, data=7.759e-05, energy=0.000e+00, lr=1.19e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=7.759e-05, pos_rmse_km=6.370e+05, val=8.888e-05, vel_rmse_km_s=3.495e-01][16:55:00][INFO] Epoch 13/240
-[16:55:00][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.043061, std=1.009284, min=-1.728524, max=1.732021
-[16:55:00][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:55:00][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.21GB, peak=7.75GB
-[16:55:09][INFO] Epoch 13 complete | train_loss=0.000149, val_loss=0.000176
-Training:   5%|▌         | 12/240 [02:01<35:34,  9.36s/it, angmom=0.000e+00, data=1.489e-04, energy=0.000e+00, lr=1.19e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.489e-04, pos_rmse_km=8.655e+05, val=1.756e-04, vel_rmse_km_s=4.912e-01]Training:   5%|▌         | 13/240 [02:01<35:20,  9.34s/it, angmom=0.000e+00, data=1.489e-04, energy=0.000e+00, lr=1.19e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.489e-04, pos_rmse_km=8.655e+05, val=1.756e-04, vel_rmse_km_s=4.912e-01][16:55:09][INFO] Epoch 14/240
-[16:55:10][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.001724, std=0.988872, min=-1.730421, max=1.728820
-[16:55:10][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:55:10][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.21GB, peak=7.75GB
-[16:55:19][INFO] Epoch 14 complete | train_loss=0.000315, val_loss=0.000466
-Training:   5%|▌         | 13/240 [02:10<35:20,  9.34s/it, angmom=0.000e+00, data=3.153e-04, energy=0.000e+00, lr=1.19e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.153e-04, pos_rmse_km=1.373e+06, val=4.663e-04, vel_rmse_km_s=8.020e-01]Training:   6%|▌         | 14/240 [02:10<35:08,  9.33s/it, angmom=0.000e+00, data=3.153e-04, energy=0.000e+00, lr=1.19e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.153e-04, pos_rmse_km=1.373e+06, val=4.663e-04, vel_rmse_km_s=8.020e-01][16:55:19][INFO] Epoch 15/240
-[16:55:19][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.038560, std=0.994239, min=-1.731843, max=1.729946
-[16:55:19][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:55:19][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.28GB, peak=7.75GB
-[16:55:28][INFO] Epoch 15 complete | train_loss=0.000403, val_loss=0.000492
-Training:   6%|▌         | 14/240 [02:20<35:08,  9.33s/it, angmom=0.000e+00, data=4.031e-04, energy=0.000e+00, lr=1.19e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.031e-04, pos_rmse_km=1.486e+06, val=4.917e-04, vel_rmse_km_s=8.322e-01]Training:   6%|▋         | 15/240 [02:20<34:56,  9.32s/it, angmom=0.000e+00, data=4.031e-04, energy=0.000e+00, lr=1.19e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.031e-04, pos_rmse_km=1.486e+06, val=4.917e-04, vel_rmse_km_s=8.322e-01][16:55:28][INFO] Epoch 16/240
-[16:55:28][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.033648, std=1.008961, min=-1.730124, max=1.727279
-[16:55:28][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:55:28][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.28GB, peak=7.75GB
-[16:55:37][INFO] Epoch 16 complete | train_loss=0.000263, val_loss=0.000291
-Training:   6%|▋         | 15/240 [02:29<34:56,  9.32s/it, angmom=0.000e+00, data=2.626e-04, energy=0.000e+00, lr=1.19e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.626e-04, pos_rmse_km=1.052e+06, val=2.910e-04, vel_rmse_km_s=6.633e-01]Training:   7%|▋         | 16/240 [02:29<34:44,  9.31s/it, angmom=0.000e+00, data=2.626e-04, energy=0.000e+00, lr=1.19e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.626e-04, pos_rmse_km=1.052e+06, val=2.910e-04, vel_rmse_km_s=6.633e-01][16:55:37][INFO] Epoch 17/240
-[16:55:37][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.018557, std=1.009995, min=-1.729176, max=1.727931
-[16:55:38][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:55:38][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.30GB, peak=7.75GB
-[16:55:47][INFO] Epoch 17 complete | train_loss=0.000318, val_loss=0.000318
-Training:   7%|▋         | 16/240 [02:38<34:44,  9.31s/it, angmom=0.000e+00, data=3.183e-04, energy=0.000e+00, lr=1.19e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.183e-04, pos_rmse_km=1.128e+06, val=3.178e-04, vel_rmse_km_s=6.906e-01]Training:   7%|▋         | 17/240 [02:38<34:32,  9.29s/it, angmom=0.000e+00, data=3.183e-04, energy=0.000e+00, lr=1.19e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.183e-04, pos_rmse_km=1.128e+06, val=3.178e-04, vel_rmse_km_s=6.906e-01][16:55:47][INFO] Epoch 18/240
-[16:55:47][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.013422, std=1.003814, min=-1.731843, max=1.729413
-[16:55:47][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:55:47][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.30GB, peak=7.75GB
-[16:55:56][INFO] Epoch 18 complete | train_loss=0.000245, val_loss=0.000330
-Training:   7%|▋         | 17/240 [02:47<34:32,  9.29s/it, angmom=0.000e+00, data=2.447e-04, energy=0.000e+00, lr=1.19e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.447e-04, pos_rmse_km=1.047e+06, val=3.297e-04, vel_rmse_km_s=7.121e-01]Training:   8%|▊         | 18/240 [02:47<34:13,  9.25s/it, angmom=0.000e+00, data=2.447e-04, energy=0.000e+00, lr=1.19e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.447e-04, pos_rmse_km=1.047e+06, val=3.297e-04, vel_rmse_km_s=7.121e-01][16:55:56][INFO] Epoch 19/240
-[16:55:56][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.009939, std=0.990167, min=-1.731784, max=1.730776
-[16:55:56][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:55:56][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.34GB, peak=7.75GB
-[16:56:05][INFO] Epoch 19 complete | train_loss=0.000279, val_loss=0.000298
-Training:   8%|▊         | 18/240 [02:57<34:13,  9.25s/it, angmom=0.000e+00, data=2.790e-04, energy=0.000e+00, lr=1.18e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.790e-04, pos_rmse_km=1.336e+06, val=2.979e-04, vel_rmse_km_s=6.239e-01]Training:   8%|▊         | 19/240 [02:57<34:04,  9.25s/it, angmom=0.000e+00, data=2.790e-04, energy=0.000e+00, lr=1.18e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.790e-04, pos_rmse_km=1.336e+06, val=2.979e-04, vel_rmse_km_s=6.239e-01][16:56:05][INFO] Epoch 20/240
-[16:56:05][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.024788, std=1.014544, min=-1.727101, max=1.731665
-[16:56:05][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:56:05][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.34GB, peak=7.75GB
-[16:56:14][INFO] Epoch 20 complete | train_loss=0.000319, val_loss=0.000332
-Training:   8%|▊         | 19/240 [03:06<34:04,  9.25s/it, angmom=0.000e+00, data=3.194e-04, energy=0.000e+00, lr=1.18e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.194e-04, pos_rmse_km=1.397e+06, val=3.317e-04, vel_rmse_km_s=6.727e-01]Training:   8%|▊         | 20/240 [03:06<33:57,  9.26s/it, angmom=0.000e+00, data=3.194e-04, energy=0.000e+00, lr=1.18e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.194e-04, pos_rmse_km=1.397e+06, val=3.317e-04, vel_rmse_km_s=6.727e-01][16:56:14][INFO] Epoch 21/240
-[16:56:14][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.004060, std=1.006261, min=-1.728346, max=1.731488
-[16:56:15][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:56:15][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.38GB, peak=7.75GB
-[16:56:24][INFO] Epoch 21 complete | train_loss=0.000226, val_loss=0.000196
-Training:   8%|▊         | 20/240 [03:16<33:57,  9.26s/it, angmom=0.000e+00, data=2.257e-04, energy=0.000e+00, lr=1.18e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.257e-04, pos_rmse_km=9.635e+05, val=1.963e-04, vel_rmse_km_s=5.367e-01]Training:   9%|▉         | 21/240 [03:16<34:23,  9.42s/it, angmom=0.000e+00, data=2.257e-04, energy=0.000e+00, lr=1.18e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.257e-04, pos_rmse_km=9.635e+05, val=1.963e-04, vel_rmse_km_s=5.367e-01][16:56:24][INFO] Epoch 22/240
-[16:56:24][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.033589, std=1.012210, min=-1.731014, max=1.728465
-[16:56:24][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:56:24][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.42GB, peak=7.75GB
-[16:56:33][INFO] Epoch 22 complete | train_loss=0.000174, val_loss=0.000206
-Training:   9%|▉         | 21/240 [03:25<34:23,  9.42s/it, angmom=0.000e+00, data=1.745e-04, energy=0.000e+00, lr=1.18e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.745e-04, pos_rmse_km=8.453e+05, val=2.062e-04, vel_rmse_km_s=5.404e-01]Training:   9%|▉         | 22/240 [03:25<34:05,  9.38s/it, angmom=0.000e+00, data=1.745e-04, energy=0.000e+00, lr=1.18e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.745e-04, pos_rmse_km=8.453e+05, val=2.062e-04, vel_rmse_km_s=5.404e-01][16:56:33][INFO] Epoch 23/240
-[16:56:33][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.025831, std=1.002656, min=-1.730421, max=1.728998
-[16:56:34][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:56:34][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.42GB, peak=7.75GB
-[16:56:43][INFO] Epoch 23 complete | train_loss=0.000361, val_loss=0.000324
-Training:   9%|▉         | 22/240 [03:34<34:05,  9.38s/it, angmom=0.000e+00, data=3.614e-04, energy=0.000e+00, lr=1.18e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.614e-04, pos_rmse_km=1.263e+06, val=3.237e-04, vel_rmse_km_s=6.725e-01]Training:  10%|▉         | 23/240 [03:34<33:48,  9.35s/it, angmom=0.000e+00, data=3.614e-04, energy=0.000e+00, lr=1.18e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.614e-04, pos_rmse_km=1.263e+06, val=3.237e-04, vel_rmse_km_s=6.725e-01][16:56:43][INFO] Epoch 24/240
-[16:56:43][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.012523, std=1.010151, min=-1.730124, max=1.710326
-[16:56:43][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:56:43][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.42GB, peak=7.75GB
-[16:56:52][INFO] Epoch 24 complete | train_loss=0.000265, val_loss=0.000262
-Training:  10%|▉         | 23/240 [03:44<33:48,  9.35s/it, angmom=0.000e+00, data=2.650e-04, energy=0.000e+00, lr=1.17e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.650e-04, pos_rmse_km=1.209e+06, val=2.616e-04, vel_rmse_km_s=6.100e-01]Training:  10%|█         | 24/240 [03:44<33:34,  9.33s/it, angmom=0.000e+00, data=2.650e-04, energy=0.000e+00, lr=1.17e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.650e-04, pos_rmse_km=1.209e+06, val=2.616e-04, vel_rmse_km_s=6.100e-01][16:56:52][INFO] Epoch 25/240
-[16:56:52][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.018628, std=0.996943, min=-1.726331, max=1.730421
-[16:56:52][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:56:52][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.44GB, peak=7.75GB
-[16:57:01][INFO] Epoch 25 complete | train_loss=0.000177, val_loss=0.000166
-Training:  10%|█         | 24/240 [03:53<33:34,  9.33s/it, angmom=0.000e+00, data=1.770e-04, energy=0.000e+00, lr=1.17e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.770e-04, pos_rmse_km=9.793e+05, val=1.658e-04, vel_rmse_km_s=4.643e-01]Training:  10%|█         | 25/240 [03:53<33:13,  9.27s/it, angmom=0.000e+00, data=1.770e-04, energy=0.000e+00, lr=1.17e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.770e-04, pos_rmse_km=9.793e+05, val=1.658e-04, vel_rmse_km_s=4.643e-01][16:57:01][INFO] Epoch 26/240
-[16:57:01][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.034676, std=1.001775, min=-1.731369, max=1.722359
-[16:57:01][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:57:01][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.56GB, peak=7.75GB
-[16:57:10][INFO] Epoch 26 complete | train_loss=0.000194, val_loss=0.000178
-Training:  10%|█         | 25/240 [04:02<33:13,  9.27s/it, angmom=0.000e+00, data=1.936e-04, energy=0.000e+00, lr=1.17e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.936e-04, pos_rmse_km=8.660e+05, val=1.781e-04, vel_rmse_km_s=5.143e-01]Training:  11%|█         | 26/240 [04:02<33:05,  9.28s/it, angmom=0.000e+00, data=1.936e-04, energy=0.000e+00, lr=1.17e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.936e-04, pos_rmse_km=8.660e+05, val=1.781e-04, vel_rmse_km_s=5.143e-01][16:57:10][INFO] Epoch 27/240
-[16:57:10][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.005531, std=0.996394, min=-1.724612, max=1.731725
-[16:57:11][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:57:11][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.56GB, peak=7.75GB
-[16:57:20][INFO] Epoch 27 complete | train_loss=0.000162, val_loss=0.000151
-Training:  11%|█         | 26/240 [04:11<33:05,  9.28s/it, angmom=0.000e+00, data=1.619e-04, energy=0.000e+00, lr=1.17e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.619e-04, pos_rmse_km=8.965e+05, val=1.510e-04, vel_rmse_km_s=4.571e-01]Training:  11%|█▏        | 27/240 [04:11<32:57,  9.28s/it, angmom=0.000e+00, data=1.619e-04, energy=0.000e+00, lr=1.17e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.619e-04, pos_rmse_km=8.965e+05, val=1.510e-04, vel_rmse_km_s=4.571e-01][16:57:20][INFO] Epoch 28/240
-[16:57:20][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.006127, std=1.012277, min=-1.731251, max=1.730302
-[16:57:20][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:57:20][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.60GB, peak=7.75GB
-[16:57:29][INFO] Epoch 28 complete | train_loss=0.000127, val_loss=0.000096
-Training:  11%|█▏        | 27/240 [04:21<32:57,  9.28s/it, angmom=0.000e+00, data=1.272e-04, energy=0.000e+00, lr=1.16e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.272e-04, pos_rmse_km=6.769e+05, val=9.623e-05, vel_rmse_km_s=3.624e-01]Training:  12%|█▏        | 28/240 [04:21<32:48,  9.29s/it, angmom=0.000e+00, data=1.272e-04, energy=0.000e+00, lr=1.16e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.272e-04, pos_rmse_km=6.769e+05, val=9.623e-05, vel_rmse_km_s=3.624e-01][16:57:29][INFO] Epoch 29/240
-[16:57:29][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.008371, std=0.995800, min=-1.730065, max=1.731665
-[16:57:29][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:57:29][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.60GB, peak=7.75GB
-[16:57:38][INFO] Epoch 29 complete | train_loss=0.000126, val_loss=0.000108
-Training:  12%|█▏        | 28/240 [04:30<32:48,  9.29s/it, angmom=0.000e+00, data=1.256e-04, energy=0.000e+00, lr=1.16e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.256e-04, pos_rmse_km=6.815e+05, val=1.076e-04, vel_rmse_km_s=4.018e-01]Training:  12%|█▏        | 29/240 [04:30<32:38,  9.28s/it, angmom=0.000e+00, data=1.256e-04, energy=0.000e+00, lr=1.16e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.256e-04, pos_rmse_km=6.815e+05, val=1.076e-04, vel_rmse_km_s=4.018e-01][16:57:38][INFO] Epoch 30/240
-[16:57:38][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.001440, std=0.993121, min=-1.725027, max=1.731014
-[16:57:39][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:57:39][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.60GB, peak=7.75GB
-[16:57:48][INFO] Epoch 30 complete | train_loss=0.000126, val_loss=0.000134
-Training:  12%|█▏        | 29/240 [04:39<32:38,  9.28s/it, angmom=0.000e+00, data=1.259e-04, energy=0.000e+00, lr=1.16e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.259e-04, pos_rmse_km=7.878e+05, val=1.340e-04, vel_rmse_km_s=4.349e-01]Training:  12%|█▎        | 30/240 [04:39<32:28,  9.28s/it, angmom=0.000e+00, data=1.259e-04, energy=0.000e+00, lr=1.16e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.259e-04, pos_rmse_km=7.878e+05, val=1.340e-04, vel_rmse_km_s=4.349e-01][16:57:48][INFO] Epoch 31/240
-[16:57:48][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.014105, std=0.956375, min=-1.730895, max=1.731073
-[16:57:48][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:57:48][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.60GB, peak=7.75GB
-[16:57:57][INFO] Epoch 31 complete | train_loss=0.000096, val_loss=0.000093
-Training:  12%|█▎        | 30/240 [04:49<32:28,  9.28s/it, angmom=0.000e+00, data=9.624e-05, energy=0.000e+00, lr=1.15e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=9.624e-05, pos_rmse_km=7.718e+05, val=9.338e-05, vel_rmse_km_s=3.591e-01]Training:  13%|█▎        | 31/240 [04:49<32:48,  9.42s/it, angmom=0.000e+00, data=9.624e-05, energy=0.000e+00, lr=1.15e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=9.624e-05, pos_rmse_km=7.718e+05, val=9.338e-05, vel_rmse_km_s=3.591e-01][16:57:57][INFO] Epoch 32/240
-[16:57:57][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.034087, std=1.029317, min=-1.729532, max=1.728465
-[16:57:58][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:57:58][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.60GB, peak=7.75GB
-[16:58:06][INFO] Epoch 32 complete | train_loss=0.000137, val_loss=0.000121
-Training:  13%|█▎        | 31/240 [04:58<32:48,  9.42s/it, angmom=0.000e+00, data=1.375e-04, energy=0.000e+00, lr=1.15e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.375e-04, pos_rmse_km=9.323e+05, val=1.206e-04, vel_rmse_km_s=4.018e-01]Training:  13%|█▎        | 32/240 [04:58<32:22,  9.34s/it, angmom=0.000e+00, data=1.375e-04, energy=0.000e+00, lr=1.15e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.375e-04, pos_rmse_km=9.323e+05, val=1.206e-04, vel_rmse_km_s=4.018e-01][16:58:06][INFO] Epoch 33/240
-[16:58:06][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.003180, std=1.006562, min=-1.730361, max=1.731547
-[16:58:07][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:58:07][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.60GB, peak=7.75GB
-[16:58:16][INFO] Epoch 33 complete | train_loss=0.000237, val_loss=0.000261
-Training:  13%|█▎        | 32/240 [05:07<32:22,  9.34s/it, angmom=0.000e+00, data=2.372e-04, energy=0.000e+00, lr=1.15e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.372e-04, pos_rmse_km=1.566e+06, val=2.606e-04, vel_rmse_km_s=5.389e-01]Training:  14%|█▍        | 33/240 [05:07<32:10,  9.33s/it, angmom=0.000e+00, data=2.372e-04, energy=0.000e+00, lr=1.15e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.372e-04, pos_rmse_km=1.566e+06, val=2.606e-04, vel_rmse_km_s=5.389e-01][16:58:16][INFO] Epoch 34/240
-[16:58:16][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.010599, std=0.993817, min=-1.727398, max=1.731725
-[16:58:16][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:58:16][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.60GB, peak=7.75GB
-[16:58:25][INFO] Epoch 34 complete | train_loss=0.000138, val_loss=0.000182
-Training:  14%|█▍        | 33/240 [05:17<32:10,  9.33s/it, angmom=0.000e+00, data=1.381e-04, energy=0.000e+00, lr=1.15e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.381e-04, pos_rmse_km=8.463e+05, val=1.823e-04, vel_rmse_km_s=5.222e-01]Training:  14%|█▍        | 34/240 [05:17<31:58,  9.31s/it, angmom=0.000e+00, data=1.381e-04, energy=0.000e+00, lr=1.15e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.381e-04, pos_rmse_km=8.463e+05, val=1.823e-04, vel_rmse_km_s=5.222e-01][16:58:25][INFO] Epoch 35/240
-[16:58:25][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.022731, std=1.009228, min=-1.728168, max=1.731962
-[16:58:25][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:58:25][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.60GB, peak=7.75GB
-[16:58:34][INFO] Epoch 35 complete | train_loss=0.000168, val_loss=0.000183
-Training:  14%|█▍        | 34/240 [05:26<31:58,  9.31s/it, angmom=0.000e+00, data=1.675e-04, energy=0.000e+00, lr=1.14e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.675e-04, pos_rmse_km=8.522e+05, val=1.829e-04, vel_rmse_km_s=5.367e-01]Training:  15%|█▍        | 35/240 [05:26<31:47,  9.30s/it, angmom=0.000e+00, data=1.675e-04, energy=0.000e+00, lr=1.14e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.675e-04, pos_rmse_km=8.522e+05, val=1.829e-04, vel_rmse_km_s=5.367e-01][16:58:34][INFO] Epoch 36/240
-[16:58:34][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.036241, std=0.963986, min=-1.728761, max=1.722774
-[16:58:35][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:58:35][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.60GB, peak=7.75GB
-[16:58:44][INFO] Epoch 36 complete | train_loss=0.000128, val_loss=0.000159
-Training:  15%|█▍        | 35/240 [05:35<31:47,  9.30s/it, angmom=0.000e+00, data=1.280e-04, energy=0.000e+00, lr=1.14e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.280e-04, pos_rmse_km=8.624e+05, val=1.591e-04, vel_rmse_km_s=4.758e-01]Training:  15%|█▌        | 36/240 [05:35<31:36,  9.29s/it, angmom=0.000e+00, data=1.280e-04, energy=0.000e+00, lr=1.14e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.280e-04, pos_rmse_km=8.624e+05, val=1.591e-04, vel_rmse_km_s=4.758e-01][16:58:44][INFO] Epoch 37/240
-[16:58:44][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.005581, std=0.983925, min=-1.729709, max=1.729650
-[16:58:44][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:58:44][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.60GB, peak=7.75GB
-[16:58:53][INFO] Epoch 37 complete | train_loss=0.000347, val_loss=0.000353
-Training:  15%|█▌        | 36/240 [05:45<31:36,  9.29s/it, angmom=0.000e+00, data=3.472e-04, energy=0.000e+00, lr=1.13e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.472e-04, pos_rmse_km=1.750e+06, val=3.528e-04, vel_rmse_km_s=5.876e-01]Training:  15%|█▌        | 37/240 [05:45<31:25,  9.29s/it, angmom=0.000e+00, data=3.472e-04, energy=0.000e+00, lr=1.13e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.472e-04, pos_rmse_km=1.750e+06, val=3.528e-04, vel_rmse_km_s=5.876e-01][16:58:53][INFO] Epoch 38/240
-[16:58:53][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.029885, std=0.982789, min=-1.728939, max=1.729176
-[16:58:53][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:58:53][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.60GB, peak=7.75GB
-[16:59:02][INFO] Epoch 38 complete | train_loss=0.000333, val_loss=0.000254
-Training:  15%|█▌        | 37/240 [05:54<31:25,  9.29s/it, angmom=0.000e+00, data=3.333e-04, energy=0.000e+00, lr=1.13e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.333e-04, pos_rmse_km=1.240e+06, val=2.544e-04, vel_rmse_km_s=5.850e-01]Training:  16%|█▌        | 38/240 [05:54<31:07,  9.25s/it, angmom=0.000e+00, data=3.333e-04, energy=0.000e+00, lr=1.13e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.333e-04, pos_rmse_km=1.240e+06, val=2.544e-04, vel_rmse_km_s=5.850e-01][16:59:02][INFO] Epoch 39/240
-[16:59:02][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.026186, std=1.007106, min=-1.731547, max=1.731310
-[16:59:02][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:59:02][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.60GB, peak=7.75GB
-[16:59:11][INFO] Epoch 39 complete | train_loss=0.000315, val_loss=0.000401
-Training:  16%|█▌        | 38/240 [06:03<31:07,  9.25s/it, angmom=0.000e+00, data=3.153e-04, energy=0.000e+00, lr=1.13e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.153e-04, pos_rmse_km=1.777e+06, val=4.008e-04, vel_rmse_km_s=6.991e-01]Training:  16%|█▋        | 39/240 [06:03<31:08,  9.29s/it, angmom=0.000e+00, data=3.153e-04, energy=0.000e+00, lr=1.13e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=3.153e-04, pos_rmse_km=1.777e+06, val=4.008e-04, vel_rmse_km_s=6.991e-01][16:59:11][INFO] Epoch 40/240
-[16:59:11][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.004000, std=0.994402, min=-1.727991, max=1.729354
-[16:59:12][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:59:12][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.60GB, peak=7.75GB
-[16:59:21][INFO] Epoch 40 complete | train_loss=0.000222, val_loss=0.000225
-Training:  16%|█▋        | 39/240 [06:12<31:08,  9.29s/it, angmom=0.000e+00, data=2.219e-04, energy=0.000e+00, lr=1.12e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.219e-04, pos_rmse_km=1.160e+06, val=2.255e-04, vel_rmse_km_s=5.269e-01]Training:  17%|█▋        | 40/240 [06:12<30:51,  9.26s/it, angmom=0.000e+00, data=2.219e-04, energy=0.000e+00, lr=1.12e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.219e-04, pos_rmse_km=1.160e+06, val=2.255e-04, vel_rmse_km_s=5.269e-01][16:59:21][INFO] Epoch 41/240
-[16:59:21][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.018193, std=0.996425, min=-1.730658, max=1.730243
-[16:59:21][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:59:21][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.63GB, peak=7.75GB
-[16:59:30][INFO] Epoch 41 complete | train_loss=0.000105, val_loss=0.000112
-Training:  17%|█▋        | 40/240 [06:22<30:51,  9.26s/it, angmom=0.000e+00, data=1.047e-04, energy=0.000e+00, lr=1.12e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.047e-04, pos_rmse_km=7.776e+05, val=1.118e-04, vel_rmse_km_s=3.959e-01]Training:  17%|█▋        | 41/240 [06:22<31:13,  9.41s/it, angmom=0.000e+00, data=1.047e-04, energy=0.000e+00, lr=1.12e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.047e-04, pos_rmse_km=7.776e+05, val=1.118e-04, vel_rmse_km_s=3.959e-01][16:59:30][INFO] Epoch 42/240
-[16:59:30][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.029820, std=1.014925, min=-1.729591, max=1.730658
-[16:59:31][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:59:31][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.63GB, peak=7.75GB
-[16:59:40][INFO] Epoch 42 complete | train_loss=0.000108, val_loss=0.000097
-Training:  17%|█▋        | 41/240 [06:31<31:13,  9.41s/it, angmom=0.000e+00, data=1.083e-04, energy=0.000e+00, lr=1.12e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.083e-04, pos_rmse_km=7.317e+05, val=9.747e-05, vel_rmse_km_s=3.630e-01]Training:  18%|█▊        | 42/240 [06:31<30:56,  9.38s/it, angmom=0.000e+00, data=1.083e-04, energy=0.000e+00, lr=1.12e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.083e-04, pos_rmse_km=7.317e+05, val=9.747e-05, vel_rmse_km_s=3.630e-01][16:59:40][INFO] Epoch 43/240
-[16:59:40][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.032707, std=1.008568, min=-1.732021, max=1.729591
-[16:59:40][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:59:40][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.65GB, peak=7.75GB
-[16:59:49][INFO] Epoch 43 complete | train_loss=0.000120, val_loss=0.000119
-Training:  18%|█▊        | 42/240 [06:41<30:56,  9.38s/it, angmom=0.000e+00, data=1.196e-04, energy=0.000e+00, lr=1.11e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.196e-04, pos_rmse_km=8.933e+05, val=1.195e-04, vel_rmse_km_s=4.038e-01]Training:  18%|█▊        | 43/240 [06:41<30:40,  9.34s/it, angmom=0.000e+00, data=1.196e-04, energy=0.000e+00, lr=1.11e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.196e-04, pos_rmse_km=8.933e+05, val=1.195e-04, vel_rmse_km_s=4.038e-01][16:59:49][INFO] Epoch 44/240
-[16:59:49][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.009134, std=1.002343, min=-1.725323, max=1.731784
-[16:59:49][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:59:49][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.65GB, peak=7.75GB
-[16:59:58][INFO] Epoch 44 complete | train_loss=0.000133, val_loss=0.000102
-Training:  18%|█▊        | 43/240 [06:50<30:40,  9.34s/it, angmom=0.000e+00, data=1.330e-04, energy=0.000e+00, lr=1.11e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.330e-04, pos_rmse_km=7.185e+05, val=1.023e-04, vel_rmse_km_s=3.607e-01]Training:  18%|█▊        | 44/240 [06:50<30:27,  9.32s/it, angmom=0.000e+00, data=1.330e-04, energy=0.000e+00, lr=1.11e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.330e-04, pos_rmse_km=7.185e+05, val=1.023e-04, vel_rmse_km_s=3.607e-01][16:59:58][INFO] Epoch 45/240
-[16:59:58][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.036916, std=1.000741, min=-1.729769, max=1.728702
-[16:59:58][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[16:59:58][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.65GB, peak=7.75GB
-[17:00:07][INFO] Epoch 45 complete | train_loss=0.000141, val_loss=0.000136
-Training:  18%|█▊        | 44/240 [06:59<30:27,  9.32s/it, angmom=0.000e+00, data=1.410e-04, energy=0.000e+00, lr=1.10e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.410e-04, pos_rmse_km=8.047e+05, val=1.363e-04, vel_rmse_km_s=4.382e-01]Training:  19%|█▉        | 45/240 [06:59<30:14,  9.31s/it, angmom=0.000e+00, data=1.410e-04, energy=0.000e+00, lr=1.10e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.410e-04, pos_rmse_km=8.047e+05, val=1.363e-04, vel_rmse_km_s=4.382e-01][17:00:07][INFO] Epoch 46/240
-[17:00:07][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.001558, std=0.982975, min=-1.730954, max=1.730954
-[17:00:08][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:00:08][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.65GB, peak=7.75GB
-[17:00:17][INFO] Epoch 46 complete | train_loss=0.000161, val_loss=0.000132
-Training:  19%|█▉        | 45/240 [07:08<30:14,  9.31s/it, angmom=0.000e+00, data=1.612e-04, energy=0.000e+00, lr=1.10e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.612e-04, pos_rmse_km=9.170e+05, val=1.323e-04, vel_rmse_km_s=4.265e-01]Training:  19%|█▉        | 46/240 [07:08<29:56,  9.26s/it, angmom=0.000e+00, data=1.612e-04, energy=0.000e+00, lr=1.10e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.612e-04, pos_rmse_km=9.170e+05, val=1.323e-04, vel_rmse_km_s=4.265e-01][17:00:17][INFO] Epoch 47/240
-[17:00:17][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.024071, std=0.988845, min=-1.729887, max=1.731903
-[17:00:17][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:00:17][INFO] Step 0 | GPU Memory: allocated=3.25GB, reserved=8.65GB, peak=7.75GB
-[17:00:26][INFO] Epoch 47 complete | train_loss=0.000107, val_loss=0.000121
-Training:  19%|█▉        | 46/240 [07:18<29:56,  9.26s/it, angmom=0.000e+00, data=1.073e-04, energy=0.000e+00, lr=1.09e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.073e-04, pos_rmse_km=8.767e+05, val=1.211e-04, vel_rmse_km_s=4.040e-01]Training:  19%|█▉        | 46/240 [07:18<30:47,  9.52s/it, angmom=0.000e+00, data=1.073e-04, energy=0.000e+00, lr=1.09e-04, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.073e-04, pos_rmse_km=8.767e+05, val=1.211e-04, vel_rmse_km_s=4.040e-01]
-✓ Checkpoint saved: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/checkpoint_refine.pt
-[17:00:26][INFO] Training complete!
-✓ Saved training history: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/history_refine.json
-✓ Checkpoint saved: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/checkpoint_refine.pt
-  Best epoch: 7
-  Best val RMSE: 172,086.82 km
-GPU Memory: 0.02 GB allocated, 0.08 GB reserved
-
-================================================================================
-STAGE 3: PHYSICS TRAINING (add n-body residual)
-================================================================================
-✓ Loaded training history: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/history_physics.json
-Training physics stage (starting from refine checkpoint)...
-[Rank 0/1] Training on cuda:0
-Training:   0%|          | 0/80 [00:00<?, ?it/s][17:00:26][INFO] Starting training...
-[17:00:26][INFO] World size: 1
-[17:00:26][INFO] Batch size per GPU: 1536
-[17:00:26][INFO] Effective batch size: 1536
-[17:00:26][INFO] Epoch 1/80
-[17:00:26][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.016105, std=1.012735, min=-1.731191, max=1.731725
-[17:00:26][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:00:26][INFO] Step 0 | GPU Memory: allocated=0.23GB, reserved=0.58GB, peak=7.75GB
-[17:00:28][INFO] Epoch 1 complete | train_loss=0.000130, val_loss=0.000158
-Training:   0%|          | 0/80 [00:02<?, ?it/s, angmom=0.000e+00, data=1.303e-04, energy=0.000e+00, lr=5.00e-05, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.303e-04, pos_rmse_km=1.967e+06, val=1.580e-04]  → New best val_pos_rmse_km: 1966638.218750
-Training:   1%|▏         | 1/80 [00:02<02:58,  2.26s/it, angmom=0.000e+00, data=1.303e-04, energy=0.000e+00, lr=5.00e-05, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.303e-04, pos_rmse_km=1.967e+06, val=1.580e-04][17:00:29][INFO] Epoch 2/80
-[17:00:29][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.000642, std=0.992738, min=-1.729235, max=1.731843
-[17:00:29][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:00:29][INFO] Step 0 | GPU Memory: allocated=0.52GB, reserved=1.05GB, peak=7.75GB
-[17:00:30][INFO] Epoch 2 complete | train_loss=0.000010, val_loss=0.000008
-Training:   1%|▏         | 1/80 [00:03<02:58,  2.26s/it, angmom=0.000e+00, data=9.915e-06, energy=0.000e+00, lr=5.00e-05, nbody=0.000e+00, nbody_w=0.00e+00, obj=9.915e-06, pos_rmse_km=4.164e+05, val=7.785e-06]  → New best val_pos_rmse_km: 416444.664062
-Training:   2%|▎         | 2/80 [00:03<02:29,  1.92s/it, angmom=0.000e+00, data=9.915e-06, energy=0.000e+00, lr=5.00e-05, nbody=0.000e+00, nbody_w=0.00e+00, obj=9.915e-06, pos_rmse_km=4.164e+05, val=7.785e-06][17:00:30][INFO] Epoch 3/80
-[17:00:30][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.009101, std=0.994348, min=-1.731073, max=1.729354
-[17:00:30][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:00:30][INFO] Step 0 | GPU Memory: allocated=0.52GB, reserved=1.05GB, peak=7.75GB
-[17:00:32][INFO] Epoch 3 complete | train_loss=0.000001, val_loss=0.000001
-Training:   2%|▎         | 2/80 [00:05<02:29,  1.92s/it, angmom=0.000e+00, data=1.127e-06, energy=0.000e+00, lr=4.99e-05, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.127e-06, pos_rmse_km=1.522e+05, val=1.001e-06]  → New best val_pos_rmse_km: 152227.230469
-Training:   4%|▍         | 3/80 [00:05<02:14,  1.75s/it, angmom=0.000e+00, data=1.127e-06, energy=0.000e+00, lr=4.99e-05, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.127e-06, pos_rmse_km=1.522e+05, val=1.001e-06][17:00:32][INFO] Epoch 4/80
-[17:00:32][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.026960, std=0.980350, min=-1.730895, max=1.728998
-[17:00:32][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:00:32][INFO] Step 0 | GPU Memory: allocated=0.52GB, reserved=1.09GB, peak=7.75GB
-[17:00:34][INFO] Epoch 4 complete | train_loss=0.000000, val_loss=0.000000
-Training:   4%|▍         | 3/80 [00:07<02:14,  1.75s/it, angmom=0.000e+00, data=4.151e-07, energy=0.000e+00, lr=4.98e-05, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.151e-07, pos_rmse_km=9.671e+04, val=3.950e-07]  → New best val_pos_rmse_km: 96710.181641
-Training:   5%|▌         | 4/80 [00:07<02:14,  1.77s/it, angmom=0.000e+00, data=4.151e-07, energy=0.000e+00, lr=4.98e-05, nbody=0.000e+00, nbody_w=0.00e+00, obj=4.151e-07, pos_rmse_km=9.671e+04, val=3.950e-07][17:00:34][INFO] Epoch 5/80
-[17:00:34][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.027563, std=1.007463, min=-1.730717, max=1.731073
-[17:00:34][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:00:34][INFO] Step 0 | GPU Memory: allocated=0.52GB, reserved=1.09GB, peak=7.75GB
-[17:00:35][INFO] Epoch 5 complete | train_loss=0.000000, val_loss=0.000000
-Training:   5%|▌         | 4/80 [00:08<02:14,  1.77s/it, angmom=0.000e+00, data=2.549e-07, energy=0.000e+00, lr=4.97e-05, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.549e-07, pos_rmse_km=7.704e+04, val=2.540e-07]  → New best val_pos_rmse_km: 77043.761719
-Training:   6%|▋         | 5/80 [00:08<02:06,  1.69s/it, angmom=0.000e+00, data=2.549e-07, energy=0.000e+00, lr=4.97e-05, nbody=0.000e+00, nbody_w=0.00e+00, obj=2.549e-07, pos_rmse_km=7.704e+04, val=2.540e-07][17:00:35][INFO] Epoch 6/80
-[17:00:35][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.002114, std=0.996682, min=-1.725204, max=1.729650
-[17:00:35][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:00:35][INFO] Step 0 | GPU Memory: allocated=0.52GB, reserved=1.09GB, peak=7.75GB
-[17:00:37][INFO] Epoch 6 complete | train_loss=0.000000, val_loss=0.000000
-Training:   6%|▋         | 5/80 [00:10<02:06,  1.69s/it, angmom=0.000e+00, data=1.894e-07, energy=0.000e+00, lr=4.95e-05, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.894e-07, pos_rmse_km=6.615e+04, val=1.877e-07]  → New best val_pos_rmse_km: 66153.797852
-Training:   8%|▊         | 6/80 [00:10<02:04,  1.69s/it, angmom=0.000e+00, data=1.894e-07, energy=0.000e+00, lr=4.95e-05, nbody=0.000e+00, nbody_w=0.00e+00, obj=1.894e-07, pos_rmse_km=6.615e+04, val=1.877e-07][17:00:37][INFO] Epoch 7/80
-[17:00:37][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.020183, std=0.997819, min=-1.731310, max=1.731903
-[17:00:37][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:00:37][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.02GB, peak=7.75GB
-[17:00:46][INFO] Epoch 7 complete | train_loss=0.000000, val_loss=0.000000
-Training:   8%|▊         | 6/80 [00:19<02:04,  1.69s/it, angmom=0.000e+00, data=1.442e-07, energy=0.000e+00, lr=4.93e-05, nbody=1.520e-04, nbody_w=2.78e-08, obj=1.442e-07, pos_rmse_km=5.812e+04, val=1.450e-07]  → New best val_pos_rmse_km: 58121.053711
-Training:   9%|▉         | 7/80 [00:19<04:51,  4.00s/it, angmom=0.000e+00, data=1.442e-07, energy=0.000e+00, lr=4.93e-05, nbody=1.520e-04, nbody_w=2.78e-08, obj=1.442e-07, pos_rmse_km=5.812e+04, val=1.450e-07][17:00:46][INFO] Epoch 8/80
-[17:00:46][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.003947, std=0.992639, min=-1.729946, max=1.730302
-[17:00:46][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:00:46][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:00:54][INFO] Epoch 8 complete | train_loss=0.000000, val_loss=0.000000
-Training:   9%|▉         | 7/80 [00:27<04:51,  4.00s/it, angmom=0.000e+00, data=1.268e-07, energy=0.000e+00, lr=4.91e-05, nbody=1.438e-04, nbody_w=9.20e-04, obj=2.592e-07, pos_rmse_km=5.264e+04, val=1.186e-07]  → New best val_pos_rmse_km: 52635.366211
-Training:  10%|█         | 8/80 [00:27<06:33,  5.47s/it, angmom=0.000e+00, data=1.268e-07, energy=0.000e+00, lr=4.91e-05, nbody=1.438e-04, nbody_w=9.20e-04, obj=2.592e-07, pos_rmse_km=5.264e+04, val=1.186e-07][17:00:54][INFO] Epoch 9/80
-[17:00:54][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.013297, std=1.008191, min=-1.729057, max=1.731191
-[17:00:55][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:00:55][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:01:03][INFO] Epoch 9 complete | train_loss=0.000000, val_loss=0.000000
-Training:  10%|█         | 8/80 [00:36<06:33,  5.47s/it, angmom=0.000e+00, data=1.098e-07, energy=0.000e+00, lr=4.88e-05, nbody=1.542e-04, nbody_w=8.33e-04, obj=2.383e-07, pos_rmse_km=4.912e+04, val=1.040e-07]  → New best val_pos_rmse_km: 49116.358398
-Training:  11%|█▏        | 9/80 [00:36<07:38,  6.45s/it, angmom=0.000e+00, data=1.098e-07, energy=0.000e+00, lr=4.88e-05, nbody=1.542e-04, nbody_w=8.33e-04, obj=2.383e-07, pos_rmse_km=4.912e+04, val=1.040e-07][17:01:03][INFO] Epoch 10/80
-[17:01:03][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.009172, std=0.979599, min=-1.731369, max=1.732021
-[17:01:03][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:01:03][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:01:11][INFO] Epoch 10 complete | train_loss=0.000000, val_loss=0.000000
-Training:  11%|█▏        | 9/80 [00:45<07:38,  6.45s/it, angmom=0.000e+00, data=9.086e-08, energy=0.000e+00, lr=4.85e-05, nbody=1.432e-04, nbody_w=7.48e-04, obj=1.980e-07, pos_rmse_km=4.629e+04, val=9.215e-08]  → New best val_pos_rmse_km: 46285.664062
-Training:  12%|█▎        | 10/80 [00:45<08:18,  7.12s/it, angmom=0.000e+00, data=9.086e-08, energy=0.000e+00, lr=4.85e-05, nbody=1.432e-04, nbody_w=7.48e-04, obj=1.980e-07, pos_rmse_km=4.629e+04, val=9.215e-08][17:01:12][INFO] Epoch 11/80
-[17:01:12][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.011751, std=0.996696, min=-1.731547, max=1.729887
-[17:01:12][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:01:12][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:01:20][INFO] Epoch 11 complete | train_loss=0.000000, val_loss=0.000000
-Training:  12%|█▎        | 10/80 [00:54<08:18,  7.12s/it, angmom=0.000e+00, data=8.220e-08, energy=0.000e+00, lr=4.81e-05, nbody=1.431e-04, nbody_w=6.77e-04, obj=1.791e-07, pos_rmse_km=4.468e+04, val=8.577e-08]  → New best val_pos_rmse_km: 44681.913086
-Training:  14%|█▍        | 11/80 [00:54<08:53,  7.74s/it, angmom=0.000e+00, data=8.220e-08, energy=0.000e+00, lr=4.81e-05, nbody=1.431e-04, nbody_w=6.77e-04, obj=1.791e-07, pos_rmse_km=4.468e+04, val=8.577e-08][17:01:21][INFO] Epoch 12/80
-[17:01:21][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.034931, std=0.997269, min=-1.731014, max=1.729828
-[17:01:21][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:01:21][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:01:29][INFO] Epoch 12 complete | train_loss=0.000000, val_loss=0.000000
-Training:  14%|█▍        | 11/80 [01:02<08:53,  7.74s/it, angmom=0.000e+00, data=7.922e-08, energy=0.000e+00, lr=4.77e-05, nbody=1.464e-04, nbody_w=6.13e-04, obj=1.690e-07, pos_rmse_km=4.426e+04, val=8.629e-08]  → New best val_pos_rmse_km: 44256.320312
-Training:  15%|█▌        | 12/80 [01:02<09:06,  8.03s/it, angmom=0.000e+00, data=7.922e-08, energy=0.000e+00, lr=4.77e-05, nbody=1.464e-04, nbody_w=6.13e-04, obj=1.690e-07, pos_rmse_km=4.426e+04, val=8.629e-08][17:01:29][INFO] Epoch 13/80
-[17:01:29][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.043061, std=1.009284, min=-1.728524, max=1.732021
-[17:01:30][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:01:30][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:01:38][INFO] Epoch 13 complete | train_loss=0.000000, val_loss=0.000000
-Training:  15%|█▌        | 12/80 [01:11<09:06,  8.03s/it, angmom=0.000e+00, data=7.016e-08, energy=0.000e+00, lr=4.73e-05, nbody=1.447e-04, nbody_w=5.53e-04, obj=1.502e-07, pos_rmse_km=4.030e+04, val=7.031e-08]  → New best val_pos_rmse_km: 40297.535156
-Training:  16%|█▋        | 13/80 [01:11<09:11,  8.23s/it, angmom=0.000e+00, data=7.016e-08, energy=0.000e+00, lr=4.73e-05, nbody=1.447e-04, nbody_w=5.53e-04, obj=1.502e-07, pos_rmse_km=4.030e+04, val=7.031e-08][17:01:38][INFO] Epoch 14/80
-[17:01:38][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.001724, std=0.988872, min=-1.730421, max=1.728820
-[17:01:38][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:01:38][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:01:47][INFO] Epoch 14 complete | train_loss=0.000000, val_loss=0.000000
-Training:  16%|█▋        | 13/80 [01:20<09:11,  8.23s/it, angmom=0.000e+00, data=6.855e-08, energy=0.000e+00, lr=4.68e-05, nbody=1.354e-04, nbody_w=4.99e-04, obj=1.362e-07, pos_rmse_km=4.281e+04, val=7.876e-08]Training:  18%|█▊        | 14/80 [01:20<09:11,  8.35s/it, angmom=0.000e+00, data=6.855e-08, energy=0.000e+00, lr=4.68e-05, nbody=1.354e-04, nbody_w=4.99e-04, obj=1.362e-07, pos_rmse_km=4.281e+04, val=7.876e-08][17:01:47][INFO] Epoch 15/80
-[17:01:47][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.038560, std=0.994239, min=-1.731843, max=1.729946
-[17:01:47][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:01:47][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:01:55][INFO] Epoch 15 complete | train_loss=0.000000, val_loss=0.000000
-Training:  18%|█▊        | 14/80 [01:28<09:11,  8.35s/it, angmom=0.000e+00, data=7.075e-08, energy=0.000e+00, lr=4.64e-05, nbody=1.445e-04, nbody_w=4.54e-04, obj=1.363e-07, pos_rmse_km=4.177e+04, val=7.808e-08]Training:  19%|█▉        | 15/80 [01:28<09:07,  8.42s/it, angmom=0.000e+00, data=7.075e-08, energy=0.000e+00, lr=4.64e-05, nbody=1.445e-04, nbody_w=4.54e-04, obj=1.363e-07, pos_rmse_km=4.177e+04, val=7.808e-08][17:01:55][INFO] Epoch 16/80
-[17:01:55][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.033648, std=1.008961, min=-1.730124, max=1.727279
-[17:01:56][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:01:56][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:02:04][INFO] Epoch 16 complete | train_loss=0.000000, val_loss=0.000000
-Training:  19%|█▉        | 15/80 [01:37<09:07,  8.42s/it, angmom=0.000e+00, data=7.112e-08, energy=0.000e+00, lr=4.58e-05, nbody=1.407e-04, nbody_w=4.09e-04, obj=1.287e-07, pos_rmse_km=3.952e+04, val=6.858e-08]  → New best val_pos_rmse_km: 39523.598633
-Training:  20%|██        | 16/80 [01:37<09:03,  8.49s/it, angmom=0.000e+00, data=7.112e-08, energy=0.000e+00, lr=4.58e-05, nbody=1.407e-04, nbody_w=4.09e-04, obj=1.287e-07, pos_rmse_km=3.952e+04, val=6.858e-08][17:02:04][INFO] Epoch 17/80
-[17:02:04][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.018557, std=1.009995, min=-1.729176, max=1.727931
-[17:02:04][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:02:04][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:02:13][INFO] Epoch 17 complete | train_loss=0.000036, val_loss=0.000039
-Training:  20%|██        | 16/80 [01:46<09:03,  8.49s/it, angmom=0.000e+00, data=3.569e-05, energy=0.000e+00, lr=4.53e-05, nbody=1.465e-04, nbody_w=3.70e-04, obj=3.574e-05, pos_rmse_km=9.297e+05, val=3.923e-05]Training:  21%|██▏       | 17/80 [01:46<08:57,  8.53s/it, angmom=0.000e+00, data=3.569e-05, energy=0.000e+00, lr=4.53e-05, nbody=1.465e-04, nbody_w=3.70e-04, obj=3.574e-05, pos_rmse_km=9.297e+05, val=3.923e-05][17:02:13][INFO] Epoch 18/80
-[17:02:13][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.013422, std=1.003814, min=-1.731843, max=1.729413
-[17:02:13][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:02:13][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:02:21][INFO] Epoch 18 complete | train_loss=0.000005, val_loss=0.000006
-Training:  21%|██▏       | 17/80 [01:54<08:57,  8.53s/it, angmom=0.000e+00, data=4.992e-06, energy=0.000e+00, lr=4.47e-05, nbody=1.499e-04, nbody_w=3.82e-04, obj=5.049e-06, pos_rmse_km=3.679e+05, val=5.705e-06]Training:  22%|██▎       | 18/80 [01:54<08:47,  8.51s/it, angmom=0.000e+00, data=4.992e-06, energy=0.000e+00, lr=4.47e-05, nbody=1.499e-04, nbody_w=3.82e-04, obj=5.049e-06, pos_rmse_km=3.679e+05, val=5.705e-06][17:02:21][INFO] Epoch 19/80
-[17:02:21][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.009939, std=0.990167, min=-1.731784, max=1.730776
-[17:02:21][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:02:21][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:02:30][INFO] Epoch 19 complete | train_loss=0.000001, val_loss=0.000001
-Training:  22%|██▎       | 18/80 [02:03<08:47,  8.51s/it, angmom=0.000e+00, data=1.022e-06, energy=0.000e+00, lr=4.41e-05, nbody=1.537e-04, nbody_w=3.50e-04, obj=1.076e-06, pos_rmse_km=1.586e+05, val=1.056e-06]Training:  24%|██▍       | 19/80 [02:03<08:40,  8.54s/it, angmom=0.000e+00, data=1.022e-06, energy=0.000e+00, lr=4.41e-05, nbody=1.537e-04, nbody_w=3.50e-04, obj=1.076e-06, pos_rmse_km=1.586e+05, val=1.056e-06][17:02:30][INFO] Epoch 20/80
-[17:02:30][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.024788, std=1.014544, min=-1.727101, max=1.731665
-[17:02:30][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:02:30][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:02:38][INFO] Epoch 20 complete | train_loss=0.000000, val_loss=0.000000
-Training:  24%|██▍       | 19/80 [02:11<08:40,  8.54s/it, angmom=0.000e+00, data=2.003e-07, energy=0.000e+00, lr=4.34e-05, nbody=1.458e-04, nbody_w=3.15e-04, obj=2.462e-07, pos_rmse_km=7.351e+04, val=2.375e-07]Training:  25%|██▌       | 20/80 [02:11<08:32,  8.54s/it, angmom=0.000e+00, data=2.003e-07, energy=0.000e+00, lr=4.34e-05, nbody=1.458e-04, nbody_w=3.15e-04, obj=2.462e-07, pos_rmse_km=7.351e+04, val=2.375e-07][17:02:38][INFO] Epoch 21/80
-[17:02:38][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.004060, std=1.006261, min=-1.728346, max=1.731488
-[17:02:38][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:02:38][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:02:47][INFO] Epoch 21 complete | train_loss=0.000000, val_loss=0.000000
-Training:  25%|██▌       | 20/80 [02:20<08:32,  8.54s/it, angmom=0.000e+00, data=1.493e-07, energy=0.000e+00, lr=4.28e-05, nbody=1.431e-04, nbody_w=2.84e-04, obj=1.900e-07, pos_rmse_km=7.029e+04, val=2.035e-07]Training:  26%|██▋       | 21/80 [02:20<08:33,  8.70s/it, angmom=0.000e+00, data=1.493e-07, energy=0.000e+00, lr=4.28e-05, nbody=1.431e-04, nbody_w=2.84e-04, obj=1.900e-07, pos_rmse_km=7.029e+04, val=2.035e-07][17:02:47][INFO] Epoch 22/80
-[17:02:47][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.033589, std=1.012210, min=-1.731014, max=1.728465
-[17:02:47][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:02:47][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:02:56][INFO] Epoch 22 complete | train_loss=0.000000, val_loss=0.000000
-Training:  26%|██▋       | 21/80 [02:29<08:33,  8.70s/it, angmom=0.000e+00, data=7.520e-08, energy=0.000e+00, lr=4.21e-05, nbody=1.459e-04, nbody_w=2.56e-04, obj=1.126e-07, pos_rmse_km=4.156e+04, val=7.653e-08]Training:  28%|██▊       | 22/80 [02:29<08:23,  8.67s/it, angmom=0.000e+00, data=7.520e-08, energy=0.000e+00, lr=4.21e-05, nbody=1.459e-04, nbody_w=2.56e-04, obj=1.126e-07, pos_rmse_km=4.156e+04, val=7.653e-08][17:02:56][INFO] Epoch 23/80
-[17:02:56][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.025831, std=1.002656, min=-1.730421, max=1.728998
-[17:02:56][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:02:56][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:03:04][INFO] Epoch 23 complete | train_loss=0.000001, val_loss=0.000001
-Training:  28%|██▊       | 22/80 [02:37<08:23,  8.67s/it, angmom=0.000e+00, data=6.583e-07, energy=0.000e+00, lr=4.13e-05, nbody=1.502e-04, nbody_w=2.31e-04, obj=6.930e-07, pos_rmse_km=1.072e+05, val=6.011e-07]Training:  29%|██▉       | 23/80 [02:37<08:10,  8.61s/it, angmom=0.000e+00, data=6.583e-07, energy=0.000e+00, lr=4.13e-05, nbody=1.502e-04, nbody_w=2.31e-04, obj=6.930e-07, pos_rmse_km=1.072e+05, val=6.011e-07][17:03:04][INFO] Epoch 24/80
-[17:03:04][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.012523, std=1.010151, min=-1.730124, max=1.710326
-[17:03:05][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:03:05][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:03:13][INFO] Epoch 24 complete | train_loss=0.000001, val_loss=0.000001
-Training:  29%|██▉       | 23/80 [02:46<08:10,  8.61s/it, angmom=0.000e+00, data=6.290e-07, energy=0.000e+00, lr=4.06e-05, nbody=1.390e-04, nbody_w=2.08e-04, obj=6.580e-07, pos_rmse_km=1.102e+05, val=5.243e-07]Training:  30%|███       | 24/80 [02:46<08:01,  8.60s/it, angmom=0.000e+00, data=6.290e-07, energy=0.000e+00, lr=4.06e-05, nbody=1.390e-04, nbody_w=2.08e-04, obj=6.580e-07, pos_rmse_km=1.102e+05, val=5.243e-07][17:03:13][INFO] Epoch 25/80
-[17:03:13][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.018628, std=0.996943, min=-1.726331, max=1.730421
-[17:03:13][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:03:13][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:03:22][INFO] Epoch 25 complete | train_loss=0.000013, val_loss=0.000011
-Training:  30%|███       | 24/80 [02:55<08:01,  8.60s/it, angmom=0.000e+00, data=1.254e-05, energy=0.000e+00, lr=3.98e-05, nbody=1.443e-04, nbody_w=1.90e-04, obj=1.256e-05, pos_rmse_km=4.672e+05, val=1.120e-05]Training:  31%|███▏      | 25/80 [02:55<07:54,  8.63s/it, angmom=0.000e+00, data=1.254e-05, energy=0.000e+00, lr=3.98e-05, nbody=1.443e-04, nbody_w=1.90e-04, obj=1.256e-05, pos_rmse_km=4.672e+05, val=1.120e-05][17:03:22][INFO] Epoch 26/80
-[17:03:22][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.034676, std=1.001775, min=-1.731369, max=1.722359
-[17:03:22][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:03:22][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:03:30][INFO] Epoch 26 complete | train_loss=0.000001, val_loss=0.000001
-Training:  31%|███▏      | 25/80 [03:03<07:54,  8.63s/it, angmom=0.000e+00, data=1.177e-06, energy=0.000e+00, lr=3.90e-05, nbody=1.432e-04, nbody_w=1.88e-04, obj=1.204e-06, pos_rmse_km=1.610e+05, val=1.072e-06]Training:  32%|███▎      | 26/80 [03:03<07:42,  8.57s/it, angmom=0.000e+00, data=1.177e-06, energy=0.000e+00, lr=3.90e-05, nbody=1.432e-04, nbody_w=1.88e-04, obj=1.204e-06, pos_rmse_km=1.610e+05, val=1.072e-06][17:03:30][INFO] Epoch 27/80
-[17:03:30][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=0.005531, std=0.996394, min=-1.724612, max=1.731725
-[17:03:30][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:03:30][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:03:39][INFO] Epoch 27 complete | train_loss=0.000001, val_loss=0.000001
-Training:  32%|███▎      | 26/80 [03:12<07:42,  8.57s/it, angmom=0.000e+00, data=9.082e-07, energy=0.000e+00, lr=3.82e-05, nbody=1.563e-04, nbody_w=1.71e-04, obj=9.350e-07, pos_rmse_km=1.519e+05, val=9.841e-07]Training:  34%|███▍      | 27/80 [03:12<07:33,  8.56s/it, angmom=0.000e+00, data=9.082e-07, energy=0.000e+00, lr=3.82e-05, nbody=1.563e-04, nbody_w=1.71e-04, obj=9.350e-07, pos_rmse_km=1.519e+05, val=9.841e-07][17:03:39][INFO] Epoch 28/80
-[17:03:39][DEBUG] Step 0 | Batch: shape=torch.Size([1536]), mean=-0.006127, std=1.012277, min=-1.731251, max=1.730302
-[17:03:39][DEBUG] Step 0 | Gradients: total_norm=0.000000, max=0.000000, min=inf
-[17:03:39][INFO] Step 0 | GPU Memory: allocated=0.62GB, reserved=2.11GB, peak=7.75GB
-[17:03:47][INFO] Epoch 28 complete | train_loss=0.000002, val_loss=0.000003
-Training:  34%|███▍      | 27/80 [03:20<07:33,  8.56s/it, angmom=0.000e+00, data=2.014e-06, energy=0.000e+00, lr=3.73e-05, nbody=1.473e-04, nbody_w=1.54e-04, obj=2.037e-06, pos_rmse_km=2.430e+05, val=3.144e-06]Training:  34%|███▍      | 27/80 [03:20<06:33,  7.43s/it, angmom=0.000e+00, data=2.014e-06, energy=0.000e+00, lr=3.73e-05, nbody=1.473e-04, nbody_w=1.54e-04, obj=2.037e-06, pos_rmse_km=2.430e+05, val=3.144e-06]
-✓ Checkpoint saved: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/checkpoint_physics.pt
-[17:03:47][INFO] Training complete!
-✓ Saved training history: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/history_physics.json
-✓ Checkpoint saved: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/checkpoint_physics.pt
-  Best epoch: 16
-  Best val RMSE: 39,523.60 km
-GPU Memory: 0.02 GB allocated, 0.08 GB reserved
-
-================================================================================
-FINAL CHECKPOINT SELECTION
-================================================================================
-✓ Final checkpoint: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/artifacts
-  Selected stage: physics
-  Best val RMSE: 39,523.60 km
-
-Generating plots...
-✓ Training plots: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN
-✓ Summary: /orfeo/cephfs/home/astreo/gbillo/solar_system/PINN/training_summary.json
-
-================================================================================
-TRAINING COMPLETE
-================================================================================
-/var/spool/slurm/d/job1140206/slurm_script: line 249: --dataset-path: command not found
-
-============================================================
- End time    : Sun Apr 19 05:03:50 PM CEST 2026
- Exit code   : 127
- Run dir     : logs/runs/1140206
-============================================================
-
-=== Cleanup ===
-Stopping nvidia-smi sampler (PID 2163610)
-Sun Apr 19 17:03:50 2026       
-+-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 580.105.08             Driver Version: 580.105.08     CUDA Version: 13.0     |
-+-----------------------------------------+------------------------+----------------------+
-| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
-| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
-|                                         |                        |               MIG M. |
-|=========================================+========================+======================|
-|   0  Tesla V100-PCIE-32GB           Off |   00000000:3B:00.0 Off |                    0 |
-| N/A   46C    P0             46W /  250W |       0MiB /  32768MiB |      0%      Default |
-|                                         |                        |                  N/A |
-+-----------------------------------------+------------------------+----------------------+
-
-+-----------------------------------------------------------------------------------------+
-| Processes:                                                                              |
-|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
-|        ID   ID                                                               Usage      |
-|=========================================================================================|
-|  No running processes found                                                             |
-+-----------------------------------------------------------------------------------------+
-2026/04/19 17:03:50.170, 0, 32768, 0, 32495, 0, 0, 46, 46.50

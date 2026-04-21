@@ -1,9 +1,0 @@
-pmon_snapshot(pid,sm,mem,enc,dec,command) - sampled every 1s
-#Date        Time         gpu         pid   type     sm    mem    enc    dec    jpg    ofa     fb   ccpm    command 
-#YYYYMMDD    HH:MM:SS     Idx           #    C/G      %      %      %      %      %      %     MB     MB    name 
- 20260331    19:48:30       0          -     -      -      -      -      -      -      -      -      -    -              
- 20260331    19:48:31       0          -     -      -      -      -      -      -      -      -      -    -              
- 20260331    19:48:32       0          -     -      -      -      -      -      -      -      -      -    -              
- 20260331    19:48:33       0          -     -      -      -      -      -      -      -      -      -    -              
- 20260331    19:48:34       0          -     -      -      -      -      -      -      -      -      -    -              
- 20260331    19:48:35       0          -     -      -      -      -      -      -      -      -      -    -              
