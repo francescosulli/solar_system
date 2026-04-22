@@ -815,7 +815,7 @@ def train_emulator(
         )
         
         # Watch model (logs gradients and parameters)
-        wandb.watch(model, log='all', log_freq=100)
+        # wandb.watch(model, log='all', log_freq=100)
     # 
 
     logger = DistributedLogger(
@@ -1085,14 +1085,14 @@ def train_emulator(
                     type='training_history'
                 )
                 
-                # Save as JSON
-                import json
-                history_path = f'history_epoch_{epoch_idx}.json'
-                with open(history_path, 'w') as f:
-                    json.dump(history, f, indent=2)
-                artifact.add_file(history_path)
+                # Save as JSON --> unnecessarily verbose
+                # import json
+                # history_path = f'history_epoch_{epoch_idx}.json'
+                # with open(history_path, 'w') as f:
+                #     json.dump(history, f, indent=2)
+                # artifact.add_file(history_path)
                 
-                wandb.log_artifact(artifact)
+                # wandb.log_artifact(artifact)
             ## WANDB
 
         running_train += float(data_loss.detach().cpu().item())

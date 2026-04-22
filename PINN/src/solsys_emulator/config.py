@@ -20,7 +20,7 @@ DEFAULT_BODIES = (
     # "mercury",
     # "venus",
     "earth",
-    # "moon",
+    "moon",
     # "mars",
     # "jupiter",
     # "saturn",
