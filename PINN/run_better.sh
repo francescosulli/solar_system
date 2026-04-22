@@ -23,13 +23,13 @@
 
 #SBATCH --job-name=solsys_pinn
 #SBATCH -A astreo 
-#SBATCH --partition=GPU
+#SBATCH --partition=DGX
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=64GB
+#SBATCH --mem=128GB
 #SBATCH --time=02:00:00
-#SBATCH --gres=gpu:V100:2
+#SBATCH --gres=gpu:A100:1
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -246,8 +246,8 @@ echo "--- Starting pipeline ---"
 "$VENV_DIR/bin/torchrun" --nproc_per_node=1 train.py \
   --training-mode multi \
   --dataset-path "$(pwd)/data/dataset_demo.npz" \
-  --checkpoint-path "$(pwd)/checkpoints" \
-  --plots-dir "$(pwd)/plots"
+  --checkpoint-path "$(pwd)/checkpoints/" \
+  --plots-dir "$(pwd)/plots/"
 EXIT_CODE=$?
 
 echo ""

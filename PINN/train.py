@@ -474,7 +474,7 @@ def save_stage_history(history: dict[str, Any], history_path: Path) -> None:
         else:
             history_serializable[key] = value
     
-    history_path.write_text(json.dumps(history_serializable, indent=2))
+    history_path.write_text(json.dumps(history_serializable, indent=2, default=str))
     print(f"✓ Saved training history: {history_path}")
 
 
@@ -934,7 +934,7 @@ def run_multi_stage_training(args: argparse.Namespace, dataset: dict[str, Any], 
         "refine_config": vars(refine_cfg),
         "physics_config": vars(physics_cfg),
     }
-    (plots_dir / "training_summary.json").write_text(json.dumps(summary, indent=2))
+    (plots_dir / "training_summary.json").write_text(json.dumps(summary, indent=2, default=str))
     
     print(f"✓ Training plots: {plots_dir}")
     print(f"✓ Summary: {plots_dir / 'training_summary.json'}")

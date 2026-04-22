@@ -448,10 +448,10 @@ def train_emulator(
     scaler: StateScaler | None = None,
     checkpoint_path: str | Path = DEFAULT_CHECKPOINT_PATH,
     initial_checkpoint_path: str | Path | None = None,
-    enable_tensorboard: bool = False,
+    enable_tensorboard: bool = True,
     use_wandb: bool = True,
     wandb_project: str = "pinn-solar-system",
-    enable_profiling: bool = False,
+    enable_profiling: bool = False, # still needs work to be done, not fully functioning yet (also probably overkill)
     log_dir="logs/runs"
 ) -> dict[str, Any]:
     """Train emulator on a dataset and store checkpoint.
@@ -1252,6 +1252,13 @@ def train_emulator(
             f"Epoch {epoch_idx + 1} complete | "
             f"train_loss={train_loss:.6f}, "
             f"val_loss={epoch_val_loss:.6f}"
+            )
+
+        logger.info(
+            "Initiating all logging helpers..."
+            f"TENSORBOARD={enable_tensorboard}, "
+            f"WANDB={enable_profiling}"
+            f"PROFILING={}"
             )
 
         ## TENSORBOARD

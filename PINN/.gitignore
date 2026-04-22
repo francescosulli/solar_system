@@ -2,6 +2,9 @@
 __pycache__/
 *.py[cod]
 *.class
+*.json
+*.pt
+*.log
 .venv/
 .ipynb_checkpoints/
 wandb/
@@ -19,3 +22,4 @@ checkpoints/
 lib/
 logs/*
 logs/runs/*
+plots/*
