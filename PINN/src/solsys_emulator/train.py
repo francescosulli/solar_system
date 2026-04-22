@@ -1258,7 +1258,7 @@ def train_emulator(
             "Initiating all logging helpers..."
             f"TENSORBOARD={enable_tensorboard}, "
             f"WANDB={enable_profiling}"
-            f"PROFILING={}"
+            f"PROFILING={enable_profiling}"
             )
 
         ## TENSORBOARD

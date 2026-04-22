@@ -21,5 +21,6 @@ checkpoints/
 
 lib/
 logs/*
-logs/runs/*
+logs/runs/*/*/*
 plots/*
+bak/
