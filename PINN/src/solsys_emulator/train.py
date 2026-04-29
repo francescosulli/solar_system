@@ -455,9 +455,12 @@ def train_emulator(
     enable_profiling: bool = False,
     log_dir="logs/runs"
 ) -> dict[str, Any]:
-    """Train emulator on a dataset and store checkpoint.
+    """
+    Wrapper that trains a model on a given datasets, following given pecific configurations 
+    for the model and the training itself,
+    logs metrics and validates it  and stores checkpoint.
 
-    If ``initial_checkpoint_path`` is provided, training starts from those weights.
+    If ``initial_checkpoint_path`` is provided and an existing checkpoint is found, training starts from those weights.
     """
     cfg = train_config or TrainConfig()
     set_seed(cfg.seed)
@@ -1165,6 +1168,7 @@ def train_emulator(
                 else:
                     ema_nbody_loss = beta * ema_nbody_loss + (1.0 - beta) * nbody_loss
 
+        # TODO: this part concerns calidation and should probably be separated from the rest, also to reduce the size of this gigantic function and make everything a bit more modular
         model.eval()
         running_val = 0.0
         running_val_pos_rmse = 0.0

@@ -1,6 +1,8 @@
 #!/bin/bash
 # =============================================================================
-# SLURM job script — Solar System PINN Emulator
+# SLURM job script — LEOPARDD 
+#
+# This script is basically identical to run_pinn_solsys if not for some different cli arguments
 #
 # Hardware target : 1× NVIDIA V100 (32 GB), GPU partition
 # Wall time       : 2 hours
@@ -65,10 +67,7 @@ echo "============================================================"
 # Environment setup
 # =============================================================================
 
-# module purge
-# module load cuda/12.8
-
-UV_BIN="$HOME/dlprojenv/bin/uv"
+UV_BIN="$HOME/dlprojenv/bin/uv" # change accordingly
 VENV_DIR=".venv"
 
 source "$VENV_DIR"/bin/activate
@@ -170,7 +169,7 @@ echo "--- Starting pipeline ---"
 
 "$VENV_DIR"/bin/python verify_setup.py 
 
-"$VENV_DIR"/bin/python solsys_setup.py \
+"$VENV_DIR"/bin/python do_setup.py \
 	--dataset-path "$(pwd)/data/leopardd_dataset.npz" \
 	--dataset-type "tle" 
 

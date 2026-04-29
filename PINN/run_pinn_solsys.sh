@@ -65,10 +65,8 @@ echo "============================================================"
 # Environment setup
 # =============================================================================
 
-# module purge
-# module load cuda/12.8
 
-UV_BIN="$HOME/dlprojenv/bin/uv"
+UV_BIN="$HOME/dlprojenv/bin/uv" # change accordingly
 VENV_DIR=".venv"
 
 source "$VENV_DIR"/bin/activate
@@ -174,7 +172,7 @@ echo "--- Starting pipeline ---"
 # 	--dataset-path "$(pwd)/data/leopardd_dataset.npz" \
 # 	--dataset-type "tle" 
 
-"$VENV_DIR"/bin/python solsys_setup.py \
+"$VENV_DIR"/bin/python do_setup.py \
 	--dataset-path "$(pwd)/data/dataset_demo.npz" \
 	--dataset-type "jpl" 
 
@@ -182,7 +180,7 @@ echo "--- Starting pipeline ---"
 ## when training on a single GPU, don't spawn multiple processes: it will crash
 
 "$VENV_DIR/bin/torchrun" --nproc_per_node=1 train.py \
-  --training-mode unified \
+  --training-mode multi \
   --project-name "pinn-solar-system" \
   --dataset-path "$(pwd)/data/dataset_demo.npz" \
   --checkpoint-path "$CHECKPOINT_DIR" \
