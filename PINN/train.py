@@ -681,8 +681,8 @@ def run_unified_training(args: argparse.Namespace, dataset: dict[str, Any], devi
     print("=" * 80)
     
     plots_dir = args.plots_dir or args.checkpoint_path.parent
-    checkpoint_path = Path(args.checkpoint_path)
-    checkpoint_path.mkdir(parents=True, exist_ok=True)
+    checkpoint_dir = Path(args.checkpoint_path)
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
     model_cfg, train_cfg, runtime = build_unified_profile(
         dataset=dataset,
@@ -720,7 +720,7 @@ def run_unified_training(args: argparse.Namespace, dataset: dict[str, Any], devi
     print("\n" + "=" * 80)
     print("TRAINING COMPLETE")
     print("=" * 80)
-    print(f"✓ Final checkpoint: {checkpoint_path}")
+    print(f"✓ Final checkpoint: {unified_checkpoint}")
     print(f"  Best epoch: {best_epoch}")
     print(f"  Best val position RMSE: {best_rmse:,.2f} km")
     

@@ -464,14 +464,6 @@ def train_emulator(
 
     raw_states = np.asarray(dataset["states"], dtype=float)
         
-    # ## HALVING
-    # # keep only first 5 bodies
-    # raw_states = raw_states[:, :5, :]
-
-    # # keep bodies list consistent
-    # bodies = [str(b) for b in np.asarray(dataset["bodies"]).tolist()[:5]]
-    # ## HALVING
-
     bodies = [str(b) for b in np.asarray(dataset["bodies"]).tolist()]
     times_seconds = np.asarray(dataset["times_seconds"], dtype=float)
     use_derivative_losses = (
@@ -809,6 +801,7 @@ def train_emulator(
             'distributed': is_distributed,
             
             # Dataset
+            'bodies': bodies,
             'num_bodies': len(bodies),
             'num_samples': len(dataset['times_seconds']),
         }
@@ -905,6 +898,14 @@ def train_emulator(
         n_batches = 0
         accum_steps = max(1, int(cfg.gradient_accumulation_steps))
         optimizer.zero_grad(set_to_none=True)
+
+        logger.info(
+            "Initiating logging helpers...\n"
+            f"TENSORBOARD={enable_tensorboard} \n "
+            f"WANDB={use_wandb} \n"
+            f"PROFILING={enable_profiling} \n"
+            )
+
         for batch_idx, (batch_t, batch_y) in enumerate(train_loader):
 
             # Log batch stats (debug)
@@ -1259,12 +1260,6 @@ def train_emulator(
             f"val_loss={epoch_val_loss:.6f}"
             )
 
-        logger.info(
-            "Initiating all logging helpers..."
-            f"TENSORBOARD={enable_tensorboard}, "
-            f"WANDB={enable_profiling}"
-            f"PROFILING={enable_profiling}"
-            )
 
         ## TENSORBOARD
         if rank == 0 and writer is not None:
