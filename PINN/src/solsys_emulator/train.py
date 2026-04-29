@@ -451,7 +451,8 @@ def train_emulator(
     enable_tensorboard: bool = True,
     use_wandb: bool = True,
     wandb_project: str = "pinn-solar-system",
-    enable_profiling: bool = False, # still needs work to be done, not fully functioning yet (also probably overkill)
+    stage="unified",
+    enable_profiling: bool = False,
     log_dir="logs/runs"
 ) -> dict[str, Any]:
     """Train emulator on a dataset and store checkpoint.
@@ -463,15 +464,15 @@ def train_emulator(
 
     raw_states = np.asarray(dataset["states"], dtype=float)
         
-    ## HALVING
-    # keep only first 5 bodies
-    raw_states = raw_states[:, :5, :]
+    # ## HALVING
+    # # keep only first 5 bodies
+    # raw_states = raw_states[:, :5, :]
 
-    # keep bodies list consistent
-    bodies = [str(b) for b in np.asarray(dataset["bodies"]).tolist()[:5]]
-    ## HALVING
+    # # keep bodies list consistent
+    # bodies = [str(b) for b in np.asarray(dataset["bodies"]).tolist()[:5]]
+    # ## HALVING
 
-    # bodies = [str(b) for b in np.asarray(dataset["bodies"]).tolist()]
+    bodies = [str(b) for b in np.asarray(dataset["bodies"]).tolist()]
     times_seconds = np.asarray(dataset["times_seconds"], dtype=float)
     use_derivative_losses = (
         (cfg.physics_loss_weight > 0.0)
@@ -487,8 +488,11 @@ def train_emulator(
     rank = 0
     world_size = 1
     is_distributed = cfg.distributed
-    
+    tags = [] 
+    tags.append(stage)
+
     if is_distributed:
+        tags.append('ddp')
         if not dist.is_initialized():
             raise RuntimeError(
                 "DDP mode enabled but torch.distributed not initialized. "
@@ -498,7 +502,7 @@ def train_emulator(
         rank = dist.get_rank()
         world_size = dist.get_world_size()
         local_rank = cfg.local_rank
-        
+        tags.append(f'{world_size}{device}')
         # Set device to local rank
         device = torch.device(f"cuda:{local_rank}")
         torch.cuda.set_device(device)
@@ -509,6 +513,7 @@ def train_emulator(
                 print(*args, **kwargs)
     else:
         device = torch.device(cfg.device)
+        tags.append(f"{device}")
         print_rank0 = print
     
     print_rank0(f"[Rank {rank}/{world_size}] Training on {device}")
@@ -748,11 +753,12 @@ def train_emulator(
             epoch_iter = range(cfg.epochs)
     else:
         epoch_iter = range(cfg.epochs)
+    
+    run_name = f"{wandb_project}_{stage}_{device}{world_size}_{datetime.now().strftime('%m%d_%H%M')}"
 
     # TENSORBOARD
     writer = None
     if rank == 0 and enable_tensorboard:
-        run_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_gpu{world_size}"
         writer = SummaryWriter(log_dir=f"{log_dir}/{run_name}")
 
         log_config_to_tensorboard(
@@ -806,12 +812,11 @@ def train_emulator(
             'num_bodies': len(bodies),
             'num_samples': len(dataset['times_seconds']),
         }
-        
         run = wandb.init(
             project=wandb_project,
             config=config,
-            name=f"ddp_gpu{world_size}_{datetime.now().strftime('%m%d_%H%M')}",
-            tags=['ddp', f'{world_size}gpu'],
+            name=run_name,
+            tags=tags,
         )
         
         # Watch model (logs gradients and parameters)
@@ -1085,7 +1090,7 @@ def train_emulator(
                     type='training_history'
                 )
                 
-                # Save as JSON --> unnecessarily verbose
+                # Save as JSON --> probably unnecessarily verbose
                 # import json
                 # history_path = f'history_epoch_{epoch_idx}.json'
                 # with open(history_path, 'w') as f:

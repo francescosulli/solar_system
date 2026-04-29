@@ -6,6 +6,7 @@ __pycache__/
 *.pt
 *.log
 .venv/
+.cache/
 .ipynb_checkpoints/
 wandb/
 .cache/wandb/
@@ -15,6 +16,7 @@ data/*.npz
 data/TLEs/
 outputs/
 checkpoints/
+plots/
 
 # OS specific
 .DS_Store
@@ -24,3 +26,7 @@ logs/*
 logs/runs/*/*/*
 plots/*
 bak/
+logs/*.out
+logs/*.err
+logs/runs/*
+wandb/

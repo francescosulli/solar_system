@@ -83,6 +83,12 @@ Examples:
         help="Training device. 'auto' selects cuda when available",
     )
     parser.add_argument(
+        "--project-name",
+        type=str,
+        default="LEOPARDD",
+        help="Name of the project for logs",
+    )
+    parser.add_argument(
         "--loader-workers",
         type=int,
         default=None,
@@ -181,6 +187,7 @@ def build_unified_profile(
 ) -> tuple[ModelConfig, TrainConfig, dict[str, Any]]:
     """Build configuration for unified single-stage training."""
     use_gpu_profile = device == "cuda"
+    is_distributed = True if torch.cuda.device_count() > 1 else False 
     loader_workers = loader_workers_override if loader_workers_override is not None else (8 if use_gpu_profile else 0)
     pin_memory = True if use_gpu_profile else None
     persistent_workers = True if use_gpu_profile and loader_workers > 0 else False
@@ -248,6 +255,7 @@ def build_unified_profile(
             cuda_matmul_precision="high",
             allow_tf32=True,
             cudnn_benchmark=True,
+            distributed=is_distributed
         )
     else:
         model_cfg = ModelConfig(
@@ -309,6 +317,7 @@ def build_unified_profile(
             sort_train_for_derivatives=False,
             show_progress=True,
             device=device,
+            distributed=is_distributed
         )
 
     runtime = {
@@ -327,6 +336,7 @@ def build_multi_stage_configs(
 ) -> tuple[ModelConfig, TrainConfig, TrainConfig, TrainConfig, int]:
     """Build configurations for multi-stage training (coarse, refine, physics)."""
     use_gpu_profile = device == "cuda"
+    is_distributed = True if torch.cuda.device_count() > 1 else False 
     loader_workers = loader_workers_override if loader_workers_override is not None else (4 if use_gpu_profile else 0)
 
     # Shared model configuration
@@ -381,6 +391,7 @@ def build_multi_stage_configs(
         cuda_matmul_precision="high" if use_gpu_profile else "high",
         allow_tf32=True if use_gpu_profile else True,
         cudnn_benchmark=True if use_gpu_profile else True,
+        distributed=is_distributed
     )
 
     # Stage 2: Refine training (add velocity supervision)
@@ -415,6 +426,7 @@ def build_multi_stage_configs(
         cuda_matmul_precision="high" if use_gpu_profile else "high",
         allow_tf32=True if use_gpu_profile else True,
         cudnn_benchmark=True if use_gpu_profile else True,
+        distributed=is_distributed
     )
 
     # Stage 3: Physics training (add n-body residual)
@@ -456,6 +468,7 @@ def build_multi_stage_configs(
         cuda_matmul_precision="high" if use_gpu_profile else "high",
         allow_tf32=True if use_gpu_profile else True,
         cudnn_benchmark=True if use_gpu_profile else True,
+        distributed=is_distributed
     )
 
     return model_cfg, coarse_cfg, refine_cfg, physics_cfg, loader_workers
@@ -669,7 +682,7 @@ def run_unified_training(args: argparse.Namespace, dataset: dict[str, Any], devi
     
     plots_dir = args.plots_dir or args.checkpoint_path.parent
     checkpoint_path = Path(args.checkpoint_path)
-    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    checkpoint_path.mkdir(parents=True, exist_ok=True)
 
     model_cfg, train_cfg, runtime = build_unified_profile(
         dataset=dataset,
@@ -691,11 +704,14 @@ def run_unified_training(args: argparse.Namespace, dataset: dict[str, Any], devi
     print_gpu_memory_summary()
     
     print("\nStarting training...")
+
+    unified_ckpt = checkpoint_dir / "checkpoint_unified.pt"
     artifacts = train_emulator(
         dataset,
         train_config=train_cfg,
         model_config=model_cfg,
-        checkpoint_path=checkpoint_path,
+        checkpoint_path=unified_ckpt,
+        wandb_project=args.project_name
     )
 
     best_epoch = int(np.argmin(artifacts["history"]["val_pos_rmse_km"])) + 1
@@ -724,7 +740,7 @@ def run_unified_training(args: argparse.Namespace, dataset: dict[str, Any], devi
         "train_config": vars(train_cfg),
         "runtime": runtime,
     }
-    (plots_dir / "training_summary.json").write_text(json.dumps(summary, indent=2))
+    (plots_dir / "training_summary.json").write_text(json.dumps(summary, indent=2, default=str))
     
     print(f"✓ Training plots: {plots_dir}")
     print(f"✓ Summary: {plots_dir / 'training_summary.json'}")
@@ -737,14 +753,14 @@ def run_multi_stage_training(args: argparse.Namespace, dataset: dict[str, Any], 
     print("=" * 80)
     
     plots_dir = args.plots_dir or args.checkpoint_path.parent
-    checkpoint_dir = args.checkpoint_path.parent
+    checkpoint_dir = args.checkpoint_path
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     
     # Stage checkpoint paths
     coarse_ckpt = checkpoint_dir / "checkpoint_coarse.pt"
     refine_ckpt = checkpoint_dir / "checkpoint_refine.pt"
     physics_ckpt = checkpoint_dir / "checkpoint_physics.pt"
-    final_checkpoint = args.checkpoint_path
+    final_checkpoint = checkpoint_dir / "final_checkpoint.pt" 
     
     # History paths for resumption
     coarse_history_path = checkpoint_dir / "history_coarse.json"
@@ -789,6 +805,8 @@ def run_multi_stage_training(args: argparse.Namespace, dataset: dict[str, Any], 
             train_config=coarse_cfg,
             model_config=model_cfg,
             checkpoint_path=coarse_ckpt,
+            wandb_project=args.project_name,
+            stage="coarse",
         )
         coarse_history = coarse_result["history"]
         coarse_best_epoch = int(np.argmin(coarse_history["val_pos_rmse_km"])) + 1
@@ -828,6 +846,8 @@ def run_multi_stage_training(args: argparse.Namespace, dataset: dict[str, Any], 
             model_config=model_cfg,
             checkpoint_path=refine_ckpt,
             initial_checkpoint_path=coarse_ckpt,
+            wandb_project=args.project_name,
+            stage="refine",
         )
         refine_history = refine_result["history"]
         refine_best_epoch = int(np.argmin(refine_history["val_pos_rmse_km"])) + 1
@@ -872,6 +892,8 @@ def run_multi_stage_training(args: argparse.Namespace, dataset: dict[str, Any], 
                 model_config=model_cfg,
                 checkpoint_path=physics_ckpt,
                 initial_checkpoint_path=refine_ckpt,
+                wandb_project=args.project_name,
+                stage="physics",
             )
             physics_history = physics_result["history"]
             physics_best_epoch = int(np.argmin(physics_history["val_pos_rmse_km"])) + 1
