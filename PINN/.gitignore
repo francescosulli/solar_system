@@ -12,11 +12,13 @@ data/*.npz
 data/TLEs/
 outputs/
 checkpoints/
+plots/
 
 # OS specific
 .DS_Store
 
 lib/
-logs/
+logs/*.out
+logs/*.err
 logs/runs/*
 wandb/

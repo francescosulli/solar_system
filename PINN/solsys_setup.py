@@ -149,7 +149,10 @@ def stage_setup(args: argparse.Namespace) -> None:
     log.info("Frame        : %s | Origin: %s", FRAME_INTERNAL, FRAME_ORIGIN)
     log.info("Time scale   : %s", TIME_SCALE)
     log.info("Unit system  : %s", UNIT_SYSTEM)
-    log.info("Bodies       : %s", DEFAULT_BODIES)
+    if args.dataset_type == "jpl": 
+        log.info("Bodies       : %s", DEFAULT_BODIES)
+    else: 
+        log.info("TLE debris objects: TODO")
 
     import importlib
     required_deps = [
@@ -231,6 +234,7 @@ def stage_build_dataset(args: argparse.Namespace) -> dict:
         return dataset
 
     elif dataset_type == "tle":
+        log.info(f"Dataset path: {dataset_path}")
         log.info("TLE dataset type: skipping jpl specfiic dataset building...")
         return
 

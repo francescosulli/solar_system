@@ -288,7 +288,7 @@ def check_files():
 
     required = [
         ("train.py", "Unified training script"),
-        ("train_ddp.py", "DDP training script"),
+        # ("train_ddp.py", "DDP training script"),
         ("src/solsys_emulator/train.py", "Training module"),
         ("src/solsys_emulator/model.py", "Model module"),
         ("data/dataset_demo.npz", "Demo dataset"),

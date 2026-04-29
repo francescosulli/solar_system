@@ -21,7 +21,7 @@
 #   → Total: 8 CPUs  (requesting more would sit idle and waste allocation)
 # =============================================================================
 
-#SBATCH --job-name=solsys_pinn
+#SBATCH --job-name=LEOPARDD
 #SBATCH -A astreo 
 #SBATCH --partition=GPU
 #SBATCH --nodes=1
@@ -29,59 +29,25 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64GB
 #SBATCH --time=02:00:00
-#SBATCH --gres=gpu:V100:2
+#SBATCH --gres=gpu:V100:1
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=giovanni.billo@studenti.units.it,francesco.sulli@studenti.units.it
 
 # =============================================================================
-# Experiment parameters (edit here before submitting)
-# =============================================================================
-
-START_YEAR=${START_YEAR:-2010}
-END_YEAR=${END_YEAR:-2030}
-STEP_HOURS=${STEP_HOURS:-3.0}
-EPOCHS_STAGE1=${EPOCHS_STAGE1:-1000}
-EPOCHS_STAGE2=${EPOCHS_STAGE2:-350}
-BATCH_SIZE=${BATCH_SIZE:-384}
-HIDDEN_DIM=${HIDDEN_DIM:-384}
-NUM_LAYERS=${NUM_LAYERS:-6}
-FOURIER_FEATURES=${FOURIER_FEATURES:-24}
-INFER_START=${INFER_START:-"2025-01-01T00:00:00"}
-INFER_END=${INFER_END:-"2026-01-01T00:00:00"}
-INFER_STEP_HOURS=${INFER_STEP_HOURS:-6.0}
-KERNEL=${KERNEL:-"PINN/data/de440.bsp"}
-OUTPUT_DIR=${OUTPUT_DIR:-"artifacts"}
-DEVICE=${DEVICE:-"cuda"}
-
-echo "=== Experiment parameters ==="
-echo "  Start year       : ${START_YEAR}"
-echo "  End year         : ${END_YEAR}"
-echo "  Step hours       : ${STEP_HOURS}"
-echo "  Epochs stage 1   : ${EPOCHS_STAGE1}"
-echo "  Epochs stage 2   : ${EPOCHS_STAGE2}"
-echo "  Batch size       : ${BATCH_SIZE}"
-echo "  Hidden dim       : ${HIDDEN_DIM}"
-echo "  Num layers       : ${NUM_LAYERS}"
-echo "  Fourier features : ${FOURIER_FEATURES}"
-echo "  Infer start      : ${INFER_START}"
-echo "  Infer end        : ${INFER_END}"
-echo "  Infer step hours : ${INFER_STEP_HOURS}"
-echo "  Kernel           : ${KERNEL}"
-echo "  Output dir       : ${OUTPUT_DIR}"
-echo "  Device           : ${DEVICE}"
-echo "============================="
-
-# =============================================================================
 # Paths & run directory
 # =============================================================================
 
 mkdir -p logs
-
+JOB_NAME="${SLURM_JOB_NAME:-local_run}"
 RUN_ID="${SLURM_JOB_ID:-$(date +%Y%m%d_%H%M%S)}"
+CHECKPOINT_DIR="checkpoints/${JOB_NAME}" 
+PLOTS_DIR="plots/${JOB_NAME}" 
 RUN_DIR="logs/runs/${RUN_ID}"
 mkdir -p "${RUN_DIR}"
+mkdir -p "${CHECKPOINT_DIR}"
+mkdir -p "${PLOTS_DIR}"
 
 # Mirror all stdout/stderr into the run folder as well
 exec > >(tee -a "${RUN_DIR}/run.log") 2>&1
@@ -94,35 +60,6 @@ echo " CPUs/task   : $SLURM_CPUS_PER_TASK"
 echo " Start time  : $(date)"
 echo " Run dir     : ${RUN_DIR}"
 echo "============================================================"
-
-# =============================================================================
-# Save run metadata
-# =============================================================================
-
-cat > "${RUN_DIR}/meta.txt" << EOF
-time:             $(date -Is)
-job_id:           ${SLURM_JOB_ID}
-job_name:         ${SLURM_JOB_NAME}
-node:             ${SLURMD_NODENAME}
-cpus_per_task:    ${SLURM_CPUS_PER_TASK}
-start_year:       ${START_YEAR}
-end_year:         ${END_YEAR}
-step_hours:       ${STEP_HOURS}
-epochs_stage1:    ${EPOCHS_STAGE1}
-epochs_stage2:    ${EPOCHS_STAGE2}
-batch_size:       ${BATCH_SIZE}
-hidden_dim:       ${HIDDEN_DIM}
-num_layers:       ${NUM_LAYERS}
-fourier_features: ${FOURIER_FEATURES}
-infer_start:      ${INFER_START}
-infer_end:        ${INFER_END}
-infer_step_hours: ${INFER_STEP_HOURS}
-kernel:           ${KERNEL}
-output_dir:       ${OUTPUT_DIR}
-device:           ${DEVICE}
-EOF
-
-echo "Metadata saved to ${RUN_DIR}/meta.txt"
 
 # =============================================================================
 # Environment setup
@@ -246,11 +183,14 @@ echo "--- Starting pipeline ---"
 ## when training on a single GPU, don't spawn multiple processes: it will crash
 "$VENV_DIR/bin/torchrun" --nproc_per_node=1 train.py \
   --training-mode unified \
-  --dataset-path "$(pwd)/data/leopardd_dataset.npz" \
-  --checkpoint-path "$(pwd)/checkpoints/leopardd" \
-  --plots-dir "$(pwd)/plots/leopardd"
+  --project-name "LEOPARDD" \
+  --dataset-path "$(pwd)/data/fengyun_dataset.npz" \
+  --checkpoint-path "$CHECKPOINT_DIR" \
+  --plots-dir "$PLOTS_DIR"
 EXIT_CODE=$?
 
+## WISH
+# validate.py which also produces the 
 echo ""
 echo "============================================================"
 echo " End time    : $(date)"
