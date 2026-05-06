@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.class
+*.json
+*.pt
+*.log
+.venv/
+.cache/
+.ipynb_checkpoints/
+wandb/
+.cache/wandb/
+# Project Data (Large Files)
+data/*.txt
+data/*.npz
+data/TLEs/
+outputs/
+checkpoints/
+plots/
+
+# OS specific
+.DS_Store
+
+lib/
+logs/*
+logs/runs/*/*/*
+plots/*
+bak/
+logs/*.out
+logs/*.err
+logs/runs/*
+wandb/
