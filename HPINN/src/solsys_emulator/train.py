@@ -15,11 +15,11 @@ import torch.profiler as profiler
 import matplotlib.pyplot as plt
 
 try:  # pragma: no cover - available on modern torch, optional fallback.
-    from torch.func import jacrev, vmap
+    from torch.func import jacfwd, vmap
 
     _HAS_TORCH_FUNC = True
 except Exception:  # pragma: no cover - old torch fallback.
-    jacrev = None
+    jacfwd = None
     vmap = None
     _HAS_TORCH_FUNC = False
 
@@ -383,13 +383,20 @@ def _position_only_to_full_state_norm(
 
     if need_velocity or need_acceleration:
         if _HAS_TORCH_FUNC:
-            def _single_time_pos_norm(t_scalar: Tensor) -> Tensor:
-                return model(t_scalar.reshape(1))[0]
+            inner_model = _unwrap_model(model)
+            if not hasattr(inner_model, "_vmap_fns"):
+                def _single_time_pos_norm(t_scalar: Tensor) -> Tensor:
+                    return inner_model(t_scalar.reshape(1))[0]
+                
+                inner_model._vmap_fns = {
+                    "vel": vmap(jacfwd(_single_time_pos_norm)),
+                    "acc": vmap(jacfwd(jacfwd(_single_time_pos_norm)))
+                }
 
-            vel_norm_time = vmap(jacrev(_single_time_pos_norm))(t_norm)
+            vel_norm_time = inner_model._vmap_fns["vel"](t_norm)
             vel_phys = vel_norm_time * std_pos * inv_time_std
             if need_acceleration:
-                acc_norm_time = vmap(jacrev(jacrev(_single_time_pos_norm)))(t_norm)
+                acc_norm_time = inner_model._vmap_fns["acc"](t_norm)
                 acc_phys = acc_norm_time * std_pos * inv_time_std_sq
         else:  # pragma: no cover - legacy torch fallback.
             n_bodies = int(pos_phys.shape[1])
@@ -471,13 +478,20 @@ def _position_only_hybrid_to_full_state_norm(
 
     if need_velocity or need_acceleration:
         if _HAS_TORCH_FUNC:
-            def _single_time_pos_norm(t_scalar: Tensor) -> Tensor:
-                return model(t_scalar.reshape(1))[0]
+            inner_model = _unwrap_model(model)
+            if not hasattr(inner_model, "_vmap_fns"):
+                def _single_time_pos_norm(t_scalar: Tensor) -> Tensor:
+                    return inner_model(t_scalar.reshape(1))[0]
+                
+                inner_model._vmap_fns = {
+                    "vel": vmap(jacfwd(_single_time_pos_norm)),
+                    "acc": vmap(jacfwd(jacfwd(_single_time_pos_norm)))
+                }
 
-            vel_norm_time = vmap(jacrev(_single_time_pos_norm))(t_norm)
+            vel_norm_time = inner_model._vmap_fns["vel"](t_norm)
             vel_phys = vel_norm_time * std_pos * inv_time_std
             if need_acceleration:
-                acc_norm_time = vmap(jacrev(jacrev(_single_time_pos_norm)))(t_norm)
+                acc_norm_time = inner_model._vmap_fns["acc"](t_norm)
                 acc_phys = acc_norm_time * std_pos * inv_time_std_sq
         else:  # pragma: no cover - legacy torch fallback.
             n_bodies = int(pos_phys.shape[1])
@@ -1380,6 +1394,18 @@ def train_emulator(
         running_val = 0.0
         running_val_pos_rmse = 0.0
         running_val_vel_rmse = 0.0
+        
+        # --- SCIENTIFIC METRICS ---
+        running_val_pos_rmse_per_body = torch.zeros(len(bodies), device=device)
+        running_val_vel_rmse_per_body = torch.zeros(len(bodies), device=device)
+        running_val_energy = 0.0
+        running_val_angular = 0.0
+        val_max_pos_error = 0.0
+        val_min_pos_error = float('inf')
+        val_max_pos_error_per_body = torch.zeros(len(bodies), device=device)
+        val_min_pos_error_per_body = torch.full((len(bodies),), float('inf'), device=device)
+        # --------------------------
+        
         n_val_batches = 0
         if model.state_mode == "position_only":
             for val_t, val_y in val_loader:
@@ -1414,6 +1440,34 @@ def train_emulator(
                     running_val_vel_rmse += float(vel_rmse.detach().cpu().item())
                 else:
                     running_val_vel_rmse += float("nan")
+                    vel_diff = torch.zeros_like(pos_diff)
+                    
+                # --- SCIENTIFIC METRICS ---
+                pos_rmse_per_body = torch.sqrt(torch.mean(torch.sum(pos_diff * pos_diff, dim=-1), dim=0))
+                vel_rmse_per_body = torch.sqrt(torch.mean(torch.sum(vel_diff * vel_diff, dim=-1), dim=0))
+                running_val_pos_rmse_per_body += pos_rmse_per_body
+                running_val_vel_rmse_per_body += vel_rmse_per_body
+                
+                energy_err = _energy_conservation_loss(
+                    positions=val_pos_phys,
+                    velocities=val_vel_phys if val_vel_phys is not None else torch.zeros_like(val_pos_phys),
+                    mu_values=mu_t,
+                    softening_km=cfg.nbody_softening_km,
+                )
+                angular_err = _angular_momentum_conservation_loss(
+                    positions=val_pos_phys,
+                    velocities=val_vel_phys if val_vel_phys is not None else torch.zeros_like(val_pos_phys),
+                    mu_values=mu_t,
+                )
+                running_val_energy += float(energy_err.detach().cpu().item())
+                running_val_angular += float(angular_err.detach().cpu().item())
+                
+                abs_pos_diff = torch.sqrt(torch.sum(pos_diff * pos_diff, dim=-1))
+                val_max_pos_error = max(val_max_pos_error, float(torch.max(abs_pos_diff).cpu().item()))
+                val_min_pos_error = min(val_min_pos_error, float(torch.min(abs_pos_diff).cpu().item()))
+                val_max_pos_error_per_body = torch.maximum(val_max_pos_error_per_body, torch.max(abs_pos_diff, dim=0).values)
+                val_min_pos_error_per_body = torch.minimum(val_min_pos_error_per_body, torch.min(abs_pos_diff, dim=0).values)
+                # --------------------------
                 n_val_batches += 1
         else:
             with torch.no_grad():
@@ -1437,26 +1491,53 @@ def train_emulator(
                     vel_rmse = torch.sqrt(torch.mean(torch.sum(vel_diff * vel_diff, dim=-1)))
                     running_val_pos_rmse += float(pos_rmse.cpu().item())
                     running_val_vel_rmse += float(vel_rmse.cpu().item())
+                    
+                    # --- SCIENTIFIC METRICS ---
+                    pos_rmse_per_body = torch.sqrt(torch.mean(torch.sum(pos_diff * pos_diff, dim=-1), dim=0))
+                    vel_rmse_per_body = torch.sqrt(torch.mean(torch.sum(vel_diff * vel_diff, dim=-1), dim=0))
+                    running_val_pos_rmse_per_body += pos_rmse_per_body
+                    running_val_vel_rmse_per_body += vel_rmse_per_body
+                    
+                    energy_err = _energy_conservation_loss(
+                        positions=val_pred_phys[:, :, :3],
+                        velocities=val_pred_phys[:, :, 3:],
+                        mu_values=mu_t,
+                        softening_km=cfg.nbody_softening_km,
+                    )
+                    angular_err = _angular_momentum_conservation_loss(
+                        positions=val_pred_phys[:, :, :3],
+                        velocities=val_pred_phys[:, :, 3:],
+                        mu_values=mu_t,
+                    )
+                    running_val_energy += float(energy_err.cpu().item())
+                    running_val_angular += float(angular_err.cpu().item())
+                    
+                    abs_pos_diff = torch.sqrt(torch.sum(pos_diff * pos_diff, dim=-1))
+                    val_max_pos_error = max(val_max_pos_error, float(torch.max(abs_pos_diff).cpu().item()))
+                    val_min_pos_error = min(val_min_pos_error, float(torch.min(abs_pos_diff).cpu().item()))
+                    val_max_pos_error_per_body = torch.maximum(val_max_pos_error_per_body, torch.max(abs_pos_diff, dim=0).values)
+                    val_min_pos_error_per_body = torch.minimum(val_min_pos_error_per_body, torch.min(abs_pos_diff, dim=0).values)
+                    # --------------------------
                     n_val_batches += 1
 
                 ## DDP ##
                 if is_distributed:
                     val_metrics_tensor = torch.tensor(
-                        [val_running, val_pos_error_sum, val_vel_error_sum, float(val_count)],
+                        [running_val, running_val_pos_rmse, running_val_vel_rmse, float(n_val_batches)],
                         dtype=torch.float32,
                         device=device,
                     )
                     dist.all_reduce(val_metrics_tensor, op=dist.ReduceOp.SUM)
-                    val_running, val_pos_error_sum, val_vel_error_sum, val_count_total = (
+                    running_val, running_val_pos_rmse, running_val_vel_rmse, val_count_total = (
                         val_metrics_tensor.tolist()
                     )
-                    val_count = int(val_count_total)
+                    n_val_batches = int(val_count_total)
 
-        epoch_val_loss = running_val/ max(1, len(val_loader) * world_size)
-        epoch_val_pos_rmse = running_val_pos_rmse/ max(1, len(val_loader) * world_size)
-        epoch_val_vel_rmse = running_val_vel_rmse/ max(1, len(val_loader) * world_size)
-
-                ## DDP ##
+        epoch_val_loss = running_val/ max(1, n_val_batches)
+        epoch_val_pos_rmse = running_val_pos_rmse/ max(1, n_val_batches)
+        epoch_val_vel_rmse = running_val_vel_rmse/ max(1, n_val_batches)
+        epoch_val_energy = running_val_energy / max(1, n_val_batches)
+        epoch_val_angular = running_val_angular / max(1, n_val_batches)
 
         val_loss = running_val / max(1, n_val_batches)
         val_pos_rmse = running_val_pos_rmse / max(1, n_val_batches)
@@ -1539,6 +1620,12 @@ def train_emulator(
                 'hybrid/correction_amplitude_loss': correction_amp_loss,
                 'hybrid/correction_gain_loss': correction_gain_loss,
                 
+                # Validation Scientific Metrics
+                'val/energy_error': epoch_val_energy,
+                'val/angular_error': epoch_val_angular,
+                'val/max_pos_error_km': val_max_pos_error,
+                'val/min_pos_error_km': val_min_pos_error if val_min_pos_error != float('inf') else 0.0,
+                
                 # Add the missing weights
                 'weights/physics': physics_weight_eff,
                 'weights/smoothness': smooth_weight_eff,
@@ -1548,6 +1635,12 @@ def train_emulator(
                 
                 'optim/lr': optimizer.param_groups[0]['lr'],
             }
+            
+            for i, body in enumerate(bodies):
+                metrics[f"val/rmse_pos_{body}_km"] = float((running_val_pos_rmse_per_body[i] / max(1, n_val_batches)).cpu().item())
+                metrics[f"val/rmse_vel_{body}_km_s"] = float((running_val_vel_rmse_per_body[i] / max(1, n_val_batches)).cpu().item())
+                metrics[f"val/max_pos_{body}_km"] = float(val_max_pos_error_per_body[i].cpu().item())
+                metrics[f"val/min_pos_{body}_km"] = float(val_min_pos_error_per_body[i].cpu().item()) if val_min_pos_error_per_body[i] != float('inf') else 0.0
             
             # GPU metrics (all devices)
             for i in range(torch.cuda.device_count()):
@@ -1765,4 +1858,4 @@ def train_emulator(
 
 def load_checkpoint(path: str | Path, map_location: str = "cpu") -> dict[str, Any]:
     """Load serialized training artifacts."""
-    return torch.load(Path(path), map_location=map_location)
+    return torch.load(Path(path), map_location=map_location, weights_only=False)

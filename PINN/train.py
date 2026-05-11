@@ -85,7 +85,7 @@ Examples:
     parser.add_argument(
         "--project-name",
         type=str,
-        default="LEOPARDD",
+        default="pinn-solar-system",
         help="Name of the project for logs",
     )
     parser.add_argument(
@@ -126,9 +126,6 @@ Examples:
 # ============================================================================
 # Device and Memory Management
 # ============================================================================
-import os
-import torch
-import torch.distributed as dist
 
 def resolve_device(device_arg: str) -> torch.device:
     if "LOCAL_RANK" in os.environ and torch.cuda.is_available():
@@ -186,7 +183,7 @@ def build_unified_profile(
     collocation_override: int | None = None,
 ) -> tuple[ModelConfig, TrainConfig, dict[str, Any]]:
     """Build configuration for unified single-stage training."""
-    use_gpu_profile = device == "cuda"
+    use_gpu_profile = device.type == "cuda"
     is_distributed = True if torch.cuda.device_count() > 1 else False 
     loader_workers = loader_workers_override if loader_workers_override is not None else (8 if use_gpu_profile else 0)
     pin_memory = True if use_gpu_profile else None
@@ -197,23 +194,23 @@ def build_unified_profile(
             num_bodies=len(dataset["bodies"]),
             state_mode="position_only",
             backbone_type="residual",
-            hidden_dim=768,
-            num_layers=8,
-            fourier_features=96,
+            hidden_dim=128,
+            num_layers=4,
+            fourier_features=32,
             min_frequency=0.02,
-            max_frequency=96.0,
+            max_frequency=500.0,
             frequency_spacing="log",
-            head_layers=3,
-            head_hidden_dim=384,
-            body_embedding_dim=64,
-            interaction_layers=2,
-            interaction_hidden_dim=384,
+            head_layers=2,
+            head_hidden_dim=64,
+            body_embedding_dim=32,
+            interaction_layers=1,
+            interaction_hidden_dim=64,
             use_layer_norm=True,
             dropout=0.0,
         )
         train_cfg = TrainConfig(
-            epochs=epochs_override or 1400,
-            batch_size=batch_size_override or 1536,
+            epochs=epochs_override or 10000,
+            batch_size=batch_size_override or 1024,
             lr=2.5e-4,
             weight_decay=5e-7,
             val_fraction=0.10,
@@ -222,7 +219,7 @@ def build_unified_profile(
             train_loader_workers=loader_workers,
             pin_memory=pin_memory,
             persistent_workers=persistent_workers,
-            early_stopping_patience=260,
+            early_stopping_patience=500,
             lr_scheduler="cosine",
             min_lr=5e-7,
             nbody_loss_weight=4e-6,
@@ -230,19 +227,19 @@ def build_unified_profile(
             nbody_target_fraction=1e-2,
             nbody_balance_beta=0.97,
             nbody_balance_max_scale=1e8,
-            nbody_collocation_points=collocation_override or 512,
-            nbody_start_epoch=40,
-            nbody_warmup_epochs=320,
+            nbody_collocation_points=collocation_override or 128,
+            nbody_start_epoch=200,
+            nbody_warmup_epochs=1000,
             nbody_softening_km=50_000.0,
             nbody_relative_floor_km_s2=2e-4,
             physics_loss_weight=0.0,
             smoothness_loss_weight=0.0,
             energy_loss_weight=2e-4,
             angular_momentum_loss_weight=2e-4,
-            energy_start_epoch=40,
-            angular_momentum_start_epoch=40,
-            energy_warmup_epochs=320,
-            angular_momentum_warmup_epochs=320,
+            energy_start_epoch=200,
+            angular_momentum_start_epoch=200,
+            energy_warmup_epochs=1000,
+            angular_momentum_warmup_epochs=1000,
             position_loss_weight=1.0,
             velocity_loss_weight=0.5,
             grad_clip_norm=1.0,
@@ -335,34 +332,34 @@ def build_multi_stage_configs(
     loader_workers_override: int | None = None,
 ) -> tuple[ModelConfig, TrainConfig, TrainConfig, TrainConfig, int]:
     """Build configurations for multi-stage training (coarse, refine, physics)."""
-    use_gpu_profile = device == "cuda"
+    use_gpu_profile = device.type == "cuda"
     is_distributed = True if torch.cuda.device_count() > 1 else False 
     loader_workers = loader_workers_override if loader_workers_override is not None else (4 if use_gpu_profile else 0)
 
-    # Shared model configuration
+    # Shared model configuration (GIANT PINN)
     model_cfg = ModelConfig(
         num_bodies=len(dataset["bodies"]),
         state_mode="position_only",
         backbone_type="residual",
-        hidden_dim=768,
-        num_layers=8,
-        fourier_features=96,
+        hidden_dim=512,
+        num_layers=6,
+        fourier_features=256,
         min_frequency=0.02,
-        max_frequency=96.0,
+        max_frequency=500.0,
         frequency_spacing="log",
         head_layers=3,
-        head_hidden_dim=384,
+        head_hidden_dim=128,
         body_embedding_dim=64,
         interaction_layers=2,
-        interaction_hidden_dim=384,
+        interaction_hidden_dim=128,
         use_layer_norm=True,
         dropout=0.0,
     )
 
     # Stage 1: Coarse training (data fitting only)
     coarse_cfg = TrainConfig(
-        epochs=140,
-        batch_size=1536,
+        epochs=2000,
+        batch_size=1024,
         lr=3e-4,
         weight_decay=5e-7,
         val_fraction=0.10,
@@ -371,7 +368,7 @@ def build_multi_stage_configs(
         train_loader_workers=loader_workers,
         pin_memory=True if use_gpu_profile else None,
         persistent_workers=True if use_gpu_profile and loader_workers > 0 else False,
-        early_stopping_patience=24,
+        early_stopping_patience=200,
         lr_scheduler="cosine",
         min_lr=5e-7,
         nbody_loss_weight=0.0,
@@ -396,8 +393,8 @@ def build_multi_stage_configs(
 
     # Stage 2: Refine training (add velocity supervision)
     refine_cfg = TrainConfig(
-        epochs=240,
-        batch_size=1536,
+        epochs=2000,
+        batch_size=1024,
         lr=1.2e-4,
         weight_decay=5e-7,
         val_fraction=0.10,
@@ -406,7 +403,7 @@ def build_multi_stage_configs(
         train_loader_workers=loader_workers,
         pin_memory=True if use_gpu_profile else None,
         persistent_workers=True if use_gpu_profile and loader_workers > 0 else False,
-        early_stopping_patience=40,
+        early_stopping_patience=200,
         lr_scheduler="cosine",
         min_lr=5e-7,
         nbody_loss_weight=0.0,
@@ -431,8 +428,8 @@ def build_multi_stage_configs(
 
     # Stage 3: Physics training (add n-body residual)
     physics_cfg = TrainConfig(
-        epochs=80,
-        batch_size=1536,
+        epochs=1000,
+        batch_size=1024,
         lr=5e-5,
         weight_decay=5e-7,
         val_fraction=0.10,
@@ -441,7 +438,7 @@ def build_multi_stage_configs(
         train_loader_workers=loader_workers,
         pin_memory=True if use_gpu_profile else None,
         persistent_workers=True if use_gpu_profile and loader_workers > 0 else False,
-        early_stopping_patience=12,
+        early_stopping_patience=150,
         lr_scheduler="cosine",
         min_lr=5e-7,
         nbody_loss_weight=1e-6,
@@ -449,9 +446,9 @@ def build_multi_stage_configs(
         nbody_target_fraction=2e-3,
         nbody_balance_beta=0.9,
         nbody_balance_max_scale=1e6,
-        nbody_batch_size=48,
-        nbody_start_epoch=6,
-        nbody_warmup_epochs=36,
+        nbody_batch_size=32,
+        nbody_start_epoch=10,
+        nbody_warmup_epochs=100,
         nbody_softening_km=80_000.0,
         nbody_relative_floor_km_s2=5e-4,
         physics_loss_weight=0.0,
@@ -720,7 +717,7 @@ def run_unified_training(args: argparse.Namespace, dataset: dict[str, Any], devi
     print("\n" + "=" * 80)
     print("TRAINING COMPLETE")
     print("=" * 80)
-    print(f"✓ Final checkpoint: {unified_checkpoint}")
+    print(f"✓ Final checkpoint: {unified_ckpt}")
     print(f"  Best epoch: {best_epoch}")
     print(f"  Best val position RMSE: {best_rmse:,.2f} km")
     
@@ -733,7 +730,7 @@ def run_unified_training(args: argparse.Namespace, dataset: dict[str, Any], devi
         "training_mode": "unified",
         "device": device,
         "dataset_path": str(Path(args.dataset_path).resolve()),
-        "checkpoint_path": str(checkpoint_path.resolve()),
+        "checkpoint_path": str(unified_ckpt.resolve()),
         "best_epoch": best_epoch,
         "best_val_position_rmse_km": best_rmse,
         "model_config": model_cfg.to_kwargs(),

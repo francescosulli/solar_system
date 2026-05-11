@@ -19,9 +19,9 @@ dependencies = [
   "tensorboard>=2.20.0",
   "wandb>=0.26.0",
 
-  "torch==2.5.1",
-  "torchvision==0.20.1",
-  "torchaudio==2.5.1",
+  "torch>=2.9",
+  "torchvision",
+  "torchaudio",
 ]
 
 [project.optional-dependencies]
@@ -40,18 +40,8 @@ pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = "-q"
 
-[tool.uv.sources]
-torch = [
-  { index = "pytorch-cu121", marker = "sys_platform == 'linux'" },
-]
-torchvision = [
-  { index = "pytorch-cu121", marker = "sys_platform == 'linux'" },
-]
-torchaudio = [
-  { index = "pytorch-cu121", marker = "sys_platform == 'linux'" },
-]
-
-[[tool.uv.index]]
-name = "pytorch-cu121"
-url = "https://download.pytorch.org/whl/cu121"
-explicit = true
+# Nota: usare il venv condiviso nella root della repo.
+# Setup: pip install -r ../requirements-dgx.txt \
+#   --index-url https://download.pytorch.org/whl/cu130 \
+#   --extra-index-url https://pypi.org/simple
+# Poi: pip install -e .

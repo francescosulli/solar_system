@@ -1,0 +1,29 @@
+# ============================================================
+# Dipendenze condivise — DGX Spark (NVIDIA GB10, CUDA 13.0, aarch64)
+# ============================================================
+# Installazione:
+#   pip install -r requirements-dgx.txt \
+#       --index-url https://download.pytorch.org/whl/cu130 \
+#       --extra-index-url https://pypi.org/simple
+
+# --- PyTorch (CUDA 13.0) ---
+torch==2.9.0
+torchvision
+torchaudio
+
+# --- Astronomia / dataset ---
+numpy>=1.24
+scipy>=1.10
+astropy>=5.3
+jplephem>=2.21
+
+# --- Training utilities ---
+tqdm>=4.66
+
+# --- Visualizzazione ---
+matplotlib>=3.7
+plotly>=5.20
+
+# --- Logging esperimenti ---
+tensorboard>=2.20.0
+wandb>=0.26.0

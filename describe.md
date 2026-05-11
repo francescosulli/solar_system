@@ -242,46 +242,53 @@ Per `PINN` e `HPINN` bisogna anche guardare:
 
 ---
 
-## 8. Flusso di lavoro consigliato
+## 8. Infrastruttura DGX Spark e Dataset Condiviso
 
-Un flusso di lavoro ragionevole nel repository è:
+Il repository è configurato per l'esecuzione nativa sul server **DGX Spark** (NVIDIA GB10, CUDA 13.0, aarch64) senza la necessità di gestori cluster come SLURM.
 
-1. costruire o verificare il dataset `DE440`
-2. addestrare la baseline in `MLP/`
-3. addestrare la `PINN/`
-4. addestrare la `HPINN/`
-5. confrontare i risultati su:
-   - RMSE per corpo
-   - qualità delle orbite
-   - comportamento fisico
-   - costo di training
+### Ambiente Python Condiviso
+- È presente un unico virtual environment (`.venv`) alla radice del repository, condiviso da tutti i modelli.
+- Le dipendenze per l'architettura aarch64 sono tracciate nel file `requirements-dgx.txt` globale, includendo il supporto a PyTorch 2.9 (necessario per CUDA 13).
+
+### Dataset Centralizzato
+- Per risparmiare spazio, il kernel originale (`de440.bsp`) e il dataset processato (`dataset_de440.npz`) si trovano nella cartella `data/` alla root del repository.
+- Tutti e 3 i modelli fanno riferimento a questo singolo dataset condiviso.
+
+### Script di Lancio Unificati
+- Ciascuna cartella (`MLP/`, `PINN/`, `HPINN/`) contiene uno script dedicato `run_dgx.sh`.
+- Gli script attivano automaticamente l'ambiente, registrano lo stato della GPU e lanciano il training.
+- Tutte le run creano in automatico cartelle uniche stampigliate con l'orario (in `checkpoints/`, `plots/`, e `logs/`) all'interno del progetto corrispondente.
+- È abilitato di default il tracciamento remoto degli esperimenti su **Weights & Biases (WandB)**.
 
 ---
 
-## 9. Quale usare in pratica?
+## 9. Flusso di lavoro consigliato
+
+Un flusso di lavoro ragionevole nel repository oggi è:
+
+1. Autenticarsi in WandB (`wandb login`) se non lo si è ancora fatto.
+2. (Una tantum) Generare il dataset condiviso lanciando lo script di PINN: `bash PINN/run_dgx.sh` (si occuperà anche di scaricare il kernel se assente).
+3. Addestrare la baseline: `bash MLP/run_dgx.sh`
+4. Addestrare la PINN: `bash PINN/run_dgx.sh`
+5. Addestrare l'ibrida: `bash HPINN/run_dgx.sh`
+6. Confrontare i risultati sulla dashboard di Weights & Biases o analizzando localmente i file dentro le directory `plots/` create dinamicamente.
+
+---
+
+## 10. Quale usare in pratica?
 
 ### Se vuoi la baseline più pulita
-
 Usa `MLP/`.
 
 ### Se vuoi il modello più “scientificamente puro”
-
 Usa `PINN/`.
 
 ### Se vuoi la strada più promettente per superare il compromesso MLP vs PINN
-
 Usa `HPINN/`.
 
 ---
 
-## 10. Stato del repository
+## 11. Stato del repository
 
-Ad oggi il repository è organizzato in modo che:
-
-- `MLP/` rappresenti la baseline data-driven
-- `PINN/` rappresenti la PINN Newtoniana pura
-- `HPINN/` rappresenti la PINN ibrida con correction term
-
-Questa separazione è intenzionale: permette di confrontare i tre approcci senza mischiare codice, configurazioni e checkpoint.
-
-Se il progetto evolverà ulteriormente, questa struttura rende naturale aggiungere nuove famiglie di modelli senza compromettere quelle esistenti.
+Ad oggi il repository mantiene una rigida separazione tra i codici di addestramento e l'architettura dei 3 modelli, permettendo di confrontare i tre approcci senza mischiare moduli e configurazioni.
+La gestione dell'infrastruttura (dataset, environment, logging) è invece totalmente unificata per garantire scalabilità, test rapidi e pulizia nel tracciamento degli esperimenti sul DGX Spark.

@@ -85,7 +85,7 @@ Examples:
     parser.add_argument(
         "--project-name",
         type=str,
-        default="LEOPARDD",
+        default="hpinn-solar-system",
         help="Name of the project for logs",
     )
     parser.add_argument(
@@ -363,22 +363,26 @@ def build_multi_stage_configs(
         backbone_type="residual",
         hidden_dim=768,
         num_layers=8,
-        fourier_features=96,
+        fourier_features=256,
         min_frequency=0.02,
-        max_frequency=96.0,
+        max_frequency=256.0,
         frequency_spacing="log",
         head_layers=3,
         head_hidden_dim=384,
         body_embedding_dim=64,
         interaction_layers=2,
         interaction_hidden_dim=384,
+        hybrid_correction=True,
+        correction_layers=2,
+        correction_hidden_dim=128,
+        correction_init_scale=0.02,
         use_layer_norm=True,
         dropout=0.0,
     )
 
     # Stage 1: Coarse training (data fitting only)
     coarse_cfg = TrainConfig(
-        epochs=140,
+        epochs=2000,
         batch_size=1536,
         lr=3e-4,
         weight_decay=5e-7,
@@ -388,7 +392,7 @@ def build_multi_stage_configs(
         train_loader_workers=loader_workers,
         pin_memory=True if use_gpu_profile else None,
         persistent_workers=True if use_gpu_profile and loader_workers > 0 else False,
-        early_stopping_patience=24,
+        early_stopping_patience=200,
         lr_scheduler="cosine",
         min_lr=5e-7,
         nbody_loss_weight=0.0,
@@ -413,7 +417,7 @@ def build_multi_stage_configs(
 
     # Stage 2: Refine training (add velocity supervision)
     refine_cfg = TrainConfig(
-        epochs=240,
+        epochs=2000,
         batch_size=1536,
         lr=1.2e-4,
         weight_decay=5e-7,
@@ -423,7 +427,7 @@ def build_multi_stage_configs(
         train_loader_workers=loader_workers,
         pin_memory=True if use_gpu_profile else None,
         persistent_workers=True if use_gpu_profile and loader_workers > 0 else False,
-        early_stopping_patience=40,
+        early_stopping_patience=200,
         lr_scheduler="cosine",
         min_lr=5e-7,
         nbody_loss_weight=0.0,
@@ -448,7 +452,7 @@ def build_multi_stage_configs(
 
     # Stage 3: Physics training (add n-body residual)
     physics_cfg = TrainConfig(
-        epochs=80,
+        epochs=1000,
         batch_size=1536,
         lr=5e-5,
         weight_decay=5e-7,
@@ -458,7 +462,7 @@ def build_multi_stage_configs(
         train_loader_workers=loader_workers,
         pin_memory=True if use_gpu_profile else None,
         persistent_workers=True if use_gpu_profile and loader_workers > 0 else False,
-        early_stopping_patience=12,
+        early_stopping_patience=150,
         lr_scheduler="cosine",
         min_lr=5e-7,
         nbody_loss_weight=1e-6,
@@ -468,11 +472,12 @@ def build_multi_stage_configs(
         nbody_balance_max_scale=1e6,
         nbody_batch_size=48,
         nbody_start_epoch=6,
-        nbody_warmup_epochs=36,
+        nbody_warmup_epochs=100,
         nbody_softening_km=80_000.0,
         nbody_relative_floor_km_s2=5e-4,
         physics_loss_weight=0.0,
         smoothness_loss_weight=0.0,
+        correction_loss_weight=1e-4,
         position_loss_weight=1.0,
         velocity_loss_weight=0.0,
         grad_clip_norm=1.0,

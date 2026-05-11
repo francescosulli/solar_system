@@ -13,10 +13,12 @@ dependencies = [
   "scipy>=1.10",
   "astropy>=5.3",
   "jplephem>=2.21",
-  "torch>=2.1",
+  "torch>=2.9",
   "tqdm>=4.66",
   "matplotlib>=3.7",
   "plotly>=5.20",
+  "tensorboard>=2.20.0",
+  "wandb>=0.26.0",
 ]
 
 [project.optional-dependencies]
@@ -34,3 +36,9 @@ where = ["src"]
 pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = "-q"
+
+# Nota: usare il venv condiviso nella root della repo.
+# Setup: pip install -r ../requirements-dgx.txt \
+#   --index-url https://download.pytorch.org/whl/cu130 \
+#   --extra-index-url https://pypi.org/simple
+# Poi: pip install -e .

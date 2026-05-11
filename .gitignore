@@ -3,11 +3,20 @@ __pycache__/
 *.py[cod]
 *.so
 .pytest_cache/
+*.egg-info/
 
 # Virtualenv / tooling
 .venv/
+venv/
 .mypy_cache/
 .ruff_cache/
+uv.lock
+
+# Matplotlib / Astropy local cache
+.mplconfig/
+.cache/
+**/.mplconfig/
+**/.cache/
 
 # Jupyter
 .ipynb_checkpoints/
@@ -17,9 +26,26 @@ artifacts/
 **/artifacts/
 data/*.npz
 **/data/*.npz
+checkpoints/
+**/checkpoints/
+plots/
+**/plots/
+
+# Logs
+logs/*.out
+logs/*.err
+logs/*.log
+**/logs/runs/
 
 # IDE / OS
 .DS_Store
 .idea/
+
+# Ephemeris kernels (large binary)
 data/de440.bsp
-**/data/de440.bsp
+data/de441.bsp
+**/data/*.bsp
+
+# WandB
+wandb/
+**/wandb/

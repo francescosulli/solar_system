@@ -61,6 +61,12 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Directory where training figures and summary JSON are saved. Defaults to artifacts/.",
     )
+    parser.add_argument(
+        "--project-name",
+        type=str,
+        default="mlp-solar-system",
+        help="WandB project name.",
+    )
     return parser.parse_args()
 
 
@@ -154,14 +160,14 @@ def main() -> None:
     stage2_ckpt = checkpoint_path.with_name("emulator_stage2.pt")
 
     stage1_cfg = TrainConfig(
-        epochs=1000,
-        batch_size=384,
-        lr=3e-4,
+        epochs=2000,
+        batch_size=1536,
+        lr=1e-3,
         weight_decay=1e-6,
         val_fraction=0.10,
         split_mode="random",
         shuffle=True,
-        early_stopping_patience=180,
+        early_stopping_patience=200,
         lr_scheduler="cosine",
         min_lr=1e-6,
         nbody_loss_weight=0.0,
@@ -175,14 +181,14 @@ def main() -> None:
     )
     model_cfg = ModelConfig(
         num_bodies=len(dataset["bodies"]),
-        hidden_dim=384,
-        num_layers=6,
-        fourier_features=24,
-        min_frequency=1.0,
-        max_frequency=6.0,
-        frequency_spacing="linear",
-        head_layers=1,
-        head_hidden_dim=128,
+        hidden_dim=768,
+        num_layers=8,
+        fourier_features=256,
+        min_frequency=0.02,
+        max_frequency=256.0,
+        frequency_spacing="log",
+        head_layers=3,
+        head_hidden_dim=384,
         dropout=0.0,
     )
 
@@ -191,6 +197,8 @@ def main() -> None:
         train_config=stage1_cfg,
         model_config=model_cfg,
         checkpoint_path=stage1_ckpt,
+        use_wandb=True,
+        wandb_project=args.project_name,
     )
     best1_epoch = int(np.argmin(stage1["history"]["val_pos_rmse_km"])) + 1
     best1_rmse = float(np.min(stage1["history"]["val_pos_rmse_km"]))
@@ -233,6 +241,8 @@ def main() -> None:
             model_config=model_cfg,
             checkpoint_path=stage2_ckpt,
             initial_checkpoint_path=stage1_ckpt,
+            use_wandb=True,
+            wandb_project=args.project_name,
         )
         best2_epoch = int(np.argmin(stage2["history"]["val_pos_rmse_km"])) + 1
         best2_rmse = float(np.min(stage2["history"]["val_pos_rmse_km"]))

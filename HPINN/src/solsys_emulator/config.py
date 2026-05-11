@@ -7,7 +7,7 @@ from pathlib import Path
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = PACKAGE_ROOT.parent.parent
-DATA_DIR = PROJECT_ROOT / "data"
+DATA_DIR = PROJECT_ROOT.parent / "data"
 ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
 
 FRAME_INTERNAL = "icrs"

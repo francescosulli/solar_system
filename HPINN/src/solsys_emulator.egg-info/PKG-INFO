@@ -13,19 +13,19 @@ Requires-Dist: matplotlib>=3.7
 Requires-Dist: plotly>=5.20
 Requires-Dist: tensorboard>=2.20.0
 Requires-Dist: wandb>=0.26.0
-Requires-Dist: torch==2.5.1
-Requires-Dist: torchvision==0.20.1
-Requires-Dist: torchaudio==2.5.1
+Requires-Dist: torch>=2.9
+Requires-Dist: torchvision
+Requires-Dist: torchaudio
 Provides-Extra: dev
 Requires-Dist: pytest>=8.0; extra == "dev"
 Requires-Dist: jupyter>=1.0; extra == "dev"
 Requires-Dist: ipykernel>=6.0; extra == "dev"
 Requires-Dist: ipywidgets>=8.0; extra == "dev"
 
-# Solar System Ephemeris Emulator (PINN Variant)
+# Solar System Ephemeris Emulator (HPINN Variant)
 
 Progetto Python/Jupyter riproducibile per emulare effemeridi del Sistema Solare con ML.
-Questa cartella contiene la variante **PINN** separata dal progetto baseline.
+Questa cartella contiene la variante **HPINN** separata da `MLP/` e `PINN/`.
 
 - input: tempo `t`
 - output: stato 6D `(x, y, z, vx, vy, vz)` per multi-corpo
@@ -43,8 +43,17 @@ Questa cartella contiene la variante **PINN** separata dal progetto baseline.
 
 - Python >= 3.10
 - vedi `pyproject.toml` o `requirements.txt`
+- CUDA-capable GPUs for any training. 
 
 ## Setup
+Costruzione dell'environment da 0 con `rebuild_env.sh` (consigliato): questo script utilizza uv e costruisce automaticamente l'environment con la versione giusta di Pytorch-cuda per Orfeo.
+```
+chmod +x ./rebuild_env
+./rebuild_env
+source .venv/bin/activate
+`` 
+
+Alternative:
 
 ```bash
 python -m venv .venv
@@ -85,14 +94,14 @@ Apri Jupyter e lancia in ordine:
 3. `notebooks/02_train_emulator.ipynb`
 4. `notebooks/03_inference_and_viz.ipynb`
 5. `notebooks/04_gravity_field_api.ipynb`
-6. `notebooks/05_compare_baseline_vs_pinn.ipynb`
+6. `notebooks/05_compare_baseline_vs_hybrid.ipynb`
 
 
 Output attesi:
 
 - dataset `.npz` in `data/`
-- checkpoint PINN in `artifacts/emulator_pinn.pt`
-- scena 3D Plotly con orbite PINN + overlay orbite DE440
+- checkpoint HPINN in `artifacts/emulator_hpinn.pt`
+- scena 3D Plotly con orbite HPINN + overlay orbite DE440
 - esempio campo gravitazionale in un punto
 
 ### Profilo long-run (consigliato)
@@ -120,7 +129,7 @@ I notebook sono configurati in modalita robusta per massimizzare il fit alle orb
   nessun ordinamento forzato dei batch (`sort_train_for_derivatives=False`) per evitare drift iniziale
   lo split resta `random` (evita validazione in extrapolazione pura)
   il checkpoint finale del run unico viene selezionato con metrica `val_pos_rmse_km`
-- confronto automatico `MLP/` vs `PINN/` nel notebook `05_compare_baseline_vs_pinn.ipynb`
+- confronto automatico `MLP/` vs `PINN/` nel notebook `05_compare_baseline_vs_hybrid.ipynb`
   (la baseline viene caricata da `../MLP/artifacts/`, non usata in training)
 - metriche: RMSE fisiche in km e km/s + confronto orbitale su un anno in `03_inference_and_viz.ipynb`
   con bar chart RMSE per corpo e viste separate `inner` / `outer` solar system
@@ -195,3 +204,23 @@ Copertura test minima richiesta:
     ├── test_gravity_field.py
     └── test_inference_api.py
 ```
+## Pipeline
+A seconda del modello da allenare, eseguire:
+- `train.py oppure HPINN_train.py`: per addestrare su GPU un modello per predirre le effemeridi dei 10 pianeti del sistema solare(dataset di riferimento: `dataset_demo.npz`). 
+- `run_leopardd.sh`: per addestrare su GPU un modello per predirre le orbite dei detriti presenti su un dataset(ad esempio, `fengyun_dataset.npz`). 
+Tutti i log dell'addestramento sono riportati in più sedi per facilitarne il confronto e le analisi:
+- in locale, sotto `logs/<SLURM_RUN_ID/` si troveranno i file:
+- `nvidia-smi.csv`: log temporale (1 Hz) dell’utilizzo GPU durante l’esecuzione (memoria, utilizzo, temperatura, potenza).
+
+- `nvidia-smi.pmon.csv`: monitoraggio per-processo dell’attività GPU (SM, memoria, ecc.), utile per analisi multi-processo/DDP.
+
+- `nvidia-smi.processes.start.csv`: elenco dei processi GPU attivi all’avvio del job, con memoria utilizzata.
+
+- `nvidia-smi.start.csv`: snapshot strutturato (formato CSV) dello stato GPU all’avvio (memoria, utilizzo, temperatura, potenza).
+
+- `nvidia-smi.start.txt`: snapshot leggibile dello stato GPU all’avvio (informazioni complete su GPU e processi).
+
+- `run.log`: log principale completo dell’esecuzione (output dello script, training, metriche ed eventuali errori).
+
+Sono inoltre salvate sempre sotto la cartella `logs` informazioni per la visualizzazione degli iperparametri con tensorflow, mentre WandB è attivo ed accessibile a chiunque sia membro di [Astreo sulla piattaforma](https://wandb.ai/profile/astreolabs). Quest'ultimo presenta senza dubbio l'interfaccia pi\ intuitiva per il confronto di run e iperparametri diversi.
+

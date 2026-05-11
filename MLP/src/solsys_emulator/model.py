@@ -27,6 +27,24 @@ class ModelConfig:
         return asdict(self)
 
 
+class ResidualBlock(nn.Module):
+    def __init__(self, dim: int, dropout: float = 0.0):
+        super().__init__()
+        self.linear1 = nn.Linear(dim, dim)
+        self.act1 = nn.SiLU()
+        self.linear2 = nn.Linear(dim, dim)
+        self.act2 = nn.SiLU()
+        self.dropout = nn.Dropout(dropout) if dropout > 0.0 else nn.Identity()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = self.linear1(x)
+        out = self.act1(out)
+        if isinstance(self.dropout, nn.Dropout):
+            out = self.dropout(out)
+        out = self.linear2(out)
+        return self.act2(out + x)
+
+
 class EmulatorModel(nn.Module):
     """
     MLP with Fourier time features and one head per body.
@@ -97,13 +115,17 @@ class EmulatorModel(nn.Module):
 
         input_dim = 1 + 2 * self.fourier_features
         layers: list[nn.Module] = []
-        in_dim = input_dim
+        
+        # Initial projection
+        layers.append(nn.Linear(input_dim, self.hidden_dim))
+        layers.append(nn.SiLU())
+        if self.dropout > 0.0:
+            layers.append(nn.Dropout(self.dropout))
+            
+        # Residual blocks
         for _ in range(self.num_layers):
-            layers.append(nn.Linear(in_dim, self.hidden_dim))
-            layers.append(nn.SiLU())
-            if self.dropout > 0.0:
-                layers.append(nn.Dropout(self.dropout))
-            in_dim = self.hidden_dim
+            layers.append(ResidualBlock(self.hidden_dim, self.dropout))
+            
         self.backbone = nn.Sequential(*layers)
         self.heads = nn.ModuleList(
             [

@@ -6,11 +6,14 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from datetime import datetime
+
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import Tensor
 from torch.utils.data import DataLoader, TensorDataset
+import wandb
 
 from .config import DEFAULT_CHECKPOINT_PATH, SOFTENING_EPSILON_KM
 from .constants import mu_array
@@ -169,6 +172,44 @@ def _nbody_acceleration_loss(
     return torch.mean(rel)
 
 
+def _energy_conservation_loss(
+    positions: Tensor,
+    velocities: Tensor,
+    mu_values: Tensor,
+    softening_km: float,
+) -> Tensor:
+    """Variance penalty on a mass-weighted pseudo-total energy along sampled times."""
+    mass_like = mu_values.view(1, -1, 1)
+    kinetic = 0.5 * torch.sum(mass_like * torch.sum(velocities * velocities, dim=-1, keepdim=True), dim=1).squeeze(-1)
+
+    r_j_minus_i = positions[:, None, :, :] - positions[:, :, None, :]
+    dist = torch.sqrt(torch.sum(r_j_minus_i * r_j_minus_i, dim=-1) + float(softening_km) ** 2)
+    n_bodies = positions.shape[1]
+    eye = torch.eye(n_bodies, dtype=torch.bool, device=positions.device).unsqueeze(0)
+    inv_dist = torch.where(eye, torch.zeros_like(dist), 1.0 / dist)
+    pair_weight = (mu_values.view(1, n_bodies, 1) * mu_values.view(1, 1, n_bodies))
+    potential = -0.5 * torch.sum(pair_weight * inv_dist, dim=(1, 2))
+
+    total_energy = kinetic + potential
+    energy_centered = total_energy - torch.mean(total_energy)
+    denom = torch.mean(total_energy * total_energy) + 1e-12
+    return torch.mean(energy_centered * energy_centered) / denom
+
+
+def _angular_momentum_conservation_loss(
+    positions: Tensor,
+    velocities: Tensor,
+    mu_values: Tensor,
+) -> Tensor:
+    """Variance penalty on mass-weighted pseudo-total angular momentum along sampled times."""
+    mass_like = mu_values.view(1, -1, 1)
+    angular_momentum = torch.sum(mass_like * torch.cross(positions, velocities, dim=-1), dim=1)
+    centered = angular_momentum - torch.mean(angular_momentum, dim=0, keepdim=True)
+    numer = torch.mean(torch.sum(centered * centered, dim=-1))
+    denom = torch.mean(torch.sum(angular_momentum * angular_momentum, dim=-1)) + 1e-12
+    return numer / denom
+
+
 def _state_data_loss(
     predictions: Tensor,
     targets: Tensor,
@@ -214,6 +255,8 @@ def train_emulator(
     scaler: StateScaler | None = None,
     checkpoint_path: str | Path = DEFAULT_CHECKPOINT_PATH,
     initial_checkpoint_path: str | Path | None = None,
+    use_wandb: bool = True,
+    wandb_project: str = "mlp-solar-system",
 ) -> dict[str, Any]:
     """Train emulator on a dataset and store checkpoint.
 
@@ -221,6 +264,17 @@ def train_emulator(
     """
     cfg = train_config or TrainConfig()
     set_seed(cfg.seed)
+
+    if use_wandb:
+        run_name = f"{wandb_project}_{cfg.device}_{datetime.now().strftime('%m%d_%H%M')}"
+        wandb.init(
+            project=wandb_project,
+            name=run_name,
+            config={
+                "train_config": asdict(cfg),
+                "model_config": asdict(model_config) if model_config else {},
+            }
+        )
 
     raw_states = np.asarray(dataset["states"], dtype=float)
     bodies = [str(b) for b in np.asarray(dataset["bodies"]).tolist()]
@@ -399,6 +453,18 @@ def train_emulator(
         running_val = 0.0
         running_val_pos_rmse = 0.0
         running_val_vel_rmse = 0.0
+        running_val_pos_rmse_per_body = torch.zeros(len(bodies), device=device)
+        running_val_vel_rmse_per_body = torch.zeros(len(bodies), device=device)
+        
+        # Scientific Metrics
+        running_val_energy = 0.0
+        running_val_angular = 0.0
+        
+        val_max_pos_error = 0.0
+        val_min_pos_error = float('inf')
+        val_max_pos_error_per_body = torch.zeros(len(bodies), device=device)
+        val_min_pos_error_per_body = torch.full((len(bodies),), float('inf'), device=device)
+        
         n_val_batches = 0
         with torch.no_grad():
             for val_t, val_y in val_loader:
@@ -417,14 +483,55 @@ def train_emulator(
                 val_true_phys = val_y * scaler_std_t + scaler_mean_t
                 pos_diff = val_pred_phys[:, :, :3] - val_true_phys[:, :, :3]
                 vel_diff = val_pred_phys[:, :, 3:] - val_true_phys[:, :, 3:]
+                
+                # Global RMSE
                 pos_rmse = torch.sqrt(torch.mean(torch.sum(pos_diff * pos_diff, dim=-1)))
                 vel_rmse = torch.sqrt(torch.mean(torch.sum(vel_diff * vel_diff, dim=-1)))
                 running_val_pos_rmse += float(pos_rmse.cpu().item())
                 running_val_vel_rmse += float(vel_rmse.cpu().item())
+                
+                # Per-body RMSE
+                pos_rmse_per_body = torch.sqrt(torch.mean(torch.sum(pos_diff * pos_diff, dim=-1), dim=0))
+                vel_rmse_per_body = torch.sqrt(torch.mean(torch.sum(vel_diff * vel_diff, dim=-1), dim=0))
+                running_val_pos_rmse_per_body += pos_rmse_per_body
+                running_val_vel_rmse_per_body += vel_rmse_per_body
+                
+                # Physics Conservation
+                energy_err = _energy_conservation_loss(
+                    positions=val_pred_phys[:, :, :3],
+                    velocities=val_pred_phys[:, :, 3:],
+                    mu_values=mu_t,
+                    softening_km=cfg.nbody_softening_km,
+                )
+                angular_err = _angular_momentum_conservation_loss(
+                    positions=val_pred_phys[:, :, :3],
+                    velocities=val_pred_phys[:, :, 3:],
+                    mu_values=mu_t,
+                )
+                running_val_energy += float(energy_err.cpu().item())
+                running_val_angular += float(angular_err.cpu().item())
+                
+                # Max/Min Absolute Errors
+                abs_pos_diff = torch.sqrt(torch.sum(pos_diff * pos_diff, dim=-1)) # [batch, bodies]
+                
+                batch_max_pos_error = float(torch.max(abs_pos_diff).cpu().item())
+                batch_min_pos_error = float(torch.min(abs_pos_diff).cpu().item())
+                val_max_pos_error = max(val_max_pos_error, batch_max_pos_error)
+                val_min_pos_error = min(val_min_pos_error, batch_min_pos_error)
+                
+                batch_max_per_body = torch.max(abs_pos_diff, dim=0).values
+                batch_min_per_body = torch.min(abs_pos_diff, dim=0).values
+                val_max_pos_error_per_body = torch.maximum(val_max_pos_error_per_body, batch_max_per_body)
+                val_min_pos_error_per_body = torch.minimum(val_min_pos_error_per_body, batch_min_per_body)
+                
                 n_val_batches += 1
         val_loss = running_val / max(1, n_val_batches)
         val_pos_rmse = running_val_pos_rmse / max(1, n_val_batches)
         val_vel_rmse = running_val_vel_rmse / max(1, n_val_batches)
+        val_pos_rmse_per_body = running_val_pos_rmse_per_body / max(1, n_val_batches)
+        val_vel_rmse_per_body = running_val_vel_rmse_per_body / max(1, n_val_batches)
+        val_energy_error = running_val_energy / max(1, n_val_batches)
+        val_angular_error = running_val_angular / max(1, n_val_batches)
 
         history["train_loss"].append(train_loss)
         history["val_loss"].append(val_loss)
@@ -434,7 +541,31 @@ def train_emulator(
         history["val_pos_rmse_km"].append(val_pos_rmse)
         history["val_vel_rmse_km_s"].append(val_vel_rmse)
         history["nbody_weight"].append(float(nbody_weight_eff))
-        history["lr"].append(float(optimizer.param_groups[0]["lr"]))
+        current_lr = float(optimizer.param_groups[0]["lr"])
+        history["lr"].append(current_lr)
+        
+        if use_wandb:
+            log_dict = {
+                "train_loss": train_loss,
+                "val_loss": val_loss,
+                "val_pos_rmse_km": val_pos_rmse,
+                "val_vel_rmse_km_s": val_vel_rmse,
+                "val_energy_error": val_energy_error,
+                "val_angular_error": val_angular_error,
+                "val_max_pos_error_km": val_max_pos_error,
+                "val_min_pos_error_km": val_min_pos_error if val_min_pos_error != float('inf') else 0.0,
+                "physics_loss": physics_loss,
+                "smoothness_loss": smoothness_loss,
+                "nbody_loss": nbody_loss,
+                "lr": current_lr,
+                "epoch": epoch_idx + 1
+            }
+            for i, body in enumerate(bodies):
+                log_dict[f"rmse_pos_{body}_km"] = float(val_pos_rmse_per_body[i].cpu().item())
+                log_dict[f"rmse_vel_{body}_km_s"] = float(val_vel_rmse_per_body[i].cpu().item())
+                log_dict[f"max_pos_{body}_km"] = float(val_max_pos_error_per_body[i].cpu().item())
+                log_dict[f"min_pos_{body}_km"] = float(val_min_pos_error_per_body[i].cpu().item()) if val_min_pos_error_per_body[i] != float('inf') else 0.0
+            wandb.log(log_dict, step=epoch_idx)
         if progress_enabled:
             epoch_iter.set_postfix(
                 train=f"{train_loss:.3e}",
@@ -488,6 +619,11 @@ def train_emulator(
         },
         train_config=cfg,
     )
+
+    if use_wandb:
+        wandb.run.summary["best_val_loss"] = best_val
+        wandb.save(str(checkpoint_path))
+        wandb.finish()
 
     return {
         "model": model,
