@@ -336,22 +336,22 @@ def build_multi_stage_configs(
     is_distributed = True if torch.cuda.device_count() > 1 else False 
     loader_workers = loader_workers_override if loader_workers_override is not None else (4 if use_gpu_profile else 0)
 
-    # Shared model configuration (GIANT PINN)
+    # Shared model configuration (GIANT PINN 768x8 — aligned with HPINN)
     model_cfg = ModelConfig(
         num_bodies=len(dataset["bodies"]),
         state_mode="position_only",
         backbone_type="residual",
-        hidden_dim=512,
-        num_layers=6,
+        hidden_dim=768,
+        num_layers=8,
         fourier_features=256,
         min_frequency=0.02,
-        max_frequency=500.0,
+        max_frequency=256.0,
         frequency_spacing="log",
         head_layers=3,
-        head_hidden_dim=128,
+        head_hidden_dim=384,
         body_embedding_dim=64,
         interaction_layers=2,
-        interaction_hidden_dim=128,
+        interaction_hidden_dim=384,
         use_layer_norm=True,
         dropout=0.0,
     )
