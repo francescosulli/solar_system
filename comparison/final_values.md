@@ -36,7 +36,7 @@ Complete record of architecture parameters, training configuration, and experime
 
 | Model | Mean Pos Error (Earth) | Note |
 | :--- | :--- | :--- |
-| **MLP** | 320,240,341 km | Catastrophic divergence. Orbital shape lost. |
+| **MLP** | 157,896 km | Significativa deviazione dalla traiettoria reale. |
 | **PINN** | 19,608 km | Stable Newtonian trajectory. |
 | **HPINN** | **11,750 km** | Most precise and physically stable extrapolation. |
 
@@ -68,7 +68,7 @@ All models share the same backbone capacity for fair comparison.
 *   **Interaction Layers**: 2 (384 dim)
 
 ### Model-Specific Differences
-*   **MLP**: `state_mode="full"` (Predicts velocity directly. No physics loss).
+*   **MLP**: `state_mode="position_only"` (Velocity derived via AutoDiff `jacfwd`. Zero physics loss).
 *   **PINN**: `state_mode="position_only"` (Velocity derived via AutoDiff `jacfwd`. N-Body loss active).
 *   **HPINN**: `hybrid_correction=True`. Adds a secondary residual branch (2 layers, 128 dim) to learn non-Newtonian dynamics.
 
