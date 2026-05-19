@@ -28,8 +28,8 @@ data/*.npz
 **/data/*.npz
 checkpoints/
 **/checkpoints/
-plots/
-**/plots/
+# plots/
+# **/plots/
 
 # Logs
 logs/*.out
