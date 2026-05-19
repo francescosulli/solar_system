@@ -74,33 +74,16 @@ def load_model(name: str, path: Path):
 
     # --- model config ---
     cfg_dict = dict(ckpt.get("model_kwargs", ckpt.get("model_config", {})))
-    if name in ("PINN", "HPINN"):
+    if name in ("MLP", "PINN", "HPINN"):
         cfg_dict["state_mode"] = "position_only"
     if name == "HPINN":
         cfg_dict["hybrid_correction"] = True
-    if name == "MLP":
-        cfg_dict["backbone_type"] = "residual"
 
     cfg = ModelConfig(**cfg_dict)
     model = EmulatorModel(**cfg.to_kwargs()).to(DEVICE)
 
     # --- state dict (fix legacy key naming) ---
     state_dict = dict(ckpt.get("model_state_dict", ckpt.get("model_state", {})))
-    if name == "MLP":
-        remapped = {}
-        for k, v in state_dict.items():
-            new_k = k.replace(".linear1.", ".fc1.").replace(".linear2.", ".fc2.")
-            if "backbone." in new_k:
-                parts = new_k.split(".")
-                try:
-                    idx = int(parts[1])
-                    if idx >= 2:
-                        parts[1] = str(idx - 1)
-                        new_k = ".".join(parts)
-                except ValueError:
-                    pass
-            remapped[new_k] = v
-        state_dict = remapped
     model.load_state_dict(state_dict)
     model.eval()
 

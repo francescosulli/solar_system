@@ -1,6 +1,6 @@
 
-<<<<<<< HEAD
-=======
+# Solar System Workspace
+
 Workspace organizzato in tre progetti distinti e una suite di analisi:
 
 - `MLP/`: baseline emulator MLP puramente data-driven
@@ -48,4 +48,3 @@ PYTHONPATH=src pytest -q tests
 ### Generazione Grafici e Paper
 
 Tutti gli script di comparazione si trovano nella cartella `comparison/`. Per generare i grafici aggiornati (dopo aver addestrato i modelli), eseguire gli script Python all'interno delle rispettive sotto-cartelle (es. `python plot_paper1.py`).
->>>>>>> 052c3ae (refactor: remove legacy notebooks and redundant documentation files)

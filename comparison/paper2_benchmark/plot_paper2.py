@@ -64,27 +64,13 @@ def load_model_helper(name: str, path: Path):
     if not path.exists(): return None, None, None, None
     ckpt = torch.load(path, map_location=DEVICE, weights_only=False)
     cfg_dict = dict(ckpt.get("model_kwargs", ckpt.get("model_config", {})))
-    if name in ("PINN", "HPINN"): cfg_dict["state_mode"] = "position_only"
+    if name in ("MLP", "PINN", "HPINN"): cfg_dict["state_mode"] = "position_only"
     if name == "HPINN": cfg_dict["hybrid_correction"] = True
-    if name == "MLP": cfg_dict["backbone_type"] = "residual"
     
     cfg = ModelConfig(**cfg_dict)
     model = EmulatorModel(**cfg.to_kwargs()).to(DEVICE)
     
     state_dict = dict(ckpt.get("model_state_dict", ckpt.get("model_state", {})))
-    if name == "MLP":
-        remapped = {}
-        for k, v in state_dict.items():
-            new_k = k.replace(".linear1.", ".fc1.").replace(".linear2.", ".fc2.")
-            if "backbone." in new_k:
-                parts = new_k.split(".")
-                try:
-                    idx = int(parts[1])
-                    if idx >= 2: parts[1] = str(idx - 1)
-                    new_k = ".".join(parts)
-                except ValueError: pass
-            remapped[new_k] = v
-        state_dict = remapped
     model.load_state_dict(state_dict)
     model.eval()
 
@@ -167,10 +153,13 @@ def main():
     ax.set_title("Global Benchmark: MLP vs PINN vs HPINN")
     
     # Add values on top
+    max_height = max(means)
+    ax.set_ylim(min(means)*0.5, max_height * 4) # Spazio extra in cima ridotto
+    
     for bar in bars:
         height = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width()/2., height * 1.1,
-                f'{height:,.0f} km', ha='center', va='bottom', fontsize=10, fontweight='bold')
+        ax.text(bar.get_x() + bar.get_width()/2., height * 1.25,
+                f'{height:,.0f} km', ha='center', va='bottom', fontsize=11, fontweight='bold')
     
     plt.tight_layout()
     plt.savefig(PLOTS_DIR / "fig1_global_rmse.pdf")
@@ -193,12 +182,27 @@ def main():
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
     
     # Loop over data dimensions and create text annotations.
+    log_data = np.log10(data_matrix)
+    vmin, vmax = log_data.min(), log_data.max()
+    
     for i in range(len(names)):
         for j in range(len(bodies)):
             val = data_matrix[i, j]
-            ax.text(j, i, f"{val/1000:.1f}k", ha="center", va="center", 
-                    color="white" if np.log10(val) > np.log10(data_matrix.max())*0.7 else "black",
-                    fontsize=9)
+            
+            # Format text dynamically
+            if val >= 1e9:
+                text_val = f"{val/1e9:.1f}B"
+            elif val >= 1e6:
+                text_val = f"{val/1e6:.1f}M"
+            else:
+                text_val = f"{val/1000:.0f}k"
+                
+            # Better contrast based on normalized log value
+            norm_val = (log_data[i, j] - vmin) / (vmax - vmin + 1e-9)
+            color = "white" if norm_val > 0.6 else "black"
+            
+            ax.text(j, i, text_val, ha="center", va="center", 
+                    color=color, fontsize=10, fontweight="bold")
 
     ax.set_title("Per-Body Position RMSE (km)")
     fig.colorbar(im, label="log10 RMSE")
@@ -207,43 +211,148 @@ def main():
     plt.close()
 
     # -----------------------------------------------------------------------
-    # FIGURE 3: Interactive 3D Scene (HTML)
+    # FIGURE 3: Interactive 3D Scenes (HTML)
     # -----------------------------------------------------------------------
-    print("Generating 3D Scene…")
-    slice_idx = -365 * 8 # Last year
+    print("Generating 3D Scenes…")
     
-    fig_3d = go.Figure()
-    
-    # We'll plot only Earth (idx 3) and Mars (idx 4) to keep it readable, 
-    # plus the Sun (idx 0)
-    BODIES_TO_PLOT = [0, 3, 4] 
-    
-    for b_idx in BODIES_TO_PLOT:
-        b_name = bodies[b_idx].capitalize()
+    def create_3d_plot(start_idx, end_idx, title, filename):
+        fig_3d = go.Figure()
+        BODIES_TO_PLOT = [3] # Solo la Terra
         
-        # Ground Truth (dashed black)
-        gt = true_st[slice_idx:, b_idx]
-        fig_3d.add_trace(go.Scatter3d(
-            x=gt[:, 0], y=gt[:, 1], z=gt[:, 2],
-            mode='lines', line=dict(color='black', width=2, dash='dash'),
-            name=f"{b_name} (Ground Truth)"
-        ))
-        
-        # Models
-        for n in names:
-            p = results[n][slice_idx:, b_idx]
+        for b_idx in BODIES_TO_PLOT:
+            b_name = bodies[b_idx].capitalize()
+            
+            # Use slice if end_idx is None
+            if end_idx is None:
+                gt = true_st[start_idx:, b_idx]
+            else:
+                gt = true_st[start_idx:end_idx, b_idx]
+                
             fig_3d.add_trace(go.Scatter3d(
-                x=p[:, 0], y=p[:, 1], z=p[:, 2],
-                mode='lines', line=dict(color=MODEL_COLORS[n], width=4),
-                name=f"{b_name} ({n})"
+                x=gt[:, 0], y=gt[:, 1], z=gt[:, 2],
+                mode='lines', line=dict(color='black', width=2, dash='dash'),
+                name=f"{b_name} (Ground Truth)"
             ))
+            
+            for n in names:
+                if end_idx is None:
+                    p = results[n][start_idx:, b_idx]
+                else:
+                    p = results[n][start_idx:end_idx, b_idx]
+                    
+                fig_3d.add_trace(go.Scatter3d(
+                    x=p[:, 0], y=p[:, 1], z=p[:, 2],
+                    mode='lines', line=dict(color=MODEL_COLORS[n], width=4),
+                    name=f"{b_name} ({n})"
+                ))
 
-    fig_3d.update_layout(
-        title="Orbital Trajectory Benchmark: 1-Year Prediction",
-        scene=dict(xaxis_title='X (km)', yaxis_title='Y (km)', zaxis_title='Z (km)'),
-        margin=dict(l=0, r=0, b=0, t=40)
-    )
-    fig_3d.write_html(PLOTS_DIR / "fig3_interactive_orbits.html")
+        fig_3d.update_layout(
+            title=title,
+            scene=dict(xaxis_title='X (km)', yaxis_title='Y (km)', zaxis_title='Z (km)'),
+            margin=dict(l=0, r=0, b=0, t=40)
+        )
+        fig_3d.write_html(PLOTS_DIR / filename)
+
+    def create_error_3d_plot(start_idx, end_idx, title, filename):
+        fig_3d = go.Figure()
+        BODIES_TO_PLOT = [3] # Solo Terra
+        
+        for b_idx in BODIES_TO_PLOT:
+            b_name = bodies[b_idx].capitalize()
+            
+            # Origin is the Ground Truth in error space
+            fig_3d.add_trace(go.Scatter3d(
+                x=[0], y=[0], z=[0],
+                mode='markers', marker=dict(color='black', size=8, symbol='cross'),
+                name=f"{b_name} (Ground Truth Origin)"
+            ))
+            
+            for n in names:
+                if end_idx is None:
+                    p = results[n][start_idx:, b_idx]
+                    gt = true_st[start_idx:, b_idx]
+                else:
+                    p = results[n][start_idx:end_idx, b_idx]
+                    gt = true_st[start_idx:end_idx, b_idx]
+                    
+                err = p - gt
+                fig_3d.add_trace(go.Scatter3d(
+                    x=err[:, 0], y=err[:, 1], z=err[:, 2],
+                    mode='lines', line=dict(color=MODEL_COLORS[n], width=4),
+                    name=f"{b_name} Error ({n})"
+                ))
+
+        fig_3d.update_layout(
+            title=title,
+            scene=dict(xaxis_title='Delta X (km)', yaxis_title='Delta Y (km)', zaxis_title='Delta Z (km)'),
+            margin=dict(l=0, r=0, b=0, t=40)
+        )
+        fig_3d.write_html(PLOTS_DIR / filename)
+
+    # 3A: Interpolation (2020)
+    # 2010 to 2020 is 10 years. 10 * 365.25 * 8 = ~29220 steps
+    start_2020 = int(10 * 365.25 * 8)
+    end_2020 = int(11 * 365.25 * 8)
+    create_3d_plot(start_2020, end_2020, 
+                   "Orbital Trajectory Benchmark: Interpolation Phase (Year 2020, inside training set)", 
+                   "fig3a_interpolation_orbits.html")
+
+    # 3B: Extrapolation (2029)
+    # Last 365 days of dataset
+    start_2029 = -int(365 * 8)
+    end_2029 = None
+    create_3d_plot(start_2029, end_2029, 
+                   "Orbital Trajectory Benchmark: Extrapolation Phase (Year 2029, 1 year into unknown future)", 
+                   "fig3b_extrapolation_orbits.html")
+
+    # 4: Close-up Detail (First 180 days of 2029)
+    start_detail = -int(365 * 8)
+    end_detail = -int((365 - 180) * 8)
+    create_3d_plot(start_detail, end_detail, 
+                   "Close-up Detail: Orbit Divergence in Extrapolation (180-day arc)", 
+                   "fig4_orbit_detail.html")
+                   
+    # 5: Error Space 3D (Extrapolation phase)
+    create_error_3d_plot(start_2029, end_2029,
+                         "3D Error Space (Delta XYZ): Divergence from Ground Truth (Extrapolation)",
+                         "fig5_error_space_3d.html")
+
+    # -----------------------------------------------------------------------
+    # FIGURE 6: Static 2D Close-up Zoom (For LaTeX PDF)
+    # -----------------------------------------------------------------------
+    print("Generating Static 2D Close-up (PDF)…")
+    fig, ax = plt.subplots(figsize=(6, 6))
+    
+    # 120-day arc
+    start_2d = -int(365 * 8)
+    end_2d = -int((365 - 120) * 8)
+    b_idx = 3 # Earth
+    
+    gt_2d = true_st[start_2d:end_2d, b_idx]
+    ax.plot(gt_2d[:, 0], gt_2d[:, 1], 'k--', linewidth=2, label="Ground Truth")
+    
+    for n in names:
+        p_2d = results[n][start_2d:end_2d, b_idx]
+        # Linee più sottili per far vedere meglio lo scollamento
+        ax.plot(p_2d[:, 0], p_2d[:, 1], color=MODEL_COLORS[n], linewidth=1.5, alpha=0.9, label=n)
+        
+    # Zoom molto stretto (finestra di +/- 250.000 km) sull'ultimo punto dell'arco
+    x_center = gt_2d[-1, 0]
+    y_center = gt_2d[-1, 1]
+    window = 250_000
+    
+    ax.set_xlim(x_center - window, x_center + window)
+    ax.set_ylim(y_center - window, y_center + window)
+    
+    ax.set_aspect('equal')
+    ax.set_title("Close-up Detail: Orbit Divergence (Earth 2D Projection)")
+    ax.set_xlabel("X (km)")
+    ax.set_ylabel("Y (km)")
+    ax.legend(loc="upper right")
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(PLOTS_DIR / "fig6_orbit_detail_2d.pdf")
+    plt.close()
     
     print(f"\n✅ Paper 2 figures saved to {PLOTS_DIR}")
 

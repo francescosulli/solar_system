@@ -22,7 +22,7 @@ Complete record of architecture parameters, training configuration, and experime
 
 | Model | Architecture | Global Mean RMSE | Improvement vs MLP |
 | :--- | :--- | :--- | :--- |
-| **MLP** | 768×8 | 1,588,286,494 km | — |
+| **MLP** | 768×8 | 113,889 km | — |
 | **PINN** | 768×8 | 48,778 km | -99.99% |
 | **HPINN** | 768×8 (Hybrid) | **34,037 km** | **-99.99% (Best)** |
 

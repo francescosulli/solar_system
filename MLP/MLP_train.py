@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-SRC_DIR = PROJECT_ROOT / "src"
+SRC_DIR = PROJECT_ROOT.parent / "HPINN" / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
@@ -161,8 +161,8 @@ def main() -> None:
 
     stage1_cfg = TrainConfig(
         epochs=2000,
-        batch_size=1536,
-        lr=1e-3,
+        batch_size=768,
+        lr=2e-4,
         weight_decay=1e-6,
         val_fraction=0.10,
         split_mode="random",
@@ -190,6 +190,8 @@ def main() -> None:
         head_layers=3,
         head_hidden_dim=384,
         dropout=0.0,
+        state_mode="position_only",
+        hybrid_correction=False,
     )
 
     stage1 = train_emulator(
