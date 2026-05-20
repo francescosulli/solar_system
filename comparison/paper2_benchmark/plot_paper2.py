@@ -247,9 +247,15 @@ def main():
                 ))
 
         fig_3d.update_layout(
-            title=title,
-            scene=dict(xaxis_title='X (km)', yaxis_title='Y (km)', zaxis_title='Z (km)'),
-            margin=dict(l=0, r=0, b=0, t=40)
+            title=dict(text=title, font=dict(size=32)),
+            scene=dict(
+                xaxis_title='X (km)', yaxis_title='Y (km)', zaxis_title='Z (km)',
+                xaxis=dict(title_font=dict(size=24), tickfont=dict(size=20)),
+                yaxis=dict(title_font=dict(size=24), tickfont=dict(size=20)),
+                zaxis=dict(title_font=dict(size=24), tickfont=dict(size=20))
+            ),
+            legend=dict(font=dict(size=26), itemsizing='constant'),
+            margin=dict(l=0, r=0, b=0, t=80)
         )
         fig_3d.write_html(PLOTS_DIR / filename)
 
@@ -283,9 +289,15 @@ def main():
                 ))
 
         fig_3d.update_layout(
-            title=title,
-            scene=dict(xaxis_title='Delta X (km)', yaxis_title='Delta Y (km)', zaxis_title='Delta Z (km)'),
-            margin=dict(l=0, r=0, b=0, t=40)
+            title=dict(text=title, font=dict(size=32)),
+            scene=dict(
+                xaxis_title='Delta X (km)', yaxis_title='Delta Y (km)', zaxis_title='Delta Z (km)',
+                xaxis=dict(title_font=dict(size=24), tickfont=dict(size=20)),
+                yaxis=dict(title_font=dict(size=24), tickfont=dict(size=20)),
+                zaxis=dict(title_font=dict(size=24), tickfont=dict(size=20))
+            ),
+            legend=dict(font=dict(size=26), itemsizing='constant'),
+            margin=dict(l=0, r=0, b=0, t=80)
         )
         fig_3d.write_html(PLOTS_DIR / filename)
 

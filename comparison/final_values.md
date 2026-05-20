@@ -11,7 +11,7 @@ Complete record of architecture parameters, training configuration, and experime
 | **Source** | NASA JPL DE440 ephemeris |
 | **Bodies** | 10 (Sun, Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune, Moon) |
 | **Dataset shape** | (58441, 10, 6) — T × Bodies × State |
-| **Time span** | ~160 years (sampled every 3 hours) |
+| **Time span** | ~20 years (sampled every 3 hours) |
 | **Train / Val split** | 90 % / 10 % (random) |
 | **Time normalization** | Mean / Standard Deviation (Standard Scaler) |
 
@@ -23,8 +23,8 @@ Complete record of architecture parameters, training configuration, and experime
 | Model | Architecture | Global Mean RMSE | Improvement vs MLP |
 | :--- | :--- | :--- | :--- |
 | **MLP** | 768×8 | 113,889 km | — |
-| **PINN** | 768×8 | 48,778 km | -99.99% |
-| **HPINN** | 768×8 (Hybrid) | **34,037 km** | **-99.99% (Best)** |
+| **PINN** | 768×8 | 48,778 km | -57.1% |
+| **HPINN** | 768×8 (Hybrid) | **34,037 km** | **-70.1% (Best)** |
 
 > [!TIP]
 > The HPINN reduces the residual error of the standard PINN by a further ~30% (from 48k to 34k km) globally.
